@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "leanwork": {
+      "source": {
+        "source": "github",
+        "repo": "leanwork/leanwork-sdd"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "leanwork-sdd@leanwork": true
+  }
+}
