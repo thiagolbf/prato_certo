@@ -5,7 +5,7 @@
 **Autor:** Thiago Barcelos
 **Data:** 2026-09-22
 **Status:** Rascunho
-**Arquitetura base:** [`docs/architecture/proposta-arquitetural.md`](../architecture/proposta-arquitetural.md) — ADR-001 a ADR-007
+**Arquitetura base:** [`docs/architecture/proposta-arquitetural.md`](../architecture/proposta-arquitetural.md) — ADR-001 a ADR-008
 
 ---
 
@@ -691,6 +691,8 @@ Detalhe completo em [`docs/architecture/proposta-arquitetural.md`](../architectu
 - Mobile first — a tela de registro precisa caber sem rolagem, com alvos de toque adequados ao polegar
 - Sempre online — não há suporte offline
 - Backend Python/FastAPI, frontend Next.js, banco PostgreSQL
+- Desenvolvimento e validação inteiramente locais primeiro; a publicação na nuvem só começa com o sistema validado localmente *(ADR-008)*
+- Hospedagem: Web no Vercel, API no Render, banco no Supabase usado apenas como PostgreSQL *(ADR-008)*
 
 **Premissa** remanescente:
 
@@ -710,7 +712,9 @@ Detalhe completo em [`docs/architecture/proposta-arquitetural.md`](../architectu
 | Risco | **Login como vetor de negação de serviço** — endpoint aberto e hash caro por projeto | RN-37 mais a regra de executar o hash fora do event loop *(ADR-006 e seção 10 da proposta)* |
 | Risco | **Limite de ritmo por origem deixa de valer ao escalar.** Diferente do bloqueio por conta, que é persistido (RN-37), a contagem por origem é efêmera. Se viesse da memória do processo, subir uma segunda réplica dividiria a contagem entre elas e afrouxaria o limite **em silêncio** — sem erro, sem log, sem nada quebrar visivelmente | Manter a camada por origem na **borda** e não no processo da API (RN-37). A consequência está registrada no ADR-006 para ser consultada antes de qualquer decisão de escalar |
 | Risco | **Segurança transversal deixada para "ver na implementação"** — regra não escrita não vira tarefa no plano nem finding no review | RN-42 a RN-48, com cenários CA-40 a CA-46 e um PBI próprio (1.4) para o planner ter onde pendurar as tarefas |
-| Dependência | Nenhuma externa | O sistema não depende de time, fornecedor ou serviço de terceiro para operar |
+| Risco | **Primeira ação do dia espera dezenas de segundos.** No plano gratuito do Render, a API dorme após cerca de 15 minutos sem requisição, o que viola o retorno em menos de um segundo exigido na seção 14 — tipicamente no login ou no primeiro registro do almoço | No estágio de estudo, ping agendado no horário de funcionamento chamando `/health`; ao entrar em uso real, plano pago do Render sem suspensão *(ADR-008 e seção 10 da proposta)* |
+| Dependência | Nenhuma externa nas regras de negócio | Nenhuma regra depende de time, fornecedor ou serviço de terceiro — não há integração no caminho do registro |
+| Dependência | Provedores de hospedagem na operação | Vercel, Render e Supabase precisam estar disponíveis para o sistema funcionar. O código não usa recurso proprietário de nenhum deles, o que mantém a troca de provedor como configuração *(ADR-008)* |
 
 ---
 
@@ -729,5 +733,5 @@ Nenhuma questão em aberto.
 
 ## 17. Referências
 
-- [`docs/architecture/proposta-arquitetural.md`](../architecture/proposta-arquitetural.md) — ADR-001 a ADR-007, dívidas conscientes e riscos
+- [`docs/architecture/proposta-arquitetural.md`](../architecture/proposta-arquitetural.md) — ADR-001 a ADR-008, dívidas conscientes e riscos
 - Decisões tomadas na entrevista desta fase: cardápio por data com herança automática; quantidade no painel de confirmação pré-preenchida em 1; cancelamento exclusivo do ADMIN, sem limite de tempo; dia operacional civil

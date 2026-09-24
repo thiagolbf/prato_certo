@@ -1,6 +1,6 @@
 # Proposta Arquitetural — Controle de PF e Marmitas
 
-> Cliente: projeto próprio · Documento gerado em 2026-09-22 · Versão 0.1
+> Cliente: projeto próprio · Documento gerado em 2026-09-22 · Versão 0.2 (atualizada em 2026-09-23: decisão de hospedagem, ADR-008)
 >
 > Nome do sistema é provisório.
 
@@ -110,8 +110,10 @@ Quatro atributos dirigem as decisões. Os demais são atendidos pelo padrão da 
 | Time | Um desenvolvedor, sem operação dedicada | Contexto do projeto |
 | Conectividade | Registro sempre online; sem suporte offline | Decidida na entrevista |
 | Horizonte | Entregar como projeto final de mentoria sem plantar impedimento a colocar em produção logo em seguida | Decidida na entrevista |
+| Hospedagem | Vercel (Web), Render (API) e Supabase (PostgreSQL); Azure como possibilidade futura | Declarada pelo desenvolvedor; formalizada em ADR-008 |
+| Sequência de entrega | Desenvolver e validar tudo localmente; só então preparar e publicar na nuvem | Declarada pelo desenvolvedor; formalizada em ADR-008 |
 
-Não há restrição regulatória relevante: o sistema não guarda dado de cliente final, apenas credenciais dos poucos operadores. Não há restrição de cloud, de budget declarado nem de prazo contratual.
+Não há restrição regulatória relevante: o sistema não guarda dado de cliente final, apenas credenciais dos poucos operadores. Não há budget declarado nem prazo contratual. A escolha de provedores é preferência do desenvolvedor, motivada também pelo aprendizado de publicação, e não obrigação contratual — por isso o ADR-008 exige que o código permaneça portável entre provedores.
 
 ---
 
@@ -217,6 +219,32 @@ Essa segunda escolha não é arbitrária. Se a contagem por origem vivesse na me
   - Positivas: uma única definição de cada número, viva no código, testável. Nenhum processo em segundo plano para monitorar. O relatório nunca está desatualizado.
   - Negativas: a lógica de agregação fica em SQL ou no ORM, e precisa ser testada com o mesmo rigor de regra de negócio, porque é exatamente isso. Quando a projeção mensal chegar, as consultas ficarão mais pesadas e o gatilho da Dívida 4 precisa ser observado.
 
+### ADR-008: Hospedagem em Vercel, Render e Supabase — desenvolvimento local primeiro, código portável sempre
+
+- **Contexto**: a versão 0.1 desta proposta adiou a escolha de hospedagem (seção 11, passo 5). O desenvolvedor definiu os provedores: **Vercel** para a Web, **Render** para a API e **Supabase** para o PostgreSQL — escolha motivada pelo atributo de custo (3.4) e também pelo objetivo de aprender a publicar nessas plataformas, com Azure como próximo passo possível no futuro. Definiu também a sequência: **todo o sistema roda e é validado localmente primeiro**; a preparação para a nuvem é uma fase posterior, feita com o sistema já funcionando.
+- **Decisão**:
+  1. **Sequência** — o desenvolvimento acontece inteiramente no ambiente local: PostgreSQL e API em Docker Compose, Next.js rodando localmente. Só depois que as funcionalidades estiverem validadas localmente entra a fase de publicação, que produz os artefatos e configurações de nuvem: serviços criados nos provedores, variáveis de ambiente, execução das migrations no deploy, rotina de manter acordado e backup agendado.
+  2. **Provedores** — Web no **Vercel**; API no **Render**, como Web Service construído a partir do mesmo `Dockerfile` usado localmente; banco no **Supabase**, usado **exclusivamente como PostgreSQL gerenciado**.
+  3. **Regras de portabilidade, valendo desde o primeiro dia de código local** — é o que faz a fase de publicação ser configuração, e não reescrita:
+     - toda configuração vem de variável de ambiente (`DATABASE_URL`, segredo de sessão, URL da API usada pelo rewrite do Next.js); localmente num `.env` fora do controle de versão;
+     - a API escuta na porta informada por `$PORT`;
+     - a API expõe uma rota `/health` que toca o banco com uma consulta trivial;
+     - nada é gravado em disco local do container;
+     - o PostgreSQL local usa a mesma versão principal do Supabase — nunca SQLite;
+     - **não** usar recursos proprietários dos provedores: nada de Supabase Auth, Storage, Realtime, API automática ou RLS gerenciada pelo painel; nada de Postgres, disco persistente ou cron do Render; configuração do Render não pode existir **apenas** no `render.yaml`.
+  4. **Conexão API → banco** — usar a connection string do **pooler do Supabase em modo session**, compatível com IPv4 e com o comportamento de um processo de longa duração; a conexão direta do Supabase pode ser apenas IPv6, o que a torna inviável a partir do Render. API e banco hospedados **na mesma região**; como o Render não tem região no Brasil, ambos ficam juntos na mesma região fora do país, preferencialmente leste dos EUA.
+  5. **Política de plano** — no estágio de estudo, planos gratuitos, com um **ping agendado para o horário de funcionamento** (externo, por exemplo cron-job.org ou UptimeRobot) chamando `/health`: isso mantém a API acordada e, por tocar o banco, impede também a pausa do Supabase por inatividade. **Ao entrar em uso real**, a API passa para plano pago do Render sem suspensão por ociosidade. **Ao vender o sistema**, revisar o plano do Vercel — o Hobby é para uso não comercial — e o do Supabase, pelo backup.
+- **Justificativa**: os três provedores cobrem exatamente os três containers da seção 6.2 sem forçar mudança em nenhum ADR anterior — o Next.js mantém o rewrite de ADR-006, a API segue como container único de ADR-001, o banco segue relacional e gerenciado (6.2). Desenvolver localmente primeiro mantém o ciclo de feedback rápido e barato, e as regras de portabilidade garantem que isso não custe retrabalho na publicação. As mesmas regras são o que preserva a opção de trocar o Render por Railway, ou migrar tudo para Azure, sem tocar no código: o container é o mesmo, muda o painel.
+- **Alternativas consideradas**:
+  - **Azure agora** (Container Apps, Azure Database for PostgreSQL, Static Web Apps) — adiada, não descartada. É mais complexa para um primeiro deploy e não tem plano gratuito tão direto; fica como próximo passo de aprendizado, viável justamente pelas regras de portabilidade.
+  - **Railway no lugar do Render** — comparável e sem suspensão por padrão, mas sem plano gratuito permanente. Registrada como troca de baixo custo: novo serviço a partir do mesmo `Dockerfile`, mesmas variáveis, nova URL no rewrite do Vercel; o banco não se move.
+  - **VPS própria** (por exemplo Oracle Cloud Always Free) — descartada porque transfere ao desenvolvedor sistema operacional, TLS e atualizações, contrariando o atributo 3.3.
+  - **Postgres do Render** — descartado por amarrar banco e API ao mesmo provedor e por ter limites mais restritivos no plano gratuito; o banco separado é o que torna a API trocável.
+  - **Deploy mínimo cedo**, logo após o scaffolding — considerado para revelar cedo surpresas de ambiente. O desenvolvedor optou por publicar só com tudo validado localmente; o risco correspondente fica na seção 10, mitigado pelas regras de portabilidade.
+- **Consequências**:
+  - Positivas: custo zero no estágio de estudo; três painéis simples; a fase de publicação vira uma lista finita de configurações, que o plano de execução pode quebrar em tarefas próprias; troca de provedor da API ou migração para Azure sem mudança de código.
+  - Negativas / dívidas plantadas: o plano gratuito do Render **reintroduz o cold start que o ADR-001 rejeitou** ao descartar serverless — o serviço dorme após cerca de 15 minutos sem requisição e a primeira chamada seguinte pode levar dezenas de segundos. No estudo isso é contornado pelo ping; em uso real, só o plano pago resolve de verdade. O Supabase gratuito não oferece backup restaurável pelo usuário, o que obriga a um backup próprio (apêndice, seção 12). Problemas de ambiente — rede, região, variáveis — só aparecem na fase de publicação, não durante o desenvolvimento.
+
 ---
 
 ## 6. Visão arquitetural
@@ -244,9 +272,9 @@ Os dois atores estão separados porque têm perfis de uso opostos: o operador us
 ```mermaid
 flowchart TB
     Browser["Navegador móvel"]
-    Web["Web — Next.js<br/>App Router, client components<br/>também é a borda: rewrite de /api"]
-    API["API — FastAPI<br/>monolito modular, REST/JSON"]
-    DB[("PostgreSQL<br/>gerenciado")]
+    Web["Web — Next.js<br/>App Router, client components<br/>também é a borda: rewrite de /api<br/>hospedado no Vercel"]
+    API["API — FastAPI<br/>monolito modular, REST/JSON<br/>container no Render"]
+    DB[("PostgreSQL<br/>gerenciado no Supabase")]
 
     Browser -->|HTTPS| Web
     Web -->|"rewrite /api/* — same-origin"| API
@@ -255,13 +283,13 @@ flowchart TB
 
 **Web — Next.js**
 
-Responsabilidade: servir o app autenticado e, no futuro, as páginas públicas; atuar como borda, reescrevendo `/api/*` para a API. Tecnologia: Next.js com App Router, TypeScript, telas do app como client components. Justificativa em ADR-002 e ADR-006. Deploy: plataforma de hospedagem de Next.js, em tier gratuito no estágio inicial.
+Responsabilidade: servir o app autenticado e, no futuro, as páginas públicas; atuar como borda, reescrevendo `/api/*` para a API. Tecnologia: Next.js com App Router, TypeScript, telas do app como client components. Justificativa em ADR-002 e ADR-006. Deploy: Vercel, em plano gratuito no estágio de estudo (ADR-008). A URL da API usada pelo rewrite vem de variável de ambiente.
 
 A interface é mobile first de verdade: alvos de toque grandes o bastante para o polegar, contraste que sobrevive à luz do salão, e a tela de registro sem rolagem — todos os itens do cardápio do dia visíveis de uma vez. O detalhamento de telas e estados é trabalho da fase de protótipo, não desta proposta.
 
 **API — FastAPI**
 
-Responsabilidade: toda a regra de negócio, autenticação e persistência. Tecnologia: Python com FastAPI, SQLAlchemy 2.0 e Alembic para migrations. Deploy: container único.
+Responsabilidade: toda a regra de negócio, autenticação e persistência. Tecnologia: Python com FastAPI, SQLAlchemy 2.0 e Alembic para migrations. Deploy: container único — o mesmo `Dockerfile` roda no Docker Compose local e no Render (ADR-008).
 
 Duas escolhas dentro deste container merecem registro, ainda que não cheguem a ser decisões arquiteturais:
 
@@ -271,7 +299,7 @@ Duas escolhas dentro deste container merecem registro, ainda que não cheguem a 
 
 **PostgreSQL**
 
-Responsabilidade: única fonte de verdade. Restrição declarada (seção 4), e adequada: o sistema depende de transação ACID no registro da venda e de agregação relacional no fechamento — exatamente o que um banco relacional faz bem. Modo: instância gerenciada por provedor, não administrada por nós, pelo atributo 3.3.
+Responsabilidade: única fonte de verdade. Restrição declarada (seção 4), e adequada: o sistema depende de transação ACID no registro da venda e de agregação relacional no fechamento — exatamente o que um banco relacional faz bem. Modo: instância gerenciada por provedor, não administrada por nós, pelo atributo 3.3 — Supabase, usado apenas como PostgreSQL, acessado pelo pooler em modo session (ADR-008). Localmente, PostgreSQL em Docker Compose na mesma versão principal.
 
 ### 6.3 Estrutura de módulos da API
 
@@ -384,7 +412,11 @@ Como o registro é sempre online, uma falha de rede **sinaliza**: a interface n�
 | Consulta nova esquece o filtro de estabelecimento | Alto | Baixa hoje, alta quando houver o segundo | Filtro na camada de repositório, nunca no serviço; item fixo de review; Row Level Security quando a Dívida 3 for paga |
 | Operador registra errado e não consegue desfazer rápido | Médio | Alta | Cancelamento em um toque na própria tela de registro (ADR-004); a confirmação prévia reduz a frequência |
 | Conexão cai no pico e a venda se perde | Médio | Média | Falha sinalizada de forma inequívoca, com reenvio manual seguro pela idempotência; Dívida 2 registrada com caminho de pagamento barato |
-| Banco em tier gratuito hiberna e o primeiro clique do almoço demora | Médio | Alta | Verificar a política de hibernação do provedor antes de escolher; manter verificação de saúde periódica; ao ir para produção, preferir provedor sem suspensão por ociosidade |
+| API no plano gratuito do Render dorme após cerca de 15 minutos sem requisição e o primeiro clique do almoço espera dezenas de segundos | Alto | Alta | ADR-008: no estudo, ping agendado no horário de funcionamento chamando `/health`; ao entrar em uso real, plano pago do Render sem suspensão |
+| Supabase gratuito pausa o projeto após período sem atividade | Médio | Alta | O mesmo ping de `/health` toca o banco e mantém o projeto ativo (ADR-008); em uso real, avaliar plano pago |
+| Supabase gratuito sem backup restaurável pelo usuário — perda de histórico de vendas | Alto | Baixa | Backup próprio agendado com `pg_dump`, guardado fora do Supabase, com restore testado antes do primeiro uso real (seção 12) |
+| Surpresas de ambiente — IPv6 da conexão direta, região, variáveis — só aparecem na fase de publicação, porque o desenvolvimento é todo local | Médio | Média | Regras de portabilidade do ADR-008 desde o primeiro dia; conexão pelo pooler em modo session; checklist de publicação no plano de execução |
+| Plano Hobby do Vercel não permite uso comercial | Médio | Certa, ao vender | Migrar a Web para o plano Pro ou para outro provedor antes do primeiro cliente pagante (ADR-008) |
 | **`/login` como vetor de negação de serviço.** O endpoint é aberto à internet e o hash é caro por projeto. Sem sair do event loop, uma sequência de tentativas de login — inclusive todas erradas, já que o hash roda igual — mantém o loop ocupado e congela o registro de vendas para todos | Alto | Média | `asyncio.to_thread` no hash (ADR-006), mais limite de tentativas por origem, a ser formalizado como regra no PRD |
 | **Agregação de relatório feita em Python** em vez de no SQL. É o candidato mais provável a travar o loop neste projeto, e por segundos, não milissegundos: o ADMIN abrindo o dashboard no meio do almoço pararia o registro de vendas | Alto | Média | Manter `GROUP BY` e somatórios no banco (ADR-007); nunca varrer resultado linha a linha em Python. Item fixo de review no módulo `relatorios` |
 | Qualquer outra chamada bloqueante dentro de `async def` — driver síncrono, `requests` no lugar de `httpx`, trabalho de CPU em rota | Médio | Média | Item fixo de review. O hash de senha é o exemplo didático da classe inteira: trabalho pesado sai do loop, sempre |
@@ -400,8 +432,9 @@ Sequência lógica de validação, não cronograma:
 1. **PRD** — formalizar as regras de negócio e os critérios de aceite. Três pontos precisam de atenção especial, porque esta proposta os identificou mas não os resolve: a definição do dia operacional e o comportamento na virada, as regras de cancelamento — quem pode, até quando —, e o que acontece com uma venda cujo item saiu do cardápio depois.
 2. **Especificação de interface** — o sistema é mobile first e a tela de registro é o produto. A fase de protótipo vale a pena aqui, e deve tratar explicitamente os estados de falha de rede e de confirmação, que é onde a arquitetura toca a interface.
 3. **Plano de execução** — quebra em tarefas, usando as fronteiras de módulo de 6.3 como eixo natural de decomposição.
-4. **Scaffolding** — estrutura dos dois projetos, primeira migration com `estabelecimento_id` e Alembic desde o início, ambiente local em Docker Compose.
-5. **Decisão de hospedagem** — deliberadamente adiada. A arquitetura não depende do provedor; a escolha fica melhor informada depois do scaffolding, quando o tamanho real da imagem e o comportamento de cold start puderem ser medidos. O critério é a política de hibernação do banco, pelo risco registrado na seção 10.
+4. **Scaffolding local** — estrutura dos dois projetos, primeira migration com `estabelecimento_id` e Alembic desde o início, ambiente local em Docker Compose com PostgreSQL e a API a partir do `Dockerfile`, já seguindo as regras de portabilidade do ADR-008.
+5. **Desenvolvimento e validação local** — todas as funcionalidades do plano implementadas e validadas no ambiente local.
+6. **Publicação** — decidida em ADR-008: Vercel, Render e Supabase. Só começa com o sistema validado localmente, e compreende criar os serviços, configurar variáveis de ambiente, conectar pelo pooler do Supabase, executar as migrations no deploy, agendar o ping de `/health` e o backup, e testar o restore.
 
 ---
 
@@ -412,5 +445,5 @@ Sequência lógica de validação, não cronograma:
 - **Design visual, tipografia e paleta** — fase de protótipo.
 - **Modelo de dados detalhado**, com tipos, restrições e índices — PRD e plano de execução. A seção 6.3 traz apenas o esqueleto necessário para tornar as ADRs concretas.
 - **Projeções e previsão de demanda** — objetivo declarado para o futuro. Esta proposta garante que o dado necessário seja coletado com fidelidade desde o dia um, mas não especifica o método de projeção.
-- **Política de backup e retenção** — decidida junto com a hospedagem (passo 5). O requisito já está fixado pelo horizonte escolhido: snapshot automático do provedor mais cópia fora dele, com restore testado antes do primeiro uso real.
+- **Política de backup e retenção** — o requisito está fixado pelo horizonte escolhido: cópia fora do provedor, com restore testado antes do primeiro uso real. Com o Supabase gratuito (ADR-008), que não oferece backup restaurável pelo usuário, isso significa `pg_dump` agendado e guardado fora do Supabase; o snapshot automático do provedor passa a somar quando houver plano pago. Frequência e tempo de retenção são detalhados no plano de execução, na fase de publicação.
 - **Controle de insumos além de proteína** — não-objetivo declarado (2.3).
