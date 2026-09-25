@@ -1,6 +1,6 @@
 # Proposta Arquitetural — Controle de PF e Marmitas
 
-> Cliente: projeto próprio · Documento gerado em 2026-09-22 · Versão 0.2 (atualizada em 2026-09-23: decisão de hospedagem, ADR-008)
+> Cliente: projeto próprio · Documento gerado em 2026-09-22 · Versão 0.3 (atualizada em 2026-09-23: decisão de hospedagem, ADR-008; em 2026-09-24: orientação a objetos seletiva no backend, ADR-009)
 >
 > Nome do sistema é provisório.
 
@@ -83,7 +83,7 @@ Quatro atributos dirigem as decisões. Os demais são atendidos pelo padrão da 
 
 - **Meta concreta**: o número do fim do dia é auditável e reproduzível. Nenhuma venda duplicada, nenhum total que mude retroativamente quando um preço ou gramagem for editado, nenhuma venda atribuída ao dia errado.
 - **Por quê é prioritário**: é o objetivo de negócio inteiro. Todo o valor do sistema — e as projeções futuras — repousa sobre esse número.
-- **Como a arquitetura atende**: venda append-only com snapshot de preço e gramagem e cancelamento lógico (ADR-004); idempotência por chave de clique (ADR-004); contrato explícito de fuso e dia operacional (ADR-005); transações ACID no PostgreSQL.
+- **Como a arquitetura atende**: venda append-only com snapshot de preço e gramagem e cancelamento lógico (ADR-004); idempotência por chave de clique (ADR-004); contrato explícito de fuso e dia operacional (ADR-005); transações ACID no PostgreSQL; essas invariantes impostas pelas próprias entidades de domínio, e não pela disciplina de cada chamador (ADR-009).
 
 ### 3.3 Manutenibilidade por um desenvolvedor sozinho
 
@@ -112,6 +112,7 @@ Quatro atributos dirigem as decisões. Os demais são atendidos pelo padrão da 
 | Horizonte | Entregar como projeto final de mentoria sem plantar impedimento a colocar em produção logo em seguida | Decidida na entrevista |
 | Hospedagem | Vercel (Web), Render (API) e Supabase (PostgreSQL); Azure como possibilidade futura | Declarada pelo desenvolvedor; formalizada em ADR-008 |
 | Sequência de entrega | Desenvolver e validar tudo localmente; só então preparar e publicar na nuvem | Declarada pelo desenvolvedor; formalizada em ADR-008 |
+| Paradigma — backend | Aplicar orientação a objetos onde ela fizer sentido — não como regra universal | Declarada pelo desenvolvedor, também como objetivo de estudo de arquitetura; a fronteira de onde se aplica é decisão, em ADR-009 |
 
 Não há restrição regulatória relevante: o sistema não guarda dado de cliente final, apenas credenciais dos poucos operadores. Não há budget declarado nem prazo contratual. A escolha de provedores é preferência do desenvolvedor, motivada também pelo aprendizado de publicação, e não obrigação contratual — por isso o ADR-008 exige que o código permaneça portável entre provedores.
 
@@ -245,6 +246,37 @@ Essa segunda escolha não é arbitrária. Se a contagem por origem vivesse na me
   - Positivas: custo zero no estágio de estudo; três painéis simples; a fase de publicação vira uma lista finita de configurações, que o plano de execução pode quebrar em tarefas próprias; troca de provedor da API ou migração para Azure sem mudança de código.
   - Negativas / dívidas plantadas: o plano gratuito do Render **reintroduz o cold start que o ADR-001 rejeitou** ao descartar serverless — o serviço dorme após cerca de 15 minutos sem requisição e a primeira chamada seguinte pode levar dezenas de segundos. No estudo isso é contornado pelo ping; em uso real, só o plano pago resolve de verdade. O Supabase gratuito não oferece backup restaurável pelo usuário, o que obriga a um backup próprio (apêndice, seção 12). Problemas de ambiente — rede, região, variáveis — só aparecem na fase de publicação, não durante o desenvolvimento.
 
+### ADR-009: Orientação a objetos seletiva — comportamento nas entidades onde há invariante, procedural onde há fluxo
+
+- **Contexto**: o desenvolvedor declarou que quer aplicar orientação a objetos no projeto, onde ela fizer sentido (seção 4). O ADR-001 fixa a estrutura `router → service → repository`, mas não diz **onde a regra de negócio mora** dentro dela. Sem essa definição, o caminho natural em FastAPI é o modelo anêmico: entidades como sacos de atributos e toda regra espalhada pelos services. É exatamente o arranjo em que as invariantes dos ADRs 003, 004 e 005 — venda imutável, snapshot, filtro de estabelecimento, fronteira do dia — dependem da atenção de quem escreve cada service novo.
+- **Decisão**: aplicamos orientação a objetos pelo critério **"existe invariante a proteger ou dependência a trocar?"**. Onde sim, classe com comportamento; onde não, função.
+  1. **Entidades com comportamento** nos módulos `identidade`, `catalogo` e `vendas`. A regra vive em métodos da entidade; o service orquestra — carrega, chama o método, persiste, confirma a transação. Concretamente:
+     - `Venda.registrar(...)` é o único caminho de criação: copia o snapshot da RN-15, valida a quantidade da RN-14 e calcula valor e proteína da RN-16. Não existe outro construtor em uso pelo código de aplicação.
+     - `Venda.cancelar(por, motivo)` é a **única** mutação permitida: exige motivo (RN-26), recusa cancelar duas vezes (RN-25) e grava instante e autor (RN-23).
+     - `CardapioData.herdar_de(anterior, data)` concentra a herança automática da RN-08, já descartando itens desativados (RN-12).
+     - `Prato.desativar()`, `ItemCardapio.desativar()` e `Usuario.desativar()` substituem qualquer exclusão (RN-04, RN-34).
+     - `Usuario.registrar_falha_login()`, `Usuario.registrar_login_ok()` e `Usuario.esta_bloqueado(agora)` concentram o bloqueio por conta progressivo da RN-37.
+  2. **Objetos de valor imutáveis** (`dataclass(frozen=True)`) para conceitos com regra própria: `Dinheiro`, sempre sobre `Decimal` e nunca `float`; `Gramagem`; e `DiaOperacional`, que passa a ser o **único** lugar do código onde a conversão UTC → `America/Sao_Paulo` do ADR-005 acontece.
+  3. **Fronteira entre módulos por dado, não por entidade.** `vendas` não recebe o `ItemCardapio` do `catalogo`: recebe do serviço de catálogo um objeto de leitura imutável com exatamente os campos do snapshot. A entidade de um módulo nunca é importada por outro. Isso mantém a regra de fronteira do ADR-001 e impede que `Venda.registrar` navegue relacionamentos de outro módulo.
+  4. **Repositórios como classes que recebem o `estabelecimento_id` no construtor**, injetadas via `Depends`. O filtro obrigatório do ADR-003 deixa de ser algo que cada consulta precisa lembrar e passa a ser estado do objeto.
+  5. **Services como classes** com dependências recebidas no construtor, o que permite testá-los com repositório falso, sem banco.
+  6. **Comportamento direto nos modelos SQLAlchemy.** Não existe camada de domínio "pura" separada do ORM, nem mapeamento entre as duas. Os **schemas Pydantic** continuam separados dos modelos, porque são contrato HTTP, não domínio — e é o que permite, por exemplo, devolver ao Operador a venda sem preço (RN-40) sem tocar na entidade.
+  7. **Erros de regra como exceções de domínio** (`VendaJaCancelada`, `QuantidadeForaDoLimite`, …), traduzidas para HTTP em um único handler da aplicação. A entidade não conhece HTTP.
+  8. **Contratos só quando há segunda implementação ou necessidade de teste**, via `typing.Protocol` — nunca uma interface por reflexo para cada classe.
+- **Onde orientação a objetos não se aplica, por decisão**:
+  - **`relatorios`** — consultas agregadas no SQL (ADR-007). Materializar entidades para somar em Python é justamente o risco de travar o event loop registrado na seção 10. O módulo é procedural por natureza: consulta entra, número sai.
+  - **Routers** — funções, que é o modelo do FastAPI. Fazem só tradução HTTP ↔ service e declaram autorização por perfil (quem pode cancelar, RN-21) como dependência da rota. Autorização é controle de acesso, não invariante da entidade.
+  - **Frontend** — React atual é funcional, com hooks. Componentes de classe são legado e não entram.
+- **Justificativa**: coloca as invariantes mais caras do sistema dentro de objetos que as impõem por construção, o que fortalece a integridade do fechamento (3.2) sem aumentar a quantidade de código — a regra que estaria no service apenas muda de endereço. Restringir a orientação a objetos aos lugares com invariante preserva a manutenibilidade por um desenvolvedor sozinho (3.3): nenhuma abstração existe sem uma regra que a justifique. E atende ao objetivo de estudo declarado sem transformá-lo em cerimônia.
+- **Alternativas consideradas**:
+  - **Modelo anêmico, com a regra nos services** — o padrão mais comum em FastAPI. Descartado porque deixa desprotegidas as invariantes do ADR-004: nada impede um service qualquer de atribuir `preco_unitario` numa venda já registrada.
+  - **Domínio puro separado do ORM** — dataclasses de domínio, modelos SQLAlchemy e mapeamento entre eles, no estilo hexagonal. Descartado por dobrar o código de cada entidade para um desenvolvedor sozinho, em troca de independência de ORM que nenhum objetivo pede.
+  - **Orientação a objetos em todas as camadas**, inclusive routers em classe e relatórios como objetos. Descartada: nas rotas briga com o modelo do FastAPI; nos relatórios ataca o ADR-007 e o event loop.
+  - **Transpor o conjunto de padrões comum em ecossistemas como .NET** — `IRepository<T>` genérico, `UnitOfWork` próprio, mediator, mapeador automático. Descartado. A `AsyncSession` já é a unidade de trabalho; repositório genérico esconde as consultas específicas que são o valor do repositório; mediator e mapeador resolvem problemas de escala de time que este projeto não tem.
+- **Consequências**:
+  - Positivas: invariantes testáveis por teste de unidade puro, sem banco — cancelar duas vezes lança exceção, um instante às 02h59 UTC cai no dia operacional anterior. O review ganha um critério objetivo: regra de negócio escrita no service é finding.
+  - Negativas: **o SQLAlchemy async não permite carregamento preguiçoso.** Acessar um relacionamento não carregado levanta `MissingGreenlet` em tempo de execução — e um domínio rico tende a navegar relacionamentos. A mitigação é dupla: relacionamentos declarados com `lazy="raise"`, para que o esquecimento falhe cedo e com mensagem legível, e carregamento explícito (`selectinload`/`joinedload`) no repositório de tudo o que o método da entidade vai usar. Além disso, Python não impede atribuição direta a atributo: o encapsulamento é por convenção e review, não imposto pela linguagem.
+
 ---
 
 ## 6. Visão arquitetural
@@ -303,7 +335,17 @@ Responsabilidade: única fonte de verdade. Restrição declarada (seção 4), e 
 
 ### 6.3 Estrutura de módulos da API
 
-Quatro módulos, todos com a mesma estrutura interna — `router` → `service` → `repository` — conforme ADR-001:
+Quatro módulos, todos com a mesma estrutura interna — `router` → `service` → `repository` — conforme ADR-001. Nos módulos `identidade`, `catalogo` e `vendas`, a regra de negócio vive nas entidades e o service orquestra; `relatorios` é procedural (ADR-009):
+
+```mermaid
+flowchart LR
+    R["router<br/>função · HTTP ↔ service<br/>autorização por perfil"] --> S["service<br/>classe · orquestra<br/>transação"]
+    S --> E["entidades e objetos de valor<br/>regra de negócio<br/>invariantes"]
+    S --> P["repository<br/>classe · filtro de<br/>estabelecimento no construtor"]
+    P --> E
+```
+
+O diagrama vale para `identidade`, `catalogo` e `vendas`. Em `relatorios`, o router chama funções de consulta agregada, sem entidade no caminho.
 
 | Módulo | Responsabilidade | Fronteira |
 |---|---|---|
@@ -375,6 +417,8 @@ Como o registro é sempre online, uma falha de rede **sinaliza**: a interface n�
 
 - **Integridade × velocidade de escrita**: priorizamos integridade sem hesitar. Transação ACID, índice único de idempotência e snapshot custam microssegundos num volume desta ordem. Não há nada a ganhar afrouxando aqui.
 
+- **Invariante protegida × código mínimo**: priorizamos proteger invariantes com entidades e objetos de valor, mas só onde elas existem (ADR-009). Aceitamos o custo de carregar relacionamentos explicitamente no modo async em troca de a venda não poder ser alterada por acidente; recusamos a separação entre domínio e ORM, que dobraria o código sem proteger nada a mais.
+
 - **Preparo para multi-tenant × enxugar o modelo**: priorizamos o preparo mínimo — uma coluna e um filtro — contra a alternativa de nada ou de tudo. É a aposta explícita de ADR-003.
 
 ---
@@ -420,6 +464,8 @@ Como o registro é sempre online, uma falha de rede **sinaliza**: a interface n�
 | **`/login` como vetor de negação de serviço.** O endpoint é aberto à internet e o hash é caro por projeto. Sem sair do event loop, uma sequência de tentativas de login — inclusive todas erradas, já que o hash roda igual — mantém o loop ocupado e congela o registro de vendas para todos | Alto | Média | `asyncio.to_thread` no hash (ADR-006), mais limite de tentativas por origem, a ser formalizado como regra no PRD |
 | **Agregação de relatório feita em Python** em vez de no SQL. É o candidato mais provável a travar o loop neste projeto, e por segundos, não milissegundos: o ADMIN abrindo o dashboard no meio do almoço pararia o registro de vendas | Alto | Média | Manter `GROUP BY` e somatórios no banco (ADR-007); nunca varrer resultado linha a linha em Python. Item fixo de review no módulo `relatorios` |
 | Qualquer outra chamada bloqueante dentro de `async def` — driver síncrono, `requests` no lugar de `httpx`, trabalho de CPU em rota | Médio | Média | Item fixo de review. O hash de senha é o exemplo didático da classe inteira: trabalho pesado sai do loop, sempre |
+| Entidade acessa relacionamento não carregado e o SQLAlchemy async levanta `MissingGreenlet` em tempo de execução | Médio | Alta | ADR-009: relacionamentos com `lazy="raise"`, carregamento explícito no repositório, fronteira entre módulos por objeto de leitura; teste do fluxo de registro contra banco real |
+| Regra de negócio escapa aos poucos para o service e a entidade volta a ser anêmica, deixando invariante desprotegida | Médio | Média | ADR-009: regra em service é finding de review; toda invariante coberta por teste de unidade na entidade |
 | Curva do App Router consome tempo de um desenvolvedor sozinho | Médio | Média | Regra explícita de ADR-002: app autenticado inteiro em client components, sem renderização no servidor |
 | Dois deploys se desencontram — frontend novo contra API velha | Baixo | Média | Manter o contrato REST retrocompatível dentro de uma versão; publicar a API antes da Web |
 
