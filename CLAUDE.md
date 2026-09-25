@@ -23,7 +23,9 @@ no horário de pico é o caminho crítico; todo o resto acontece fora dele.
 
 ## Convenções
 
-- API é monolito modular: módulos `identidade`, `catalogo`, `vendas`, `relatorios`, cada um `router → service → repository`; módulo só fala com outro via service, nunca via repositório alheio (ADR-001)
+- API é monolito modular: módulos `identidade`, `catalogo`, `vendas` e `relatorios`. Os três primeiros seguem `router → service → repository`; `relatorios` é a exceção: `router → funções de consulta agregada`, sem service e sem entidade (ADR-001, ADR-009, seção 6.3 da proposta). Módulo só fala com outro via service, nunca via repositório alheio (ADR-001)
+- Package by feature: cada módulo é um pacote com suas entidades, schemas, repository, service e router; nada de pastas globais `models/`, `services/`, `routers/`. Transversal (config, sessão, dia operacional, exceções) fica em `core`, que não importa nenhum módulo (ADR-001)
+- Injeção de dependência pelo `Depends` do FastAPI, sem container: funções de dependência montam sessão → usuário → repository → service por requisição; service e repository recebem tudo no construtor e não importam FastAPI. Em teste, `app.dependency_overrides` ou instanciação direta (ADR-009)
 - POO seletiva: regra de negócio vive em métodos das entidades de `identidade`, `catalogo` e `vendas`; service só orquestra. Regra de negócio no service é defeito (ADR-009)
 - `relatorios` é procedural: agregação no SQL (`GROUP BY`/somatórios), nunca somando em Python (ADR-007, ADR-009)
 - Routers são funções; autorização por perfil é dependência da rota, não da entidade (ADR-009)
