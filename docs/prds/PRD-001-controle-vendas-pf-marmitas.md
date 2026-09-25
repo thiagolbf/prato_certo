@@ -5,7 +5,7 @@
 **Autor:** Thiago Barcelos
 **Data:** 2026-09-22
 **Status:** Rascunho
-**Arquitetura base:** [`docs/architecture/proposta-arquitetural.md`](../architecture/proposta-arquitetural.md) — ADR-001 a ADR-008
+**Arquitetura base:** [`docs/architecture/proposta-arquitetural.md`](../architecture/proposta-arquitetural.md) — ADR-001 a ADR-009
 
 ---
 
@@ -733,5 +733,5 @@ Nenhuma questão em aberto.
 
 ## 17. Referências
 
-- [`docs/architecture/proposta-arquitetural.md`](../architecture/proposta-arquitetural.md) — ADR-001 a ADR-008, dívidas conscientes e riscos
+- [`docs/architecture/proposta-arquitetural.md`](../architecture/proposta-arquitetural.md) — ADR-001 a ADR-009, dívidas conscientes e riscos
 - Decisões tomadas na entrevista desta fase: cardápio por data com herança automática; quantidade no painel de confirmação pré-preenchida em 1; cancelamento exclusivo do ADMIN, sem limite de tempo; dia operacional civil
