@@ -13,7 +13,7 @@
 
 > 📸 **Snapshot de 2026-09-25.** Esta tabela é conferência, não fonte de verdade — a fonte são as seções 8 e 9. Ao editar regras ou cenários, reconte com o comando ao final do bloco.
 
-**53 regras de negócio** (RN-01 a RN-53) · **54 cenários de aceite** (CA-01 a CA-54)
+**53 regras de negócio** (RN-01 a RN-53) · **55 cenários de aceite** (CA-01 a CA-55)
 
 | Bloco | RN | CA |
 |---|---:|---:|
@@ -22,12 +22,12 @@
 | Registro de venda | 8 | 7 |
 | Cancelamento | 6 | 6 |
 | Fechamento e relatórios | 8 | 7 |
-| Identidade e acesso | 10 | 15 |
+| Identidade e acesso | 10 | 16 |
 | Segurança transversal | 7 | 7 |
 | Imutabilidade do histórico | — | 3 |
-| **Total** | **53** | **54** |
+| **Total** | **53** | **55** |
 
-A numeração segue a ordem de criação, não a de bloco: as regras RN-49 a RN-53 e os cenários CA-47 a CA-54, acrescentados em 2026-09-25, estão nos blocos a que pertencem.
+A numeração segue a ordem de criação, não a de bloco: as regras RN-49 a RN-53 e os cenários CA-47 a CA-55, acrescentados em 2026-09-25, estão nos blocos a que pertencem.
 
 Duas assimetrias da tabela são propositais e vale registrar o porquê:
 
@@ -106,8 +106,8 @@ Permitir que o responsável saiba, ao fim de cada dia, quantos PFs e marmitas fo
 
 | Persona | Papel | Como interage com a feature |
 |---------|-------|----------------------------|
-| **Responsável** | ADMIN | Monta o cardápio do dia, cadastra proteínas, pratos e gramagens, define e reajusta preços, cancela vendas registradas por engano e consulta o fechamento. Usa poucas vezes ao dia, sem pressa, tipicamente antes de abrir e depois de fechar |
-| **Atendente** | Operador | Registra cada venda. Usa dezenas a centenas de vezes por dia, em pé, com uma mão, durante o pico do almoço. É o único perfil no caminho crítico |
+| **Responsável** | ADMIN | Monta o cardápio do dia, cadastra proteínas, pratos e gramagens, define e reajusta preços, cancela vendas registradas por engano e consulta o fechamento. Nessas tarefas usa poucas vezes ao dia, sem pressa, tipicamente antes de abrir e depois de fechar. **Também trabalha no balcão**, registrando vendas na mesma tela do Operador |
+| **Atendente** | Operador | Registra cada venda. Usa dezenas a centenas de vezes por dia, em pé, com uma mão, durante o pico do almoço. É o perfil principal do caminho crítico — que o ADMIN também percorre quando está no balcão |
 
 O contraste entre os dois é o que dita as prioridades: a tela do Operador é otimizada para velocidade e resistência a erro de toque; as telas do ADMIN são otimizadas para clareza.
 
@@ -249,7 +249,7 @@ Como não há limite de tempo para cancelar, o fechamento de uma data passada po
 
 - **RN-34:** O ADMIN cadastra, desativa e **reativa** operadores. Usuários nunca são apagados, apenas desativados, para preservar a autoria das vendas já registradas. O operador reativado volta a autenticar com a mesma conta.
 - **RN-35:** A senha é armazenada com hash **bcrypt** *(ADR-006)*.
-- **RN-36:** A sessão do Operador é longa e renovada em uso; a do ADMIN é mais curta, por ser o perfil que altera preço e cadastro *(ADR-006)*.
+- **RN-36:** As sessões dos dois perfis são **renovadas em uso**: ninguém é deslogado enquanto está registrando vendas, inclusive o ADMIN no balcão. O que difere é a expiração **por inatividade**: a do ADMIN é mais curta que a do Operador, por ser o perfil que altera preço e cadastro *(ADR-006)*.
 - **RN-37:** A proteção do login tem **duas camadas independentes**, porque defende de dois ataques diferentes e guarda estado em lugares diferentes:
   1. **Por conta — persistida no banco.** Após **5** tentativas malsucedidas consecutivas na mesma conta, aquela conta sofre bloqueio temporário progressivo: a espera aumenta a cada novo bloqueio. O bloqueio atinge **somente** a conta que errou; as demais seguem autenticando normalmente. O contador de falhas e o instante de liberação são **colunas da própria conta**, não memória de processo — o que os torna imunes a reinício da aplicação e a múltiplas réplicas, além de auditáveis.
   2. **Por origem — efêmera, na borda.** Limite de ritmo de requisições, **sem bloqueio de ninguém**. Contém o disparo automatizado que visa ocupar o servidor com o custo do hash, e é imperceptível para alguém digitando a senha. Por ser contagem de segundos, não é persistida; vive na borda da aplicação ou na plataforma de hospedagem, antes de chegar à API *(ADR-006 e risco de negação de serviço na seção 10 da proposta)*.
@@ -603,12 +603,18 @@ Funcionalidade: Acesso
     Então "João" consegue autenticar com a mesma conta
     E as vendas anteriores continuam atribuídas a ele (RN-34)
 
-  Cenário [CA-32]: Sessão do Operador dura mais que a do ADMIN
+  Cenário [CA-32]: Sessão do ADMIN parada expira antes da do Operador
     Dado que um Operador e um ADMIN autenticaram no mesmo instante (RN-36)
-    Quando decorre o tempo de expiração da sessão de ADMIN
+    E que nenhum dos dois usa o sistema desde então
+    Quando decorre o tempo de inatividade da sessão de ADMIN
     Então o ADMIN precisa autenticar novamente (RN-36)
-    E o Operador continua autenticado
-    E o uso contínuo pelo Operador renova a sessão dele (RN-36)
+    E o Operador continua autenticado (RN-36)
+
+  Cenário [CA-55]: ADMIN registrando vendas não é deslogado
+    Dado que estou autenticado como ADMIN
+    Quando registro vendas continuamente por mais tempo que o limite de inatividade do ADMIN (RN-36)
+    Então minha sessão é renovada a cada uso
+    E não preciso autenticar novamente enquanto continuo usando (RN-36)
 
   Cenário [CA-33]: Consulta nunca alcança dado de outro estabelecimento
     Dado que existem vendas em dois estabelecimentos distintos (RN-41)
@@ -808,6 +814,7 @@ Todas as questões levantadas na elaboração deste PRD foram resolvidas em 2026
 - [x] **Cardápio de outras datas** *(resolvida em 2026-09-25)* — corrente e futuras editáveis; passadas só leitura (RN-50)
 - [x] **Reativação** *(resolvida em 2026-09-25)* — proteína, prato, item e usuário podem ser reativados; reativar em vez de recriar evita conflito com o nome único (RN-34, RN-49)
 - [x] **Venda cancelada na lista do Operador** *(resolvida em 2026-09-25)* — continua na lista, marcada como cancelada (RN-40)
+- [x] **Sessão do ADMIN que trabalha no balcão** *(resolvida em 2026-09-25)* — as duas sessões são renovadas em uso; a do ADMIN só expira antes por inatividade (RN-36). A versão anterior encurtava a sessão do ADMIN sem renovação, o que o deslogaria no meio do almoço
 
 Nenhuma questão em aberto.
 
