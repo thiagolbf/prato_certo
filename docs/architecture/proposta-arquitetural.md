@@ -1,6 +1,6 @@
 # Proposta Arquitetural — Controle de PF e Marmitas
 
-> Cliente: projeto próprio · Documento gerado em 2026-09-22 · Versão 0.3 (atualizada em 2026-09-23: decisão de hospedagem, ADR-008; em 2026-09-24: orientação a objetos seletiva no backend, ADR-009)
+> Cliente: projeto próprio · Documento gerado em 2026-09-22 · Versão 0.4 (atualizada em 2026-09-23: decisão de hospedagem, ADR-008; em 2026-09-24: orientação a objetos seletiva no backend, ADR-009; em 2026-09-25: package by feature, ADR-001; injeção de dependência pelo `Depends` e cardápio herdado resolvido em memória, ADR-009; sessão renovada em uso para os dois perfis, ADR-006)
 >
 > Nome do sistema é provisório.
 
