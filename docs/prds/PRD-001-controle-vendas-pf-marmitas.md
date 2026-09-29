@@ -4,7 +4,7 @@
 **Tipo:** Epic
 **Autor:** Thiago Barcelos
 **Data:** 2026-09-22
-**Status:** Aprovado (2026-09-25) · revisado em 2026-09-28 na fase de protótipo — RN-54 e CA-56 (sair da sessão), RN-55 e CA-57 (fechamento do mês)
+**Status:** Aprovado (2026-09-25) · revisado em 2026-09-28 na fase de protótipo — RN-54 e CA-56 (sair da sessão), RN-55 e CA-57 (fechamento do mês); RN-56 a RN-61 e CA-58 a CA-67 (lacunas da SPEC-UI-001)
 **Arquitetura base:** [`docs/architecture/proposta-arquitetural.md`](../architecture/proposta-arquitetural.md) — ADR-001 a ADR-009
 
 ---
@@ -13,21 +13,21 @@
 
 > 📸 **Snapshot de 2026-09-28.** Esta tabela é conferência, não fonte de verdade — a fonte são as seções 8 e 9. Ao editar regras ou cenários, reconte com o comando ao final do bloco.
 
-**55 regras de negócio** (RN-01 a RN-55) · **57 cenários de aceite** (CA-01 a CA-57)
+**61 regras de negócio** (RN-01 a RN-61) · **67 cenários de aceite** (CA-01 a CA-67)
 
 | Bloco | RN | CA |
 |---|---:|---:|
-| Catálogo | 7 | 3 |
-| Cardápio do dia | 7 | 6 |
-| Registro de venda | 8 | 7 |
+| Catálogo | 9 | 6 |
+| Cardápio do dia | 8 | 7 |
+| Registro de venda | 9 | 10 |
 | Cancelamento | 6 | 6 |
-| Fechamento e relatórios | 9 | 8 |
-| Identidade e acesso | 11 | 17 |
+| Fechamento e relatórios | 10 | 9 |
+| Identidade e acesso | 12 | 19 |
 | Segurança transversal | 7 | 7 |
 | Imutabilidade do histórico | — | 3 |
-| **Total** | **55** | **57** |
+| **Total** | **61** | **67** |
 
-A numeração segue a ordem de criação, não a de bloco: as regras RN-49 a RN-53 e os cenários CA-47 a CA-55, acrescentados em 2026-09-25, e as regras RN-54 e RN-55 com os cenários CA-56 e CA-57, acrescentados em 2026-09-28 durante a especificação de interface (SPEC-UI-001), estão nos blocos a que pertencem.
+A numeração segue a ordem de criação, não a de bloco: as regras RN-49 a RN-53 e os cenários CA-47 a CA-55, acrescentados em 2026-09-25, e as regras RN-54 a RN-61 com os cenários CA-56 a CA-67, acrescentados em 2026-09-28 durante a especificação de interface (SPEC-UI-001), estão nos blocos a que pertencem.
 
 Duas assimetrias da tabela são propositais e vale registrar o porquê:
 
@@ -172,18 +172,19 @@ flowchart TD
     I --> J[POST /api/vendas]
     J --> K{Resposta}
     K -->|Sucesso| L[Confirmado]
-    K -->|Falha de rede| M[Sinaliza falha<br/>e oferece reenvio]
+    K -->|Falha de rede| M[Venda fica pendente<br/>sinaliza e oferece reenvio]
     M -->|Reenvia com a mesma chave| J
+    M -->|Descarta, com confirmação| E
     L --> E
 ```
 
 O operador abre a tela uma vez e permanece nela o dia todo. Cada venda é um ciclo de dois toques: item e confirmação. O painel de confirmação serve a dois propósitos ao mesmo tempo — evita o toque acidental e é onde a quantidade é ajustada — o que mantém o caso comum, de uma unidade, em dois toques.
 
-O retorno é otimista: a interface confirma antes da resposta do servidor, porque a chave de idempotência torna o reenvio seguro. Como o registro é sempre online, uma falha de rede **precisa ser sinalizada de forma inequívoca** — a venda não entrou, e silenciar isso corromperia o fechamento.
+O retorno é otimista: a interface confirma antes da resposta do servidor, porque a chave de idempotência torna o reenvio seguro. Como o registro é sempre online, uma falha de rede **precisa ser sinalizada de forma inequívoca** — a venda não entrou, e silenciar isso corromperia o fechamento. A venda que falhou fica **pendente** no aparelho até ser reenviada ou descartada pelo próprio usuário (RN-56); ela não pode ser reenviada em outro dia nem por outro usuário, porque o servidor a contaria no dia do reenvio (RN-17) ou com outro autor (RN-20).
 
 ### 7.2. Fluxo alternativo — cardápio não montado
 
-Se o ADMIN não montou o cardápio da data, o sistema **não bloqueia a venda**. Ele usa o cardápio da data anterior mais recente que tenha um, identificado como *herdado* daquela data, e sinaliza ao ADMIN para revisão. O operador vende normalmente. O herdado **não é gravado**: é resolvido a cada leitura, porque abrir a tela é uma consulta e consulta não altera estado (RN-42). Quando o ADMIN definir o cardápio da data — montando outro ou confirmando o herdado —, esse passa a valer, e as vendas já registradas permanecem válidas, com o snapshot que tinham no momento do registro.
+Se o ADMIN não montou o cardápio da data, o sistema **não bloqueia a venda**. Ele usa o cardápio da data anterior mais recente que tenha um, identificado como *herdado* daquela data, e sinaliza ao ADMIN para revisão. O operador vende normalmente. O herdado **não é gravado**: é resolvido a cada leitura, porque abrir a tela é uma consulta e consulta não altera estado (RN-42). Quando o ADMIN definir o cardápio da data — montando outro ou confirmando o herdado —, esse passa a valer, e as vendas já registradas permanecem válidas, com o snapshot que tinham no momento do registro. A tela de registro **não se atualiza sozinha**: o operador passa a ver o cardápio novo ao atualizar a tela, e o ADMIN é orientado a avisar o balcão. Até lá, tentar vender um item que saiu do cardápio é recusado (RN-19) com a orientação de atualizar.
 
 Só há um caso sem saída: o primeiro uso do sistema, quando não existe nenhum cardápio anterior para herdar. Aí a tela mostra estado vazio orientando a chamar o responsável.
 
@@ -206,6 +207,8 @@ Como não há limite de tempo para cancelar, o fechamento de uma data passada po
 - **RN-05:** Alteração de preço vale a partir do momento em que é salva e **não altera nenhuma venda já registrada** *(ADR-004)*.
 - **RN-06:** Alteração da gramagem de um prato vale a partir do momento em que é salva e **não altera nenhuma venda já registrada** *(ADR-004)*.
 - **RN-49:** O ADMIN pode **reativar** proteínas, pratos e itens de cardápio desativados. O cadastro reativado volta a poder ser usado em pratos e em cardápio novo, e nenhuma venda já registrada é alterada. Reativar é o caminho para trazer de volta um cadastro — nunca criar um duplicado com o mesmo nome (RN-01).
+- **RN-58:** Um cadastro com **dependentes ativos não pode ser desativado**: proteína usada por prato ativo, ou prato com item de cardápio ativo. A recusa informa quais dependentes impedem a desativação, para que o ADMIN os desative antes. Assim nunca existe item vendável de prato desativado, nem prato ativo de proteína desativada.
+- **RN-59:** O nome do prato é **único** no estabelecimento, e cada prato tem **no máximo um item por formato**. A comparação de nomes — de proteína (RN-01) e de prato — ignora diferença entre maiúsculas e minúsculas e espaços nas pontas. Existindo cadastro desativado com o mesmo nome ou o mesmo par prato × formato, o caminho é reativá-lo (RN-49).
 
 ### Cardápio do dia
 
@@ -216,6 +219,7 @@ Como não há limite de tempo para cancelar, o fechamento de uma data passada po
 - **RN-11:** Não existindo nenhum cardápio anterior para herdar — primeiro uso do sistema — a tela de registro exibe estado vazio orientando a acionar o ADMIN.
 - **RN-12:** Um item desativado (RN-04) não pode ser incluído em cardápio novo, e é removido automaticamente de um cardápio herdado.
 - **RN-50:** O ADMIN monta ou altera o cardápio da **data corrente e de datas futuras** — por exemplo, o de amanhã, depois de fechar. O cardápio de **data passada é somente leitura**. Um cardápio montado para data futura não é herdado por datas anteriores a ela (RN-08).
+- **RN-57:** O cardápio de uma data tem **pelo menos um item**. Salvar um cardápio sem itens é recusado — a tela de registro vazia fica reservada ao primeiro uso (RN-11).
 
 ### Registro de venda
 
@@ -227,6 +231,7 @@ Como não há limite de tempo para cancelar, o fechamento de uma data passada po
 - **RN-18:** Cada venda carrega uma **chave de idempotência** gerada pelo cliente no ato da confirmação. Uma requisição com chave já existente devolve a venda original e **não cria uma segunda** *(ADR-004)*.
 - **RN-19:** Só podem ser vendidos itens presentes no cardápio vigente da data corrente — próprio ou herdado.
 - **RN-20:** Toda venda registra qual usuário a registrou.
+- **RN-56:** Venda cujo envio falhou fica **pendente no aparelho**, sinalizada de forma inequívoca, até ser **reenviada** — sempre com a mesma chave de idempotência (RN-18) — ou **descartada** pelo usuário, com confirmação. A pendência sobrevive a recarregar a página, mas não ao fechamento da aba; o sistema avisa antes de a página ser fechada com pendência. Ela pertence ao usuário que a lançou e ao dia operacional em que foi confirmada: se outro usuário autenticar no aparelho, ou se o dia operacional virar, a pendência é **descartada com aviso, nunca reenviada** — reenviá-la trocaria a autoria (RN-20) ou jogaria a venda no dia do reenvio (RN-17). Sessão expirada (RN-36) não descarta a pendência: o mesmo usuário, ao autenticar de novo, pode reenviá-la.
 
 ### Cancelamento
 
@@ -248,10 +253,11 @@ Como não há limite de tempo para cancelar, o fechamento de uma data passada po
 - **RN-33:** O ADMIN pode consultar o fechamento de qualquer data passada.
 - **RN-51:** O ADMIN consulta a **lista de todas as vendas** de qualquer data, de todos os usuários, com item, formato, quantidade, preço unitário, valor, quem registrou e horário (no fuso do dia operacional, RN-27). Vendas canceladas aparecem na lista, **marcadas como canceladas**, com quem cancelou, quando e o motivo — e fora dos totais (RN-28). É a partir dessa lista que o ADMIN localiza e cancela uma venda (RN-21, RN-22).
 - **RN-55:** O ADMIN consulta o **fechamento do mês** — o corrente, parcial até o momento, ou qualquer mês passado. Ele apresenta as mesmas informações da RN-29, somadas sobre todos os dias operacionais do mês (RN-27), e a **quebra por dia**: unidades e faturamento de cada dia com venda. Valem as mesmas regras do fechamento do dia: canceladas excluídas (RN-28), estado atual dos dados (RN-32), proteína e faturamento pelas fórmulas da RN-30 e da RN-31. O fechamento do mês é consulta do que foi vendido, não projeção.
+- **RN-61:** O fechamento de um dia informa os **cancelamentos feitos depois daquele dia** que alteraram seus números — quem cancelou, quando e o motivo —, com acesso à lista de vendas da data (RN-51). É o que torna explicável a mudança prevista na RN-32.
 
 ### Identidade e acesso
 
-- **RN-34:** O ADMIN cadastra, desativa e **reativa** operadores. Usuários nunca são apagados, apenas desativados, para preservar a autoria das vendas já registradas. O operador reativado volta a autenticar com a mesma conta.
+- **RN-34:** O ADMIN cadastra, desativa e **reativa** operadores. Usuários nunca são apagados, apenas desativados, para preservar a autoria das vendas já registradas. O operador reativado volta a autenticar com a mesma conta. A interface cadastra apenas Operadores; um ADMIN adicional é criado por operação técnica, a mesma prevista para recuperar o acesso do ADMIN (RN-53).
 - **RN-35:** A senha é armazenada com hash **bcrypt** *(ADR-006)*.
 - **RN-36:** As sessões dos dois perfis são **renovadas em uso**: ninguém é deslogado enquanto está registrando vendas, inclusive o ADMIN no balcão. O que difere é a expiração **por inatividade**: a do ADMIN é mais curta que a do Operador, por ser o perfil que altera preço e cadastro *(ADR-006)*.
 - **RN-37:** A proteção do login tem **duas camadas independentes**, porque defende de dois ataques diferentes e guarda estado em lugares diferentes:
@@ -260,11 +266,12 @@ Como não há limite de tempo para cancelar, o fechamento de uma data passada po
   Uma tentativa bem-sucedida zera o contador de falhas da conta.
 - **RN-38:** A mensagem de erro do login **não revela** se o usuário existe, nem se a conta está bloqueada por tentativa ou desativada pelo ADMIN.
 - **RN-39:** O Operador não acessa nenhuma tela ou operação de ADMIN.
-- **RN-40:** O Operador consulta a lista das vendas que **ele próprio** registrou no dia operacional corrente, com item, formato e quantidade — e **sem preço, sem faturamento**. É o que lhe permite apontar ao ADMIN exatamente qual lançamento corrigir, já que não pode cancelar (RN-21). Vendas dele que o ADMIN cancelou **continuam na lista, marcadas como canceladas**, para que ele veja que a correção foi feita.
+- **RN-40:** O Operador consulta a lista das vendas que **ele próprio** registrou no dia operacional corrente, com item, formato e quantidade — e **sem preço, sem faturamento**. É o que lhe permite apontar ao ADMIN exatamente qual lançamento corrigir, já que não pode cancelar (RN-21). Vendas dele que o ADMIN cancelou **continuam na lista, marcadas como canceladas**, para que ele veja que a correção foi feita. A restrição é da lista e do faturamento: o **preço unitário** do item pode aparecer na tela de registro, onde o Operador o usa para cobrar o cliente.
 - **RN-41:** Todo dado de domínio pertence a um estabelecimento, e **toda consulta filtra por ele** *(ADR-003)*.
-- **RN-52:** O ADMIN **redefine a senha** de um operador. A redefinição zera o contador de falhas e encerra o bloqueio temporário da conta (RN-37), para que o operador volte a registrar sem esperar. Não há recuperação de senha por e-mail ou por outro canal: o sistema não depende de serviço externo (seção 11.1).
+- **RN-52:** O ADMIN **redefine a senha** de um operador. A redefinição zera o contador de falhas e encerra o bloqueio temporário da conta (RN-37), para que o operador volte a registrar sem esperar. Não há recuperação de senha por e-mail ou por outro canal: o sistema não depende de serviço externo (seção 11.1). A lista de usuários indica ao ADMIN a conta de operador **temporariamente bloqueada e até quando**, para ele decidir entre aguardar e redefinir. A indicação é exclusiva da área do ADMIN e não contradiz a RN-38, que trata da tela de login.
 - **RN-53:** O ADMIN **troca a própria senha**, informando a senha atual. Se o próprio ADMIN perder o acesso, a recuperação é uma operação técnica fora da interface, definida no plano de execução.
 - **RN-54:** Qualquer usuário autenticado **encerra a própria sessão** pela ação Sair. O encerramento é uma operação que altera estado, feita por `POST` (RN-42): a sessão é invalidada no servidor e o cookie é removido, de modo que o cookie anterior deixa de autenticar. Existe porque o mesmo celular do balcão é usado por mais de uma pessoa ao longo do dia — inclusive pelo ADMIN (RN-36).
+- **RN-60:** O **nome de usuário** (login) é único no estabelecimento, sem diferenciar maiúsculas de minúsculas. A **senha tem no mínimo 8 caracteres**, sem exigência de composição; o mínimo vale no cadastro, na redefinição (RN-52) e na troca (RN-53).
 
 ### Segurança transversal
 
@@ -339,6 +346,27 @@ Funcionalidade: Registro de venda
     Quando uma venda é registrada
     Então o instante gravado é o do servidor (RN-17)
     E a venda pertence ao dia operacional corrente, não ao do relógio do dispositivo (RN-27)
+
+  Cenário [CA-58]: Venda pendente descartada não é contada
+    Dado que estou autenticado como Operador
+    E que uma venda de "Frango grelhado - PF" falhou por rede e está pendente (RN-56)
+    Quando eu descarto a pendência e confirmo o descarte (RN-56)
+    Então a venda não é enviada
+    E ela não aparece na lista das minhas vendas nem no fechamento do dia
+
+  Cenário [CA-59]: Pendência sobrevive à sessão expirada só para o mesmo usuário
+    Dado que a venda do Operador "joao" ficou pendente porque a sessão dele expirou (RN-56, RN-36)
+    Quando "joao" autentica novamente no mesmo aparelho, no mesmo dia operacional
+    Então a venda continua pendente e pode ser reenviada com a mesma chave (RN-18)
+    Mas se "maria" autenticar no aparelho em vez de "joao"
+    Então a pendência é descartada com aviso (RN-56)
+    E nenhuma venda é registrada em nome de "maria" (RN-20)
+
+  Cenário [CA-60]: Pendência de um dia não é enviada no dia seguinte
+    Dado que uma venda ficou pendente às 23:58 de 22/09 (RN-56)
+    Quando o dia operacional vira para 23/09 antes do reenvio (RN-27)
+    Então a pendência é descartada com aviso (RN-56)
+    E nenhuma venda dela é registrada em 23/09 (RN-17)
 ```
 
 ```gherkin
@@ -363,6 +391,22 @@ Funcionalidade: Catálogo
     Então "Feijoada - PF" pode ser incluído em cardápio novo (RN-49)
     E nenhum item novo é criado com o mesmo nome (RN-49)
     E as vendas anteriores permanecem inalteradas (RN-49)
+
+  Cenário [CA-62]: Proteína em uso por prato ativo não é desativada
+    Dado que a proteína "Frango" é usada pelo prato ativo "Frango grelhado" (RN-58)
+    Quando o ADMIN tenta desativar "Frango"
+    Então a desativação é recusada (RN-58)
+    E a recusa informa que "Frango grelhado" impede a desativação (RN-58)
+
+  Cenário [CA-63]: Prato com nome repetido é recusado
+    Dado que já existe o prato "Frango grelhado" (RN-59)
+    Quando o ADMIN tenta cadastrar outro prato chamado "frango grelhado"
+    Então o cadastro é recusado (RN-59)
+
+  Cenário [CA-64]: Segundo item do mesmo prato e formato é recusado
+    Dado que já existe o item "Frango grelhado - PF" (RN-59)
+    Quando o ADMIN tenta criar outro item do prato "Frango grelhado" no formato PF
+    Então o cadastro é recusado (RN-59)
 ```
 
 ```gherkin
@@ -387,7 +431,7 @@ Funcionalidade: Cardápio do dia
     Dado que o cardápio de hoje foi herdado de 21/09
     E que 12 vendas já foram registradas hoje sobre esse cardápio
     Quando o ADMIN define o cardápio de hoje com outros itens (RN-10)
-    Então o cardápio exibido ao Operador passa a ser o novo
+    Então, ao atualizar a tela de registro, o Operador passa a ver o cardápio novo (RN-10)
     E as 12 vendas continuam válidas com seus snapshots (RN-10)
     E o fechamento do dia continua contando as 12 vendas (RN-15)
 
@@ -409,6 +453,12 @@ Funcionalidade: Cardápio do dia
     Quando eu tento alterar o cardápio de 20/09 (RN-50)
     Então a alteração é recusada
     E o cardápio de 20/09 permanece como estava
+
+  Cenário [CA-61]: Cardápio sem itens não é salvo
+    Dado que estou autenticado como ADMIN
+    Quando eu tento salvar o cardápio de amanhã sem nenhum item (RN-57)
+    Então a gravação é recusada (RN-57)
+    E nenhum cardápio é gravado para amanhã
 ```
 
 ```gherkin
@@ -552,6 +602,13 @@ Funcionalidade: Fechamento do dia
     E o faturamento em PF é R$ 300,00, em Marmita R$ 88,00 e o total R$ 388,00 (RN-31)
     E a quebra por dia apresenta 05/08 com 10 unidades, 18/08 com 4 e 31/08 com 6 (RN-55)
     E as vendas de 01/09 não entram no fechamento de agosto (RN-27)
+
+  Cenário [CA-67]: Fechamento informa cancelamento feito depois da data
+    Dado que em 20/09 o ADMIN "Carla" cancelou, com o motivo "lançado em dobro", uma venda registrada em 15/09 (RN-22)
+    E que estou autenticado como ADMIN
+    Quando eu consulto o fechamento de 15/09 (RN-61)
+    Então o fechamento informa esse cancelamento, com quem cancelou, quando e o motivo (RN-61)
+    E os totais de 15/09 já não contam a venda cancelada (RN-32)
 ```
 
 ```gherkin
@@ -662,6 +719,18 @@ Funcionalidade: Acesso
     Então a sessão é encerrada por uma requisição POST (RN-54, RN-42)
     E uma requisição feita com o cookie da sessão encerrada é recusada como não autenticada (RN-54)
     E o próximo usuário do mesmo aparelho precisa autenticar com a própria conta
+
+  Cenário [CA-65]: Usuário com login repetido é recusado
+    Dado que já existe o usuário "joao" (RN-60)
+    Quando o ADMIN tenta cadastrar um operador com o usuário "Joao"
+    Então o cadastro é recusado (RN-60)
+
+  Cenário [CA-66]: Senha com menos de 8 caracteres é recusada
+    Dado que estou autenticado como ADMIN
+    Quando eu tento cadastrar um operador com a senha "1234567" (RN-60)
+    Então o cadastro é recusado (RN-60)
+    E a mesma senha é recusada ao redefinir a senha de um operador (RN-52)
+    E ao trocar a minha própria senha (RN-53)
 ```
 
 ```gherkin
@@ -720,6 +789,7 @@ Funcionalidade: Segurança transversal
 | Consultar fechamento de data passada | ADMIN | RN-33 |
 | Consultar fechamento do mês | ADMIN | Mês corrente (parcial) ou passado, com quebra por dia (RN-55) |
 | Sair (encerrar a própria sessão) | ADMIN, Operador | Por `POST`; invalida a sessão no servidor (RN-54) |
+| Reenviar ou descartar venda pendente | ADMIN, Operador | Só a própria pendência, no mesmo dia operacional (RN-56) |
 | Montar cardápio da data | ADMIN | Data corrente e futuras; data passada só leitura (RN-07, RN-50) |
 | Cadastrar / editar proteína, prato, item de cardápio | ADMIN | RN-01 a RN-03 |
 | Alterar preço e gramagem | ADMIN | Não afeta venda registrada (RN-05, RN-06) |
@@ -800,7 +870,7 @@ Detalhe completo em [`docs/architecture/proposta-arquitetural.md`](../architectu
 **Restrições** (herdadas da fase de arquitetura, seção 4 da proposta):
 
 - Registro de venda em dois toques, com retorno visual em menos de um segundo
-- Mobile first — a tela de registro precisa caber sem rolagem, com alvos de toque adequados ao polegar
+- Mobile first — a tela de registro precisa caber sem rolagem **com até 6 pratos (12 itens)** numa tela de 375 × 667; acima disso, rola, com os pratos em ordem alfabética estável para o polegar decorar a posição. Alvos de toque adequados ao polegar. O cardápio não tem teto de itens
 - Sempre online — não há suporte offline
 - Backend Python/FastAPI, frontend Next.js, banco PostgreSQL
 - Desenvolvimento e validação inteiramente locais primeiro; a publicação na nuvem só começa com o sistema validado localmente *(ADR-008)*
@@ -817,7 +887,7 @@ A última premissa — o cardápio herdado seria **gravado** quando a tela de re
 | Tipo | Descrição | Mitigação / Plano |
 |------|-----------|-------------------|
 | Risco | **Operador travado com número errado.** Como só o ADMIN cancela (RN-21) e o ADMIN pode não estar disponível no pico, o Operador sabe que o total está errado e não pode agir. O modo de falha perigoso é ele "compensar" deixando de registrar a próxima venda real | RN-40: o Operador vê a lista das próprias vendas do dia e aponta ao ADMIN exatamente qual lançamento corrigir. A decisão de restringir o cancelamento foi consciente — se o incômodo se confirmar no uso real, a regra é revisável sem mudança de modelo |
-| Risco | **Fechamento de data passada muda** após cancelamento tardio (RN-22, RN-32), surpreendendo quem já tinha anotado o número | Cancelamento sempre registra quem, quando e por quê (RN-23), tornando a divergência explicável. Exibir no fechamento quando houver cancelamento posterior à data |
+| Risco | **Fechamento de data passada muda** após cancelamento tardio (RN-22, RN-32), surpreendendo quem já tinha anotado o número | Cancelamento sempre registra quem, quando e por quê (RN-23), tornando a divergência explicável. O fechamento da data informa os cancelamentos posteriores a ela (RN-61) |
 | Risco | **Cardápio herdado passa despercebido** e o restaurante opera o dia com itens errados | Sinalização visível ao ADMIN com a data de origem (RN-09). Itens desativados são removidos automaticamente (RN-12) |
 | Risco | **Estimativa de proteína enviesada** porque a gramagem é fixa por prato (RN-02) e a marmita pode levar mais que o PF | Dívida 1 da proposta arquitetural, com gatilho e caminho de pagamento definidos. O histórico anterior permanece correto por causa do snapshot (RN-15) |
 | Risco | **Virada do dia implementada errada**, contando vendas na data errada de forma silenciosa | CA-19 e CA-20 são testes de aceite dedicados. O fuso é constante única na aplicação *(ADR-005)* |
@@ -852,7 +922,9 @@ Revisão de 2026-09-28, durante a especificação de interface (SPEC-UI-001):
 - [x] **Sair da sessão** *(resolvida em 2026-09-28)* — o PRD não previa; o celular do balcão é compartilhado. Qualquer usuário encerra a própria sessão por `POST` (RN-54, CA-56)
 - [x] **Visão do mês** *(resolvida em 2026-09-28)* — o fechamento só cobria um dia, enquanto o objetivo (seção 3) é planejar a compra mês a mês. Fechamento do mês com quebra por dia (RN-55, CA-57); intervalo livre e comparativos ficam fora (seção 4.2)
 
-Nenhuma questão em aberto neste documento. Lacunas de interface pendentes de decisão estão na seção 8 da `docs/prototype/SPEC-UI-001-controle-vendas-pf-marmitas.md`.
+- [x] **Lacunas da SPEC-UI-001** *(resolvidas em 2026-09-28)* — as que são regra entraram aqui: venda pendente com reenvio ou descarte, presa ao usuário e ao dia (RN-56, CA-58 a CA-60); cardápio com pelo menos um item (RN-57, CA-61); desativação bloqueada por dependentes ativos (RN-58, CA-62); unicidade de prato e de prato × formato (RN-59, CA-63, CA-64); login único e senha mínima de 8 (RN-60, CA-65, CA-66); aviso de cancelamento posterior no fechamento (RN-61, CA-67); tela de registro atualizada só ao atualizar a página (§7.2, CA-09); meta "sem rolagem" até 6 pratos (§14); preço visível na tela de registro (RN-40); bloqueio visível ao ADMIN (RN-52); cadastro só de Operador pela interface (RN-34). As decisões puramente de tela ficam na seção 8 da SPEC-UI
+
+Nenhuma questão em aberto.
 
 ---
 

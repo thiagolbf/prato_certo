@@ -73,6 +73,7 @@
   .item { min-width: 92px; min-height: 64px; border: 2px solid var(--ink); border-radius: 10px; background: var(--paper); font-weight: 700; font-size: 17px; cursor: pointer; }
   .item:disabled { opacity: .4; }
   .item.vago { border: 0; background: none; display: inline-block; }
+  .item small { display: block; font-size: 13px; font-weight: 600; color: var(--muted); }
   .toast { position: absolute; left: 12px; right: 12px; bottom: 68px; padding: 14px; border-radius: 10px; font-weight: 700; border: 2px solid; }
   .toast.ok { background: var(--okbg); border-color: var(--ok); color: var(--ok); }
   .scrim { position: absolute; inset: 0; background: rgba(0,0,0,.45); }
@@ -226,13 +227,20 @@ const SEMPERM = { d: 'Operador acessa a rota diretamente (CA-26). Tela inteira b
 
 /* ---------- UI-02 / UI-03 ---------- */
 function grade(pratos = PRATOS, disabled = false) {
-  // Colunas fixas (PF sempre à esquerda, Marmita à direita): o polegar aprende a posição
-  const slot = (p, f) => p.itens.some(([x]) => x === f)
-    ? `<button class="item" data-act="abrir" data-prato="${p.nome}" data-fmt="${f}" ${disabled ? 'disabled' : ''}>${f}</button>`
-    : '<span class="item vago" aria-hidden="true"></span>';
-  return `<div class="grade">${pratos.map(p => `<div class="prato"><span class="pnome">${p.nome}</span><span class="fmts">${slot(p, 'PF')}${slot(p, 'Marmita')}</span></div>`).join('')}</div>`;
+  // Colunas fixas (PF sempre à esquerda, Marmita à direita) e pratos em ordem alfabética:
+  // o polegar aprende a posição. Preço visível para o operador cobrar (RN-40).
+  const slot = (p, f) => {
+    const it = p.itens.find(([x]) => x === f);
+    return it
+      ? `<button class="item" data-act="abrir" data-prato="${p.nome}" data-fmt="${f}" ${disabled ? 'disabled' : ''}>${f}<small>${brl(it[1])}</small></button>`
+      : '<span class="item vago" aria-hidden="true"></span>';
+  };
+  const ord = [...pratos].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  return `<div class="grade">${ord.map(p => `<div class="prato"><span class="pnome">${p.nome}</span><span class="fmts">${slot(p, 'PF')}${slot(p, 'Marmita')}</span></div>`).join('')}</div>`;
 }
-const subReg = (extra = '') => `<div class="sub"><span>Cardápio de hoje · ${HOJE}</span>${extra}</div>`;
+// A tela não se atualiza sozinha (§7.2): o botão Atualizar é o jeito de ver o cardápio novo
+const subReg = (extra = '') => `<div class="sub"><span>Cardápio de hoje · ${HOJE}${extra ? `<br>${extra}` : ''}</span>${btn('↻ Atualizar', `${go('UI-02', 'carregando')} aria-label="Atualizar cardápio"`, 'sm')}</div>`;
+const sheetDlg = (html) => `<div class="scrim"></div><div class="sheet" role="dialog">${html}</div>`;
 const reg = (body, extra = {}) => shell(Object.assign({ title: 'Registrar venda', nav: 'UI-02', body }, extra));
 const itemTxt = () => `${S.qtd}× ${S.item.prato} · ${S.item.fmt}`;
 
@@ -273,7 +281,7 @@ function dlgCancelar(st) {
     ${st === 'jaCancelada' ? banner('err', 'Esta venda já foi cancelada por Carla às 12:10 (motivo: lançado em dobro). Nada foi alterado.') : ''}
     ${st === 'erro' ? banner('err', 'Não foi possível cancelar. Verifique a conexão e tente de novo. O motivo digitado foi mantido.') : ''}
     ${st === 'jaCancelada' ? btn('Voltar à lista', go('UI-05', 'comCancelada'), 'pri full') : `
-      ${field('Motivo (obrigatório)', `<textarea rows="2" ${busy ? 'disabled' : ''}>${motivo}</textarea>`, st === 'validacao' ? 'Informe o motivo do cancelamento.' : '')}
+      ${field('Motivo (obrigatório)', `<textarea rows="2" maxlength="200" ${busy ? 'disabled' : ''}>${motivo}</textarea>`, st === 'validacao' ? 'Informe o motivo do cancelamento.' : '')}
       ${btn(busy ? 'Cancelando…' : 'Cancelar venda', `${busy ? 'disabled' : ''} ${go('UI-06', 'sucesso')}`, 'danger pri full')}
       ${btn('Voltar', `${busy ? 'disabled' : ''} ${go('UI-05')}`, 'ghost')}`}
   </div>`;
@@ -329,7 +337,7 @@ const fech = (body) => shell({ title: 'Fechamento', nav: 'UI-07', body });
 const cardList = (pratos) => `<ul class="list">${pratos.flatMap(p => p.itens.map(([f, v]) => `<li><span class="grow">${p.nome} · ${f}</span><span>${brl(v)}</span></li>`)).join('')}</ul>`;
 const card = (body) => shell({ title: 'Cardápio', nav: 'UI-08', body, noBanner: true });
 function cardEdit(st) {
-  const sel = new Set(['Frango grelhado|PF', 'Frango grelhado|Marmita', 'Bife acebolado|PF', 'Omelete|PF', 'Peixe frito|PF']);
+  const sel = new Set(st === 'validacao' ? [] : ['Frango grelhado|PF', 'Frango grelhado|Marmita', 'Bife acebolado|PF', 'Omelete|PF', 'Peixe frito|PF']);
   const busy = st === 'salvando';
   return `${datenav(HOJE)}
     ${banner('info', 'As vendas já registradas hoje (12) não mudam: cada uma guarda o preço e a gramagem do momento do registro.')}
@@ -337,6 +345,7 @@ function cardEdit(st) {
     <div class="sub"><span>Itens disponíveis hoje</span><span>${sel.size} selecionados</span></div>
     ${PRATOS.flatMap(p => p.itens.map(([f, v]) => `<label class="check"><input type="checkbox" ${sel.has(p.nome + '|' + f) ? 'checked' : ''} ${busy ? 'disabled' : ''}><span class="grow">${p.nome} · ${f}</span><span>${brl(v)}</span></label>`)).join('')}
     <p class="muted" style="font-size:14px">Itens desativados não aparecem aqui. Para trazer um de volta, reative em Catálogo → Itens.</p>
+    ${st === 'validacao' ? banner('err', 'Selecione pelo menos um item. Um cardápio não pode ficar vazio.') : ''}
     ${btn(busy ? 'Salvando…' : 'Salvar cardápio de hoje', `${busy ? 'disabled' : ''} ${go('UI-08', 'sucesso')}`, 'pri full')}
     ${btn('Descartar alterações', `${busy ? 'disabled' : ''} ${go('UI-08', 'proprio')}`, 'ghost full')}`;
 }
@@ -374,26 +383,30 @@ function formActs(st, id) {
 }
 
 const CFG_PROT = {
-  id: 'UI-09', novo: 'Nova proteína', exemplo: '“Peixe”', rnDesat: 'RN-01', vazio: 'Nenhuma proteína cadastrada.', vazioDica: 'Cadastre as proteínas antes dos pratos: todo prato usa exatamente uma.',
-  desatTxt: 'Ela deixa de poder ser usada em pratos novos. Vendas e relatórios anteriores não mudam. Você pode reativá-la depois.',
-  rows: [{ t: 'Frango' }, { t: 'Carne bovina' }, { t: 'Peixe' }, { t: 'Ovo' }, { t: 'Carne suína', off: true }],
-  form: (st) => `<h2>Nova proteína</h2>${field('Nome', `<input value="${st === 'validacao' ? '' : 'Linguiça'}" ${st === 'salvando' ? 'disabled' : ''}>`, st === 'validacao' ? 'Informe o nome.' : '')}${formActs(st, 'UI-09')}`,
+  id: 'UI-09', novo: 'Nova proteína', exemplo: '“Linguiça”', rnDesat: 'RN-04, RN-58', vazio: 'Nenhuma proteína cadastrada.', vazioDica: 'Cadastre as proteínas antes dos pratos: todo prato usa exatamente uma.',
+  desatTxt: 'Nenhum prato ativo usa esta proteína. Ela deixa de poder ser usada em pratos novos; vendas e relatórios anteriores não mudam. Você pode reativá-la depois.',
+  rows: [{ t: 'Carne bovina', s: '1 prato ativo' }, { t: 'Frango', s: '1 prato ativo' }, { t: 'Linguiça', s: 'nenhum prato ativo' }, { t: 'Ovo', s: '1 prato ativo' }, { t: 'Peixe', s: '1 prato ativo' }, { t: 'Carne suína', off: true }],
+  form: (st) => `<h2>Nova proteína</h2>${field('Nome', `<input maxlength="60" value="${st === 'validacao' ? '' : 'Camarão'}" ${st === 'salvando' ? 'disabled' : ''}>`, st === 'validacao' ? 'Informe o nome.' : '')}${formActs(st, 'UI-09')}`,
   extra: (scr, sheet) => ({
-    duplicado: { d: 'Nome já existe entre as ativas (CA-29)', o: 'Derivado de CA-29, RN-01', r: () => scr(catList(CFG_PROT, false), sheet(`<h2>Nova proteína</h2>${field('Nome', '<input value="Frango">', 'Já existe uma proteína “Frango”.')}${formActs('', 'UI-09')}`)) },
+    desativarBloqueado: { d: 'Proteína usada por prato ativo: desativação recusada, listando os dependentes', o: 'Derivado de RN-58, CA-62', r: () => scr(catList(CFG_PROT, false), sheet(`<h2>Não é possível desativar “Frango”</h2><p>Este prato ativo usa esta proteína:</p><ul><li>Frango grelhado</li></ul><p class="muted" style="font-size:14px">Desative os pratos antes e tente de novo.</p>${btn('Ir para Pratos', go('UI-10'), 'pri full')}${btn('Voltar', go('UI-09'), 'ghost')}`)) },
+    duplicado: { d: 'Nome já existe entre as ativas, sem diferenciar maiúsculas (CA-29)', o: 'Derivado de CA-29, RN-01, RN-59', r: () => scr(catList(CFG_PROT, false), sheet(`<h2>Nova proteína</h2>${field('Nome', '<input value="frango">', 'Já existe uma proteína “Frango”.')}${formActs('', 'UI-09')}`)) },
     duplicadoDesativado: { d: 'Nome já existe, mas desativado: oferece reativar em vez de duplicar', o: 'Derivado de RN-49', r: () => scr(catList(CFG_PROT, false), sheet(`<h2>Nova proteína</h2>${field('Nome', '<input value="Carne suína">', '“Carne suína” já existe e está desativada.')}${btn('Reativar “Carne suína”', go('UI-09', 'sucesso'), 'pri full')}${btn('Cancelar', go('UI-09'), 'ghost')}`)) },
   }),
 };
 const CFG_PRATO = {
-  id: 'UI-10', novo: 'Novo prato', exemplo: '“Peixe frito”', rnDesat: 'RN-04', vazio: 'Nenhum prato cadastrado.', vazioDica: 'Um prato tem uma proteína e a gramagem dela por porção. Depois, crie os itens (PF / Marmita) com preço.',
-  desatTxt: 'Ele deixa de poder ser usado em itens e cardápios novos. Vendas e relatórios anteriores continuam mostrando o prato pelo nome. Você pode reativá-lo depois.',
+  id: 'UI-10', novo: 'Novo prato', exemplo: '“Strogonoff”', rnDesat: 'RN-04, RN-58', vazio: 'Nenhum prato cadastrado.', vazioDica: 'Um prato tem uma proteína e a gramagem dela por porção. Depois, crie os itens (PF / Marmita) com preço.',
+  desatTxt: 'Nenhum item ativo é deste prato. Ele deixa de poder ser usado em itens novos; vendas e relatórios anteriores continuam mostrando o prato pelo nome. Você pode reativá-lo depois.',
   editState: 'editarGramagem',
-  rows: PRATOS.map(p => ({ t: p.nome, s: `${p.prot} · ${p.g} g por porção` })).concat([{ t: 'Feijoada', s: 'Carne suína · 200 g por porção', off: true }]),
+  rows: [...PRATOS].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map(p => ({ t: p.nome, s: `${p.prot} · ${p.g} g por porção · ${p.itens.length} ${p.itens.length > 1 ? 'itens' : 'item'}` })).concat([{ t: 'Strogonoff', s: 'Frango · 150 g por porção · nenhum item' }, { t: 'Feijoada', s: 'Carne suína · 200 g por porção', off: true }]),
   form: (st) => `<h2>Novo prato</h2>
-    ${field('Nome', `<input value="Strogonoff" ${st === 'salvando' ? 'disabled' : ''}>`)}
+    ${field('Nome', `<input maxlength="60" value="Frango à parmegiana" ${st === 'salvando' ? 'disabled' : ''}>`)}
     ${field('Proteína', `<select ${st === 'salvando' ? 'disabled' : ''}><option>Frango</option><option>Carne bovina</option><option>Peixe</option><option>Ovo</option></select>`)}
     ${field('Gramagem de proteína por porção (g)', `<input inputmode="numeric" value="${st === 'validacao' ? '' : '150'}" ${st === 'salvando' ? 'disabled' : ''}>`, st === 'validacao' ? 'Informe a gramagem em gramas, maior que zero.' : '')}
     <p class="muted" style="font-size:14px;margin:0 0 8px">A mesma gramagem vale para PF e marmita.</p>${formActs(st, 'UI-10')}`,
   extra: (scr, sheet) => ({
+    duplicado: { d: 'Nome de prato já existe entre os ativos, sem diferenciar maiúsculas', o: 'Derivado de RN-59, CA-63', r: () => scr(catList(CFG_PRATO, false), sheet(`<h2>Novo prato</h2>${field('Nome', '<input value="frango grelhado">', 'Já existe um prato “Frango grelhado”.')}${formActs('', 'UI-10')}`)) },
+    duplicadoDesativado: { d: 'Nome existe, mas desativado: oferece reativar em vez de duplicar', o: 'Derivado de RN-49, RN-59', r: () => scr(catList(CFG_PRATO, false), sheet(`<h2>Novo prato</h2>${field('Nome', '<input value="Feijoada">', '“Feijoada” já existe e está desativado.')}${btn('Reativar “Feijoada”', go('UI-10', 'sucesso'), 'pri full')}${btn('Cancelar', go('UI-10'), 'ghost')}`)) },
+    desativarBloqueado: { d: 'Prato com item ativo: desativação recusada, listando os dependentes', o: 'Derivado de RN-58', r: () => scr(catList(CFG_PRATO, false), sheet(`<h2>Não é possível desativar “Frango grelhado”</h2><p>Estes itens ativos são deste prato:</p><ul><li>Frango grelhado · PF</li><li>Frango grelhado · Marmita</li></ul><p class="muted" style="font-size:14px">Desative os itens antes e tente de novo.</p>${btn('Ir para Itens', go('UI-11'), 'pri full')}${btn('Voltar', go('UI-10'), 'ghost')}`)) },
     editarGramagem: { d: 'Edição de prato existente com aviso de que a nova gramagem não altera vendas registradas (CA-12)', o: 'Derivado de RN-06, CA-12', r: () => scr(catList(CFG_PRATO, false), sheet(`<h2>Editar prato</h2>${field('Nome', '<input value="Frango grelhado">')}${field('Proteína', '<select><option>Frango</option></select>')}${field('Gramagem de proteína por porção (g)', '<input inputmode="numeric" value="180">')}${banner('info', 'A nova gramagem vale para vendas registradas a partir de agora. As anteriores continuam calculadas com 150 g.')}${formActs('', 'UI-10')}`)) },
   }),
 };
@@ -401,13 +414,13 @@ const CFG_ITEM = {
   id: 'UI-11', novo: 'Novo item', exemplo: '“Peixe frito · PF”', rnDesat: 'RN-04, RN-12', vazio: 'Nenhum item de cardápio.', vazioDica: 'Um item é um prato em um formato (PF ou Marmita), com preço próprio. É o item que o operador toca para vender.',
   desatTxt: 'Ele sai do cardápio e da tela de registro imediatamente. Vendas e fechamentos anteriores continuam mostrando o item pelo nome. Você pode reativá-lo depois.',
   editState: 'editarPreco',
-  rows: PRATOS.flatMap(p => p.itens.map(([f, v]) => ({ t: `${p.nome} · ${f}`, s: brl(v) }))).concat([{ t: 'Feijoada · PF', s: brl(22), off: true }]),
+  rows: [...PRATOS].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).flatMap(p => p.itens.map(([f, v]) => ({ t: `${p.nome} · ${f}`, s: brl(v) }))).concat([{ t: 'Feijoada · PF', s: brl(22), off: true }]),
   form: (st) => `<h2>Novo item</h2>
     ${field('Prato', `<select ${st === 'salvando' ? 'disabled' : ''}><option>Peixe frito</option><option>Frango grelhado</option></select>`)}
     <div class="field"><span>Formato</span><div class="seg"><button class="btn" aria-pressed="false">PF</button><button class="btn" aria-pressed="true">Marmita</button></div></div>
     ${field('Preço (R$)', `<input inputmode="decimal" value="${st === 'validacao' ? '' : '25,00'}" ${st === 'salvando' ? 'disabled' : ''}>`, st === 'validacao' ? 'Informe o preço, maior que zero.' : '')}${formActs(st, 'UI-11')}`,
   extra: (scr, sheet) => ({
-    duplicado: { d: 'Par prato × formato já existe ativo', o: 'Derivado de RN-03, CA-47', r: () => scr(catList(CFG_ITEM, false), sheet(`<h2>Novo item</h2>${field('Prato', '<select><option>Frango grelhado</option></select>')}<div class="field bad"><span>Formato</span><div class="seg"><button class="btn" aria-pressed="false">PF</button><button class="btn" aria-pressed="true">Marmita</button></div><span class="msg">“Frango grelhado” já tem item Marmita. Edite o existente.</span></div>${formActs('', 'UI-11')}`)) },
+    duplicado: { d: 'Par prato × formato já existe ativo', o: 'Derivado de RN-59, CA-64', r: () => scr(catList(CFG_ITEM, false), sheet(`<h2>Novo item</h2>${field('Prato', '<select><option>Frango grelhado</option></select>')}<div class="field bad"><span>Formato</span><div class="seg"><button class="btn" aria-pressed="false">PF</button><button class="btn" aria-pressed="true">Marmita</button></div><span class="msg">“Frango grelhado” já tem item Marmita. Edite o existente.</span></div>${formActs('', 'UI-11')}`)) },
     duplicadoDesativado: { d: 'Par prato × formato existe desativado: oferece reativar (CA-47)', o: 'Derivado de RN-49, CA-47', r: () => scr(catList(CFG_ITEM, false), sheet(`<h2>Novo item</h2>${field('Prato', '<select><option>Feijoada</option></select>')}<div class="field bad"><span>Formato</span><div class="seg"><button class="btn" aria-pressed="true">PF</button><button class="btn" aria-pressed="false">Marmita</button></div><span class="msg">“Feijoada · PF” já existe e está desativado.</span></div>${btn('Reativar “Feijoada · PF”', go('UI-11', 'sucesso'), 'pri full')}${btn('Cancelar', go('UI-11'), 'ghost')}`)) },
     editarPreco: { d: 'Edição de item existente: só o preço muda; aviso de que vendas registradas não mudam (CA-11)', o: 'Derivado de RN-05, CA-11', r: () => scr(catList(CFG_ITEM, false), sheet(`<h2>Editar item</h2><p style="margin:0"><strong>Frango grelhado · PF</strong></p>${field('Preço (R$)', '<input inputmode="decimal" value="20,00">')}${banner('info', 'O novo preço vale para vendas registradas a partir de agora. As anteriores continuam com R$ 18,00.')}${formActs('', 'UI-11')}`)) },
   }),
@@ -415,9 +428,9 @@ const CFG_ITEM = {
 
 /* ---------- UI-12 ---------- */
 const USERS = [{ n: 'Carla', u: 'carla', p: 'ADMIN', me: true }, { n: 'João', u: 'joao', p: 'Operador' }, { n: 'Maria', u: 'maria', p: 'Operador' }, { n: 'Pedro', u: 'pedro', p: 'Operador', off: true }];
-function usersList(showOff) {
+function usersList(showOff, bloq = false) {
   return `<div class="sub"><label class="chk" style="font-weight:400"><input type="checkbox" ${showOff ? 'checked' : ''} ${go('UI-12', showOff ? 'default' : 'comDesativados')}> Mostrar desativados</label>${btn('Novo operador', go('UI-12', 'formulario'), 'sm pri')}</div>
-    <ul class="list">${USERS.filter(x => showOff || !x.off).map(x => `<li class="${x.off ? 'off' : ''}"><span class="grow">${x.n}${x.me ? ' (você)' : ''}<br><small class="muted">${x.u} · ${x.p}</small></span>
+    <ul class="list">${USERS.filter(x => showOff || !x.off).map(x => `<li class="${x.off ? 'off' : ''}"><span class="grow">${x.n}${x.me ? ' (você)' : ''}<br><small class="muted">${x.u} · ${x.p}</small>${bloq && x.u === 'joao' ? '<br><span class="tag warn">Bloqueado até 12:40</span>' : ''}</span>
       ${x.me ? '' : x.off ? `<span class="tag">Desativado</span>${btn('Reativar', go('UI-12', 'sucesso'), 'sm')}` : `<span class="rowact">${btn('Redefinir senha', go('UI-12', 'redefinirSenha'), 'sm')}${btn('Desativar', go('UI-12', 'confirmarDesativar'), 'sm')}</span>`}</li>`).join('')}</ul>`;
 }
 const users = (body, overlay, toast) => shell({ title: 'Usuários', nav: 'MAIS', body, overlay, toast });
@@ -425,9 +438,9 @@ const sh = (html) => `<div class="scrim"></div><div class="sheet" role="dialog">
 function userForm(st) {
   const busy = st === 'salvando';
   return `<h2>Novo operador</h2>
-    ${field('Nome', `<input value="Lucas" ${busy ? 'disabled' : ''}>`)}
-    ${field('Usuário (para entrar)', `<input value="${st === 'validacao' ? 'joao' : 'lucas'}" autocapitalize="none" ${busy ? 'disabled' : ''}>`, st === 'validacao' ? 'Este usuário já está em uso.' : '')}
-    ${field('Senha inicial', `<input type="password" value="••••••••" ${busy ? 'disabled' : ''}>`)}
+    ${field('Nome', `<input maxlength="60" value="Lucas" ${busy ? 'disabled' : ''}>`)}
+    ${field('Usuário (para entrar)', `<input maxlength="30" value="${st === 'validacao' ? 'Joao' : 'lucas'}" autocapitalize="none" ${busy ? 'disabled' : ''}>`, st === 'validacao' ? 'Este usuário já está em uso.' : '')}
+    ${field('Senha inicial (mínimo 8 caracteres)', `<input type="password" value="${st === 'senhaCurta' ? '•••••••' : '••••••••'}" ${busy ? 'disabled' : ''}>`, st === 'senhaCurta' ? 'A senha precisa ter pelo menos 8 caracteres.' : '')}
     <p class="muted" style="font-size:14px;margin:0 0 8px">Entregue a senha ao operador pessoalmente. Não há envio por e-mail.</p>
     ${formActs(st, 'UI-12')}`;
 }
@@ -438,7 +451,7 @@ function senhaBody(st) {
   return `${st === 'erroEnvio' ? banner('err', 'Não foi possível trocar a senha. Tente de novo.') : ''}
     ${st === 'sucesso' ? banner('ok', '✓ Senha alterada. Use a nova senha no próximo acesso.') : ''}
     ${field('Senha atual', `<input type="password" value="••••••" ${busy ? 'disabled' : ''}>`, st === 'senhaAtualIncorreta' ? 'Senha atual incorreta.' : '')}
-    ${field('Nova senha', `<input type="password" value="••••••••" ${busy ? 'disabled' : ''}>`)}
+    ${field('Nova senha (mínimo 8 caracteres)', `<input type="password" value="${st === 'senhaCurta' ? '•••••••' : '••••••••'}" ${busy ? 'disabled' : ''}>`, st === 'senhaCurta' ? 'A senha precisa ter pelo menos 8 caracteres.' : '')}
     ${field('Repita a nova senha', `<input type="password" value="${st === 'validacao' ? '•••••••' : '••••••••'}" ${busy ? 'disabled' : ''}>`, st === 'validacao' ? 'As senhas não conferem.' : '')}
     ${btn(busy ? 'Salvando…' : 'Trocar senha', `${busy ? 'disabled' : ''} ${go('UI-13', 'sucesso')}`, 'pri full')}`;
 }
@@ -472,17 +485,19 @@ const T = {
     saiu: { d: 'Após a ação Sair (POST; sessão invalidada no servidor)', o: 'Derivado de RN-54, CA-56', r: () => login('saiu') },
     erro: { d: 'Servidor inalcançável', o: 'Derivado de RN-48', r: () => login('erro') },
   } },
-  'UI-02': { nome: 'Registrar venda', rota: '/registrar', perfis: ['ADMIN', 'Operador'], rn: 'RN-07, 08, 09, 11, 12, 13, 18, 19, 36, 50', ca: 'CA-01, 02, 04, 06, 07, 08, 09, 10, 13, 48, 55', estados: {
+  'UI-02': { nome: 'Registrar venda', rota: '/registrar', perfis: ['ADMIN', 'Operador'], rn: 'RN-07, 08, 09, 11, 12, 13, 18, 19, 36, 40, 50, 56', ca: 'CA-01, 02, 04, 06, 07, 08, 09, 10, 13, 48, 55, 58, 59, 60', estados: {
     carregando: { d: 'Buscando o cardápio vigente', o: 'Derivado do PRD', r: () => reg(subReg() + skel(4)) },
     default: { d: 'Cardápio próprio de hoje. Toque em PF ou Marmita abre o painel (UI-03)', o: 'Derivado de RN-13, §7.1', r: () => reg(subReg() + grade()) },
     herdado: { d: 'Sem cardápio próprio: vale o herdado de 26/09, sem o item desativado (RN-08, RN-12). Operador vê a marca; ADMIN vê o aviso com ação (RN-09)', o: 'Derivado de CA-07, CA-08', r: () => reg(subReg('<span class="tag warn">Herdado de 26/09</span>') + grade(HERDADO), { forceBanner: true }) },
     vazio: { d: 'Primeiro uso: não há cardápio algum para herdar. Nenhuma venda pode ser registrada', o: 'Derivado de RN-11, CA-10', r: () => reg(subReg() + `<div class="center"><p class="big">Ainda não há cardápio.</p><p>${isAdmin() ? 'Monte o cardápio de hoje para liberar o registro.' : 'Chame o responsável para montar o cardápio do dia.'}</p>${isAdmin() ? btn('Montar cardápio', go('UI-08', 'vazio'), 'pri') : ''}</div>`) },
     erro: { d: 'Falha ao carregar o cardápio', o: 'Derivado de RN-48', r: () => reg(subReg() + erroCarga()) },
     registrado: { d: 'Retorno otimista logo após confirmar, sem esperar o servidor', o: 'Derivado de CA-01, §7.1', r: () => reg(subReg() + grade(), { toast: ['ok', `✓ Registrado: ${itemTxt()}`] }) },
-    falhaEnvio: { d: 'Servidor não confirmou (rede). Aviso persistente e inequívoco; a grade segue utilizável. Reenviar usa a MESMA chave de idempotência', o: 'Derivado de CA-04, CA-03, RN-18', r: () => reg(banner('err', `<strong>Venda NÃO registrada — sem conexão.</strong><br>${itemTxt()}<div class="acts">${btn('Reenviar', go('UI-02', 'reenviando'), 'sm pri')}</div>`) + subReg() + grade()) },
+    falhaEnvio: { d: 'Servidor não confirmou (rede). A venda fica PENDENTE no aparelho (sobrevive a recarregar a página). Aviso persistente; a grade segue utilizável. Reenviar usa a MESMA chave; Descartar pede confirmação', o: 'Derivado de CA-04, CA-03, RN-18, RN-56', r: () => reg(banner('err', `<strong>Venda NÃO registrada — sem conexão.</strong><br>${itemTxt()}<br><small>Não feche esta aba enquanto houver venda pendente.</small><div class="acts">${btn('Reenviar', go('UI-02', 'reenviando'), 'sm pri')}${btn('Descartar', go('UI-02', 'confirmarDescarte'), 'sm')}</div>`) + subReg() + grade()) },
     reenviando: { d: 'Reenvio em andamento', o: 'Derivado de §7.1', r: () => reg(banner('err', `<strong>Reenviando…</strong><br>${itemTxt()}<div class="acts">${btn('Reenviando…', 'disabled', 'sm pri')}</div>`) + subReg() + grade()) },
-    recusado: { d: 'API recusou: item saiu do cardápio (RN-19) ou quantidade inválida (RN-14). Não oferece reenvio; recarrega o cardápio', o: 'Derivado de CA-06, CA-05', r: () => reg(banner('err', `<strong>Venda NÃO registrada.</strong><br>“Peixe frito · PF” não está mais no cardápio de hoje. O cardápio foi atualizado.<div class="acts">${btn('Entendi', go('UI-02'), 'sm')}</div>`) + subReg() + grade(HERDADO)) },
-    sessaoExpirada: { d: 'Envio voltou 401: a venda NÃO entrou. Grade bloqueada até entrar de novo', o: 'Derivado de RN-36, CA-04', r: () => reg(banner('err', `<strong>Sua sessão expirou. A venda NÃO foi registrada.</strong><br>${itemTxt()} — entre de novo e registre outra vez.<div class="acts">${btn('Entrar novamente', go('UI-01', 'sessaoExpirada'), 'sm pri')}</div>`) + subReg() + grade(PRATOS, true)) },
+    confirmarDescarte: { d: 'Confirmação antes de descartar a pendência: a venda não será registrada nem contada', o: 'Derivado de RN-56, CA-58', r: () => reg(banner('err', `<strong>Venda NÃO registrada — sem conexão.</strong><br>${itemTxt()}`) + subReg() + grade(), { overlay: sheetDlg(`<h2>Descartar esta venda?</h2><p><strong>${itemTxt()}</strong> não será registrada e não entra no fechamento. Só descarte se a venda não aconteceu ou se você vai registrá-la de novo.</p>${btn('Descartar venda', go('UI-02'), 'danger pri full')}${btn('Voltar', go('UI-02', 'falhaEnvio'), 'ghost')}`) }) },
+    pendenciaDescartada: { d: 'Pendência de outro dia operacional ou de outro usuário foi descartada automaticamente, nunca reenviada', o: 'Derivado de RN-56, CA-59, CA-60', r: () => reg(banner('warn', `<strong>Uma venda pendente foi descartada sem ser registrada.</strong><br>${itemTxt()} — ficou pendente em dom 27/09 e não pode ser enviada hoje. Se ela aconteceu, avise o responsável.<div class="acts">${btn('Entendi', go('UI-02'), 'sm')}</div>`) + subReg() + grade()) },
+    recusado: { d: 'API recusou: item saiu do cardápio (RN-19) ou quantidade inválida (RN-14). Sem reenvio; orienta a atualizar, porque a tela não se atualiza sozinha', o: 'Derivado de CA-06, CA-05, §7.2', r: () => reg(banner('err', `<strong>Venda NÃO registrada.</strong><br>“Peixe frito · PF” não está no cardápio de hoje — o cardápio desta tela está desatualizado.<div class="acts">${btn('Atualizar cardápio', go('UI-02', 'carregando'), 'sm pri')}</div>`) + subReg() + grade()) },
+    sessaoExpirada: { d: 'Envio voltou 401: a venda NÃO entrou e fica pendente para o MESMO usuário reenviar após entrar. Grade bloqueada até lá', o: 'Derivado de RN-36, RN-56, CA-59', r: () => reg(banner('err', `<strong>Sua sessão expirou. A venda NÃO foi registrada.</strong><br>${itemTxt()} ficou pendente neste aparelho. Entre de novo com o mesmo usuário para reenviar.<div class="acts">${btn('Entrar novamente', go('UI-01', 'sessaoExpirada'), 'sm pri')}</div>`) + subReg() + grade(PRATOS, true)) },
   } },
   'UI-03': { nome: 'Painel de confirmação (sobre UI-02)', rota: '/registrar (painel)', perfis: ['ADMIN', 'Operador'], rn: 'RN-13, 14, 18', ca: 'CA-01, 02, 05', estados: {
     default: { q: 1, d: 'Abre com quantidade 1. Confirmar = segundo toque', o: 'Derivado de RN-13, CA-01', r: () => reg(subReg() + grade(), { overlay: painel() }) },
@@ -513,52 +528,56 @@ const T = {
     sucesso: { d: 'Diálogo fecha; linha passa a cancelada; totais recalculados', o: 'Derivado de CA-14, RN-28', r: () => vendas(vendasBody(1, 'por Carla agora · motivo: cliente desistiu'), { toast: ['ok', '✓ Venda cancelada. Totais atualizados.'] }) },
     semPermissao: SEMPERM,
   } },
-  'UI-07': { nome: 'Fechamento', rota: '/fechamento?data=AAAA-MM-DD | ?mes=AAAA-MM', perfis: ['ADMIN'], rn: 'RN-04, 27, 28, 29, 30, 31, 32, 33, 55', ca: 'CA-11, 12, 13, 18, 19, 20, 21, 22, 23, 37, 57', estados: {
+  'UI-07': { nome: 'Fechamento', rota: '/fechamento?data=AAAA-MM-DD | ?mes=AAAA-MM', perfis: ['ADMIN'], rn: 'RN-04, 27, 28, 29, 30, 31, 32, 33, 55, 61', ca: 'CA-11, 12, 13, 18, 19, 20, 21, 22, 23, 37, 57, 67', estados: {
     carregando: { d: 'Buscando', o: 'Derivado do PRD', r: () => fech(modoSeg('dia') + datenav(HOJE, false) + skel(5)) },
     mes: { d: 'Modo Mês: mesmos blocos do dia somados sobre o mês (parcial se corrente) + quebra por dia; cada dia leva ao fechamento daquela data', o: 'Derivado de RN-55, CA-57', r: () => fech(fechBody(MES.itens, 'setembro 2026 (parcial)', false, '', 'mes')) },
     default: { d: 'Hoje, parcial. Faturamento por formato + total; unidades por formato; proteína por tipo; por prato; por item', o: 'Derivado de RN-29, CA-21, CA-22, CA-37', r: () => fech(fechBody(FECH_HOJE, HOJE + ' (parcial)', false)) },
     dataPassada: { d: 'Data passada; item hoje desativado (Feijoada) aparece pelo nome', o: 'Derivado de RN-33, CA-23, CA-13', r: () => fech(fechBody(FECH_1509, 'ter 15/09', true)) },
-    cancelamentoPosterior: { d: 'Data com cancelamento feito depois dela: avisa que o número mudou e por quê', o: 'Derivado do PRD §15 (mitigação de risco) e RN-32 — ver lacuna', r: () => fech(fechBody(FECH_1509, 'ter 15/09', true, banner('info', `Uma venda desta data foi cancelada depois, em 20/09 por Carla (motivo: lançado em dobro). Os números já refletem o cancelamento. <div class="acts">${btn('Ver vendas de 15/09', go('UI-05', 'comCancelada'), 'sm')}</div>`))) },
+    cancelamentoPosterior: { d: 'Data com cancelamento feito depois dela: avisa que o número mudou e por quê', o: 'Derivado de RN-61, CA-67, RN-32', r: () => fech(fechBody(FECH_1509, 'ter 15/09', true, banner('info', `Uma venda desta data foi cancelada depois, em 20/09 por Carla (motivo: lançado em dobro). Os números já refletem o cancelamento. <div class="acts">${btn('Ver vendas de 15/09', go('UI-05', 'comCancelada'), 'sm')}</div>`))) },
     vazio: { d: 'Nenhuma venda na data ou no mês (zeros explícitos, não tela em branco)', o: 'Derivado do PRD', r: () => fech(modoSeg('dia') + datenav('dom 27/09') + '<div class="center"><p class="big">Nenhuma venda em 27/09.</p><p class="muted">Faturamento R$ 0,00 · 0 unidades · 0 g de proteína.</p></div>') },
     erro: { d: 'Falha ao carregar', o: 'Derivado de RN-48', r: () => fech(modoSeg('dia') + datenav(HOJE, false) + erroCarga()) },
     semPermissao: SEMPERM,
   } },
-  'UI-08': { nome: 'Cardápio da data', rota: '/cardapio?data=AAAA-MM-DD', perfis: ['ADMIN'], rn: 'RN-07, 08, 09, 10, 11, 12, 50', ca: 'CA-07, 08, 09, 10, 47, 48, 49', estados: {
+  'UI-08': { nome: 'Cardápio da data', rota: '/cardapio?data=AAAA-MM-DD', perfis: ['ADMIN'], rn: 'RN-07, 08, 09, 10, 11, 12, 50, 57', ca: 'CA-07, 08, 09, 10, 47, 48, 49, 61', estados: {
     carregando: { d: 'Buscando', o: 'Derivado do PRD', r: () => card(datenav(HOJE) + skel(5)) },
     proprio: { d: 'Cardápio próprio da data (gravado)', o: 'Derivado de RN-07', r: () => card(`${datenav(HOJE)}<div class="sub"><span>Cardápio de hoje</span><span class="tag">Próprio</span></div>${cardList(PRATOS)}${btn('Editar cardápio', go('UI-08', 'editando'), 'pri full')}`) },
     herdado: { d: 'Sem próprio: mostra o herdado (não gravado) com origem, o que foi removido por desativação e as ações Confirmar / Editar', o: 'Derivado de RN-08, RN-09, RN-10, RN-12, CA-07, CA-08', r: () => card(`${datenav(HOJE)}${banner('warn', '<strong>Herdado de sáb 26/09 — ainda não confirmado.</strong> Os operadores já estão vendendo com ele.')}${cardList(HERDADO)}<p class="muted" style="font-size:14px">“Feijoada · PF” estava no cardápio de 26/09 e foi removido por estar desativado.</p>${btn('Confirmar este cardápio', go('UI-08', 'sucesso'), 'pri full')}<p></p>${btn('Editar antes de confirmar', go('UI-08', 'editando'), 'full')}`) },
     vazio: { d: 'Nunca houve cardápio (primeiro uso)', o: 'Derivado de RN-11, CA-10', r: () => card(`${datenav(HOJE)}<div class="center"><p class="big">Nenhum cardápio montado ainda.</p><p>Os operadores não conseguem registrar vendas até você montar o primeiro.</p>${btn('Montar cardápio', go('UI-08', 'editando'), 'pri')}</div>`) },
     futuroSemCardapio: { d: 'Data futura sem cardápio próprio', o: 'Derivado de RN-50, RN-08', r: () => card(`${datenav('ter 29/09')}<div class="center"><p class="big">Nenhum cardápio montado para 29/09.</p><p class="muted">Se nada for montado, nesse dia vale o cardápio mais recente anterior, como herdado.</p>${btn('Montar cardápio de 29/09', go('UI-08', 'editando'), 'pri')}</div>`) },
     editando: { d: 'Seleção dos itens ativos; desativados não aparecem (RN-12). Aviso de que vendas já feitas não mudam (RN-10)', o: 'Derivado de RN-10, RN-12, CA-09, CA-48', r: () => card(cardEdit('editando')) },
+    validacao: { d: 'Tentou salvar sem nenhum item selecionado', o: 'Derivado de RN-57, CA-61', r: () => card(cardEdit('validacao')) },
     salvando: { d: 'Salvando; controles desabilitados', o: 'Derivado do PRD', r: () => card(cardEdit('salvando')) },
     erroEnvio: { d: 'Falha ao salvar; seleção preservada', o: 'Derivado de RN-48', r: () => card(cardEdit('erroEnvio')) },
-    sucesso: { d: 'Gravado como próprio; o operador passa a ver o novo cardápio', o: 'Derivado de RN-10, CA-09', r: () => shell({ title: 'Cardápio', nav: 'UI-08', noBanner: true, body: `${datenav(HOJE)}<div class="sub"><span>Cardápio de hoje</span><span class="tag">Próprio</span></div>${cardList(PRATOS)}`, toast: ['ok', '✓ Cardápio de hoje salvo. Os operadores já veem estes itens.'] }) },
+    sucesso: { d: 'Gravado como próprio. A tela de registro NÃO se atualiza sozinha: o ADMIN é orientado a avisar o balcão', o: 'Derivado de RN-10, CA-09, §7.2', r: () => shell({ title: 'Cardápio', nav: 'UI-08', noBanner: true, body: `${datenav(HOJE)}<div class="sub"><span>Cardápio de hoje</span><span class="tag">Próprio</span></div>${cardList(PRATOS)}`, toast: ['ok', '✓ Cardápio salvo. Avise o balcão: ele aparece quando a tela de registro for atualizada.'] }) },
     somenteLeitura: { d: 'Data passada: sem ações de edição', o: 'Derivado de RN-50, CA-49', r: () => card(`${datenav('dom 20/09')}<div class="sub"><span>Cardápio de 20/09</span><span class="tag">Somente leitura</span></div>${cardList(HERDADO)}<p class="muted" style="font-size:14px">Cardápios de datas passadas não podem ser alterados.</p>`) },
     somenteLeituraSemProprio: { d: 'Data passada em que nenhum cardápio foi montado (o herdado não é gravado)', o: 'Derivado de RN-08, RN-50', r: () => card(`${datenav('sáb 19/09')}<div class="sub"><span>Cardápio de 19/09</span><span class="tag">Somente leitura</span></div><div class="center"><p class="big">Nenhum cardápio foi montado nesta data.</p><p class="muted">Nesse dia valeu o cardápio herdado da data anterior.</p></div>`) },
     semPermissao: SEMPERM,
   } },
-  'UI-09': { nome: 'Catálogo · Proteínas', rota: '/catalogo/proteinas', perfis: ['ADMIN'], rn: 'RN-01, 49', ca: 'CA-29', estados: catalogo(CFG_PROT) },
-  'UI-10': { nome: 'Catálogo · Pratos', rota: '/catalogo/pratos', perfis: ['ADMIN'], rn: 'RN-02, 04, 06, 49', ca: 'CA-12, 26, 30', estados: catalogo(CFG_PRATO) },
-  'UI-11': { nome: 'Catálogo · Itens de cardápio', rota: '/catalogo/itens', perfis: ['ADMIN'], rn: 'RN-03, 04, 05, 12, 49', ca: 'CA-11, 13, 30, 47', estados: catalogo(CFG_ITEM) },
-  'UI-12': { nome: 'Usuários', rota: '/usuarios', perfis: ['ADMIN'], rn: 'RN-34, 37, 52', ca: 'CA-27, 51, 53', estados: {
+  'UI-09': { nome: 'Catálogo · Proteínas', rota: '/catalogo/proteinas', perfis: ['ADMIN'], rn: 'RN-01, 04, 49, 58, 59', ca: 'CA-29, 62', estados: catalogo(CFG_PROT) },
+  'UI-10': { nome: 'Catálogo · Pratos', rota: '/catalogo/pratos', perfis: ['ADMIN'], rn: 'RN-02, 04, 06, 49, 58, 59', ca: 'CA-12, 26, 30, 63', estados: catalogo(CFG_PRATO) },
+  'UI-11': { nome: 'Catálogo · Itens de cardápio', rota: '/catalogo/itens', perfis: ['ADMIN'], rn: 'RN-03, 04, 05, 12, 49, 59', ca: 'CA-11, 13, 30, 47, 64', estados: catalogo(CFG_ITEM) },
+  'UI-12': { nome: 'Usuários', rota: '/usuarios', perfis: ['ADMIN'], rn: 'RN-34, 37, 52, 60', ca: 'CA-27, 51, 53, 65, 66', estados: {
     carregando: { d: 'Buscando', o: 'Derivado do PRD', r: () => users(skel(4)) },
-    default: { d: 'Usuários ativos. Ações: Redefinir senha, Desativar. O próprio ADMIN não tem ações na lista', o: 'Derivado de RN-34, RN-52', r: () => users(usersList(false)) },
+    default: { d: 'Usuários ativos. Ações: Redefinir senha, Desativar. O próprio ADMIN não tem ações na lista. Só cadastra Operador (RN-34)', o: 'Derivado de RN-34, RN-52', r: () => users(usersList(false)) },
+    comBloqueado: { d: 'Operador bloqueado por tentativas: marca com o horário de liberação, para o ADMIN decidir entre esperar e redefinir', o: 'Derivado de RN-52, RN-37', r: () => users(usersList(false, true)) },
     comDesativados: { d: 'Desativados visíveis com Reativar', o: 'Derivado de RN-34, CA-53', r: () => users(usersList(true)) },
     vazio: { d: 'Só existe o ADMIN', o: 'Derivado do PRD', r: () => users(`<div class="center"><p class="big">Nenhum operador cadastrado.</p><p class="muted">Cadastre quem vai registrar vendas no balcão.</p>${btn('Novo operador', go('UI-12', 'formulario'), 'pri')}</div>`) },
     formulario: { d: 'Cadastro de operador: nome, usuário, senha inicial', o: 'Derivado de RN-34', r: () => users(usersList(false), sh(userForm(''))) },
-    validacao: { d: 'Usuário (login) já em uso — ver lacuna', o: 'Derivado (implícito no login por usuário) — ver lacuna', r: () => users(usersList(false), sh(userForm('validacao'))) },
+    validacao: { d: 'Usuário (login) já em uso, sem diferenciar maiúsculas', o: 'Derivado de RN-60, CA-65', r: () => users(usersList(false), sh(userForm('validacao'))) },
+    senhaCurta: { d: 'Senha inicial com menos de 8 caracteres', o: 'Derivado de RN-60, CA-66', r: () => users(usersList(false), sh(userForm('senhaCurta'))) },
     salvando: { d: 'Salvando', o: 'Derivado do PRD', r: () => users(usersList(false), sh(userForm('salvando'))) },
     erroEnvio: { d: 'Falha; dados preservados', o: 'Derivado de RN-48', r: () => users(usersList(false), sh(userForm('erroEnvio'))) },
     confirmarDesativar: { d: 'Confirma desativação; autoria das vendas preservada', o: 'Derivado de RN-34, CA-27', r: () => users(usersList(false), sh(`<h2>Desativar João?</h2><p>Ele deixa de conseguir entrar. As vendas que ele registrou continuam atribuídas a ele. Você pode reativá-lo depois.</p>${btn('Desativar', go('UI-12', 'sucesso'), 'pri full')}${btn('Voltar', go('UI-12'), 'ghost')}`)) },
-    redefinirSenha: { d: 'Nova senha para o operador; desbloqueia a conta e invalida a senha anterior', o: 'Derivado de RN-52, CA-51', r: () => users(usersList(false), sh(`<h2>Redefinir senha de João</h2>${field('Nova senha', '<input type="password" value="••••••••">')}<p class="muted" style="font-size:14px;margin:0 0 8px">A senha anterior deixa de funcionar e, se a conta estiver bloqueada por tentativas, ela é liberada na hora.</p>${btn('Redefinir senha', go('UI-12', 'redefinirSucesso'), 'pri full')}${btn('Voltar', go('UI-12'), 'ghost')}`)) },
+    redefinirSenha: { d: 'Nova senha para o operador; desbloqueia a conta e invalida a senha anterior', o: 'Derivado de RN-52, CA-51', r: () => users(usersList(false), sh(`<h2>Redefinir senha de João</h2>${field('Nova senha (mínimo 8 caracteres)', '<input type="password" value="••••••••">')}<p class="muted" style="font-size:14px;margin:0 0 8px">A senha anterior deixa de funcionar e, se a conta estiver bloqueada por tentativas, ela é liberada na hora.</p>${btn('Redefinir senha', go('UI-12', 'redefinirSucesso'), 'pri full')}${btn('Voltar', go('UI-12'), 'ghost')}`)) },
     redefinirSucesso: { d: 'Senha redefinida', o: 'Derivado de CA-51', r: () => users(usersList(false), '', ['ok', '✓ Senha de João redefinida. Entregue a nova senha a ele.']) },
     sucesso: { d: 'Operação concluída', o: 'Derivado do PRD', r: () => users(usersList(false), '', ['ok', '✓ Salvo.']) },
     erro: { d: 'Falha ao carregar', o: 'Derivado de RN-48', r: () => users(erroCarga()) },
     semPermissao: SEMPERM,
   } },
-  'UI-13': { nome: 'Trocar minha senha', rota: '/conta/senha', perfis: ['ADMIN'], rn: 'RN-53', ca: 'CA-52', estados: {
+  'UI-13': { nome: 'Trocar minha senha', rota: '/conta/senha', perfis: ['ADMIN'], rn: 'RN-53, 60', ca: 'CA-52, 66', estados: {
     default: { d: 'Senha atual + nova + repetição', o: 'Derivado de RN-53', r: () => shell({ title: 'Minha senha', nav: 'MAIS', body: senhaBody('default') }) },
     validacao: { d: 'Repetição não confere', o: 'Derivado de RN-46', r: () => shell({ title: 'Minha senha', nav: 'MAIS', body: senhaBody('validacao') }) },
+    senhaCurta: { d: 'Nova senha com menos de 8 caracteres', o: 'Derivado de RN-60, CA-66', r: () => shell({ title: 'Minha senha', nav: 'MAIS', body: senhaBody('senhaCurta') }) },
     enviando: { d: 'Salvando', o: 'Derivado do PRD', r: () => shell({ title: 'Minha senha', nav: 'MAIS', body: senhaBody('enviando') }) },
     senhaAtualIncorreta: { d: 'Senha atual errada: troca recusada', o: 'Derivado de CA-52', r: () => shell({ title: 'Minha senha', nav: 'MAIS', body: senhaBody('senhaAtualIncorreta') }) },
     sucesso: { d: 'Senha trocada', o: 'Derivado de CA-52', r: () => shell({ title: 'Minha senha', nav: 'MAIS', body: senhaBody('sucesso') }) },

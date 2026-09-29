@@ -7,7 +7,7 @@
 > **Fidelidade:** Wireframe. Nenhuma skill de design de interface estava disponível no ambiente — o protótipo cobre estrutura, campos e estados, sem tratamento visual final. Uma passada de UI/UX está prevista (ver seção 10)
 > **Autor:** Thiago Barcelos
 > **Data:** 2026-09-28
-> **Status:** Rascunho — revisado em 2026-09-28 após a revisão do PRD (RN-54 Sair, RN-55 fechamento do mês)
+> **Status:** Rascunho — revisado em 2026-09-28: RN-54 (Sair), RN-55 (fechamento do mês) e todas as lacunas da seção 8 decididas (RN-56 a RN-61 no PRD)
 
 ---
 
@@ -26,7 +26,7 @@
 | Protótipo | Nenhum pré-existente — o protótipo foi gerado nesta fase |
 | PRD | Todas as telas e quase todos os estados: personas (§5), fluxos (§7), regras (§8), cenários Gherkin (§9), permissionamento (§10), ciclo de vida do cardápio (§12), riscos (§15) |
 | Arquitetura | Stack, client components, uso com uma mão, retorno otimista e reenvio com a mesma chave (7.1), sessão por cookie |
-| Entrevista (2026-09-28) | Fidelidade wireframe; direção visual B ("Quente de restaurante"); contraste WCAG AA; somente PT-BR; inclusão da ação **Sair** e do **fechamento do mês** — ambas levadas ao PRD como RN-54 e RN-55 |
+| Entrevista (2026-09-28) | Fidelidade wireframe; direção visual B ("Quente de restaurante"); contraste WCAG AA; somente PT-BR; inclusão da ação **Sair** e do **fechamento do mês** — ambas levadas ao PRD como RN-54 e RN-55; decisão das 16 lacunas da seção 8 |
 | Gerado nesta fase | Padrão de navegação (barra inferior + menu "Mais"), disposição da grade de registro (uma linha por prato, colunas fixas PF / Marmita), copy curta das mensagens |
 
 > **Todo estado desta SPEC é "Derivado" ou "Gerado"** — nenhum passou por validação de design. A coluna Origem de cada tabela indica de onde veio.
@@ -53,18 +53,18 @@ Não há design system nem tokens no repositório (greenfield). O wireframe usa 
 | ID | Tela | Rota | Persona | Implementa (RN) | Valida (CA) |
 |---|---|---|---|---|---|
 | UI-01 | Entrar | `/login` | Todos | RN-34, RN-36, RN-37, RN-38, RN-54 | CA-24, CA-25, CA-27, CA-32, CA-34, CA-35, CA-51, CA-53, CA-56 |
-| UI-02 | Registrar venda | `/registrar` | ADMIN, Operador | RN-07, RN-08, RN-09, RN-11, RN-12, RN-13, RN-18, RN-19, RN-36, RN-50 | CA-01, CA-04, CA-06, CA-07, CA-08, CA-09, CA-10, CA-13, CA-48, CA-55 |
+| UI-02 | Registrar venda | `/registrar` | ADMIN, Operador | RN-07, RN-08, RN-09, RN-11, RN-12, RN-13, RN-18, RN-19, RN-36, RN-40, RN-50, RN-56 | CA-01, CA-04, CA-06, CA-07, CA-08, CA-09, CA-10, CA-13, CA-48, CA-55, CA-58, CA-59, CA-60 |
 | UI-03 | Painel de confirmação (sobre UI-02) | `/registrar` (painel) | ADMIN, Operador | RN-13, RN-14, RN-18 | CA-01, CA-02, CA-05 |
 | UI-04 | Minhas vendas de hoje | `/minhas-vendas` | ADMIN, Operador | RN-17, RN-21, RN-27, RN-40 | CA-15, CA-36, CA-54 |
 | UI-05 | Vendas da data | `/vendas?data=` | ADMIN | RN-16, RN-20, RN-21, RN-22, RN-27, RN-28, RN-51 | CA-14, CA-18, CA-31, CA-50 |
 | UI-06 | Cancelar venda (diálogo sobre UI-05) | `/vendas` (diálogo) | ADMIN | RN-21, RN-23, RN-24, RN-25, RN-26 | CA-14, CA-16, CA-17, CA-18, CA-31 |
-| UI-07 | Fechamento (dia e mês) | `/fechamento?data=` · `/fechamento?mes=` | ADMIN | RN-04, RN-27, RN-28, RN-29, RN-30, RN-31, RN-32, RN-33, RN-55 | CA-11, CA-12, CA-13, CA-18, CA-21, CA-22, CA-23, CA-37, CA-57 |
-| UI-08 | Cardápio da data | `/cardapio?data=` | ADMIN | RN-07, RN-08, RN-09, RN-10, RN-11, RN-12, RN-50 | CA-07, CA-08, CA-09, CA-10, CA-47, CA-48, CA-49 |
-| UI-09 | Catálogo · Proteínas | `/catalogo/proteinas` | ADMIN | RN-01, RN-49 | CA-29 |
-| UI-10 | Catálogo · Pratos | `/catalogo/pratos` | ADMIN | RN-02, RN-04, RN-06, RN-49 | CA-12, CA-26, CA-30 |
-| UI-11 | Catálogo · Itens de cardápio | `/catalogo/itens` | ADMIN | RN-03, RN-04, RN-05, RN-12, RN-49 | CA-11, CA-13, CA-30, CA-47 |
-| UI-12 | Usuários | `/usuarios` | ADMIN | RN-34, RN-37, RN-52 | CA-27, CA-51, CA-53 |
-| UI-13 | Trocar minha senha | `/conta/senha` | ADMIN | RN-53 | CA-52 |
+| UI-07 | Fechamento (dia e mês) | `/fechamento?data=` · `/fechamento?mes=` | ADMIN | RN-04, RN-27, RN-28, RN-29, RN-30, RN-31, RN-32, RN-33, RN-55, RN-61 | CA-11, CA-12, CA-13, CA-18, CA-21, CA-22, CA-23, CA-37, CA-57, CA-67 |
+| UI-08 | Cardápio da data | `/cardapio?data=` | ADMIN | RN-07, RN-08, RN-09, RN-10, RN-11, RN-12, RN-50, RN-57 | CA-07, CA-08, CA-09, CA-10, CA-47, CA-48, CA-49, CA-61 |
+| UI-09 | Catálogo · Proteínas | `/catalogo/proteinas` | ADMIN | RN-01, RN-04, RN-49, RN-58, RN-59 | CA-29, CA-62 |
+| UI-10 | Catálogo · Pratos | `/catalogo/pratos` | ADMIN | RN-02, RN-04, RN-06, RN-49, RN-58, RN-59 | CA-12, CA-26, CA-30, CA-63 |
+| UI-11 | Catálogo · Itens de cardápio | `/catalogo/itens` | ADMIN | RN-03, RN-04, RN-05, RN-12, RN-49, RN-59 | CA-11, CA-13, CA-30, CA-47, CA-64 |
+| UI-12 | Usuários | `/usuarios` | ADMIN | RN-34, RN-37, RN-52, RN-60 | CA-27, CA-51, CA-53, CA-65, CA-66 |
+| UI-13 | Trocar minha senha | `/conta/senha` | ADMIN | RN-53, RN-60 | CA-52, CA-66 |
 
 Elementos transversais, sem ID de tela (ver seção 5): `AppShell` (topo com usuário e **Sair** — RN-54, CA-56 —, navegação inferior por perfil, menu "Mais"), `AvisoCardapioHerdado` (RN-09), `AcessoNegado` (RN-39, CA-26 — estado `.semPermissao` de UI-05 a UI-13).
 
@@ -96,7 +96,7 @@ Elementos transversais, sem ID de tela (ver seção 5): `AppShell` (topo com usu
 | Saiu | `UI-01.saiu` | Após a ação Sair (`POST`; sessão invalidada no servidor) | "Você saiu." + formulário | Derivado de RN-54, CA-56 |
 | Erro | `UI-01.erro` | Servidor inalcançável | Mensagem sem detalhe técnico | Derivado de RN-48 |
 
-**Navegação:** sucesso → `UI-02` (os dois perfis — ver lacuna 6).
+**Navegação:** sucesso → `UI-02`, para os dois perfis (lacuna 6: o ADMIN também vende no balcão, e o aviso de cardápio herdado aparece em qualquer tela).
 **Observações:** "Se o problema continuar, fale com o responsável" é o único caminho para um operador bloqueado, já que a tela não pode revelar o bloqueio (RN-38) e a saída é a RN-52.
 
 ---
@@ -109,7 +109,10 @@ Elementos transversais, sem ID de tela (ver seção 5): `AppShell` (topo com usu
 | Regra | Como aparece na tela |
 |---|---|
 | RN-13 | Toque em PF ou Marmita de um prato abre o painel UI-03 |
-| RN-03 | Uma linha por prato; cada botão é um item de cardápio (prato × formato). Colunas fixas: PF à esquerda, Marmita à direita, célula vazia quando o formato não existe |
+| RN-03 | Uma linha por prato, em **ordem alfabética estável**; cada botão é um item de cardápio (prato × formato). Colunas fixas: PF à esquerda, Marmita à direita, célula vazia quando o formato não existe |
+| RN-40 | O botão mostra o **preço unitário** abaixo do formato ("PF / R$ 18,00"), para o operador cobrar (lacuna 1) |
+| §7.2 | A tela **não se atualiza sozinha**: botão "↻ Atualizar" ao lado do título; o cardápio novo só aparece ao atualizar (lacuna 2) |
+| RN-56 | Venda com falha fica pendente no aparelho, com Reenviar e Descartar; pendência de outro usuário ou de outro dia operacional é descartada com aviso, nunca reenviada |
 | RN-19 | Só aparecem itens do cardápio vigente (próprio ou herdado) |
 | RN-08, RN-12 | Herdado: exibe os itens da data de origem sem os desativados, com marca "Herdado de DD/MM" |
 | RN-09 | ADMIN vê, além da marca, o aviso `AvisoCardapioHerdado` com a ação "Revisar cardápio" |
@@ -125,16 +128,19 @@ Elementos transversais, sem ID de tela (ver seção 5): `AppShell` (topo com usu
 | Vazio | `UI-02.vazio` | Nenhum cardápio jamais montado | Operador: "Chame o responsável para montar o cardápio do dia." ADMIN: botão "Montar cardápio" → `UI-08.vazio` | Derivado de RN-11, CA-10 |
 | Erro | `UI-02.erro` | Falha ao carregar o cardápio | Mensagem + "Tentar de novo" | Derivado de RN-48 |
 | Registrado | `UI-02.registrado` | Logo após Confirmar, **antes** da resposta | Toast "✓ Registrado: 1× Frango grelhado · PF" | Derivado de CA-01, arquitetura 7.1 |
-| Falha de envio | `UI-02.falhaEnvio` | Rede falhou após o retorno otimista | Aviso vermelho **persistente**, que não some sozinho: "Venda NÃO registrada — sem conexão" + item + "Reenviar". A grade continua utilizável | Derivado de CA-04, CA-03, RN-18 |
+| Falha de envio | `UI-02.falhaEnvio` | Rede falhou após o retorno otimista | Aviso vermelho **persistente**: "Venda NÃO registrada — sem conexão" + item + "Não feche esta aba enquanto houver venda pendente" + **Reenviar** e **Descartar**. A grade continua utilizável. A pendência sobrevive a recarregar a página; fechar a aba com pendência dispara o aviso do navegador | Derivado de CA-04, CA-03, RN-18, RN-56 |
 | Reenviando | `UI-02.reenviando` | Reenvio em curso | Aviso com botão desabilitado "Reenviando…" | Derivado de §7.1 |
-| Recusado | `UI-02.recusado` | API recusou (422): item saiu do cardápio (RN-19) ou quantidade inválida (RN-14) | "Venda NÃO registrada" + motivo; sem Reenviar (seria recusado de novo); cardápio recarregado | Derivado de CA-06, CA-05 |
-| Sessão expirada | `UI-02.sessaoExpirada` | Envio voltou 401 | "Sua sessão expirou. A venda NÃO foi registrada." + "Entrar novamente"; grade desabilitada | Derivado de RN-36, CA-04 |
+| Confirmar descarte | `UI-02.confirmarDescarte` | Tocou Descartar | Painel: "Descartar esta venda? … não será registrada e não entra no fechamento." + "Descartar venda" (destrutivo) + Voltar | Derivado de RN-56, CA-58 |
+| Pendência descartada | `UI-02.pendenciaDescartada` | Ao abrir a tela, havia pendência de outro dia operacional ou de outro usuário | Aviso amarelo: "Uma venda pendente foi descartada sem ser registrada" + item + origem ("ficou pendente em dom 27/09") + "Se ela aconteceu, avise o responsável." + Entendi | Derivado de RN-56, CA-59, CA-60 |
+| Recusado | `UI-02.recusado` | API recusou (422): item saiu do cardápio (RN-19) ou quantidade inválida (RN-14) | "Venda NÃO registrada" + motivo + "o cardápio desta tela está desatualizado" + **Atualizar cardápio**; sem Reenviar (seria recusado de novo) | Derivado de CA-06, CA-05, §7.2 |
+| Sessão expirada | `UI-02.sessaoExpirada` | Envio voltou 401 | "Sua sessão expirou. A venda NÃO foi registrada." + "ficou pendente neste aparelho. Entre de novo com o mesmo usuário para reenviar." + Entrar novamente; grade desabilitada. Depois de entrar, o mesmo usuário volta a `.falhaEnvio`; outro usuário vê `.pendenciaDescartada` | Derivado de RN-36, RN-56, CA-59 |
 
 **Navegação:** item → `UI-03`; nav inferior → `UI-04` (Operador) ou `UI-05`, `UI-07`, `UI-08`, "Mais" (ADMIN).
 **Observações:**
 - CA-55 (ADMIN não é deslogado vendendo) não tem estado próprio: é a **ausência** de interrupção. A verificação é por teste de sessão.
 - Vários envios podem estar em voo ao mesmo tempo — o operador não espera um para tocar o próximo. O aviso de falha lista cada venda pendente, com Reenviar em cada uma.
-- A tela precisa caber sem rolagem (PRD §14). Com 4 pratos, cabe com folga em 375 × 667. Ver lacuna 14.
+- A tela cabe sem rolagem com até 6 pratos (12 itens) em 375 × 667 (PRD §14). Acima disso, rola; o cardápio não tem teto.
+- A pendência é guardada na sessão da aba (sobrevive a recarregar, some ao fechar) junto com a chave de idempotência, o usuário e o dia operacional em que foi confirmada. O dia operacional vem do servidor (a resposta do cardápio traz a data), nunca do relógio do aparelho (RN-17).
 
 ---
 
@@ -249,7 +255,7 @@ Elementos transversais, sem ID de tela (ver seção 5): `AppShell` (topo com usu
 | RN-27 | Data do dia operacional; hoje marcado "(parcial)" |
 | RN-33 | Navegador de data para qualquer data passada |
 | RN-04 | Item desativado continua listado pelo nome nas datas em que vendeu |
-| RN-32 | Número de data passada pode mudar por cancelamento tardio; aviso `.cancelamentoPosterior` |
+| RN-32, RN-61 | Número de data passada pode mudar por cancelamento tardio; o fechamento do dia informa esses cancelamentos (`.cancelamentoPosterior`) |
 
 | Estado | ID | Quando ocorre | O que o usuário vê | Origem |
 |---|---|---|---|---|
@@ -257,7 +263,7 @@ Elementos transversais, sem ID de tela (ver seção 5): `AppShell` (topo com usu
 | Padrão | `UI-07.default` | Modo Dia, hoje | Blocos na ordem: Faturamento, Unidades, Proteína, Por prato, Por item + "Ver vendas desta data" | Derivado de RN-29, CA-21, CA-22, CA-37 |
 | Mês | `UI-07.mes` | Modo Mês | Mesmos blocos somados sobre o mês + tabela Por dia; sem "Ver vendas desta data" (a lista de vendas é por dia — use a quebra por dia) | Derivado de RN-55, CA-57 |
 | Data passada | `UI-07.dataPassada` | Data < hoje | Mesmo layout; itens hoje desativados aparecem pelo nome | Derivado de RN-33, CA-23, CA-13 |
-| Cancelamento posterior | `UI-07.cancelamentoPosterior` | Houve cancelamento feito depois da data | Aviso informativo com quem, quando, motivo e link para UI-05 | Derivado do PRD §15 e RN-32 — **ver lacuna 13** |
+| Cancelamento posterior | `UI-07.cancelamentoPosterior` | Houve cancelamento feito depois da data | Aviso informativo com quem, quando, motivo e link para UI-05 | Derivado de RN-61, CA-67, RN-32 |
 | Vazio | `UI-07.vazio` | Nenhuma venda na data ou no mês | Zeros explícitos ("R$ 0,00 · 0 unidades · 0 g"), não tela em branco | Derivado do PRD |
 | Erro | `UI-07.erro` | Falha | Mensagem + tentar de novo | Derivado de RN-48 |
 | Sem permissão | `UI-07.semPermissao` | Operador | `AcessoNegado` | Derivado de RN-39 |
@@ -283,6 +289,8 @@ Elementos transversais, sem ID de tela (ver seção 5): `AppShell` (topo com usu
 | RN-12 | Herdado lista o que foi removido por desativação; na edição, desativados não aparecem |
 | RN-50 | Data corrente e futuras editáveis; passadas somente leitura |
 | RN-11 | Primeiro uso: estado vazio com "Montar cardápio" |
+| RN-57 | Salvar exige pelo menos um item selecionado |
+| §7.2 | Ao salvar, orienta o ADMIN a avisar o balcão: a tela de registro só mostra o cardápio novo quando for atualizada |
 
 | Estado | ID | Quando ocorre | O que o usuário vê | Origem |
 |---|---|---|---|---|
@@ -292,14 +300,15 @@ Elementos transversais, sem ID de tela (ver seção 5): `AppShell` (topo com usu
 | Vazio | `UI-08.vazio` | Nunca houve cardápio | "Os operadores não conseguem registrar vendas até você montar o primeiro." + Montar | Derivado de RN-11, CA-10 |
 | Futuro sem cardápio | `UI-08.futuroSemCardapio` | Data futura sem próprio | "Se nada for montado, nesse dia vale o cardápio mais recente anterior, como herdado." + Montar | Derivado de RN-50, RN-08 |
 | Editando | `UI-08.editando` | Montar / editar | Lista de todos os itens **ativos** com checkbox e preço; contador de selecionados; aviso de vendas já registradas (hoje); Salvar / Descartar | Derivado de RN-10, RN-12, CA-09, CA-48 |
+| Validação | `UI-08.validacao` | Salvar sem nenhum item | "Selecione pelo menos um item. Um cardápio não pode ficar vazio." | Derivado de RN-57, CA-61 |
 | Salvando | `UI-08.salvando` | Envio | Controles desabilitados | Derivado do PRD |
 | Erro de envio | `UI-08.erroEnvio` | Falha | Mensagem; **seleção preservada** | Derivado de RN-48 |
-| Sucesso | `UI-08.sucesso` | Gravado | Volta a `.proprio`; toast "Os operadores já veem estes itens." | Derivado de RN-10, CA-09 |
+| Sucesso | `UI-08.sucesso` | Gravado | Volta a `.proprio`; toast "Cardápio salvo. Avise o balcão: ele aparece quando a tela de registro for atualizada." | Derivado de RN-10, CA-09, §7.2 |
 | Somente leitura | `UI-08.somenteLeitura` | Data passada com próprio | Lista, marca "Somente leitura", sem ações | Derivado de RN-50, CA-49 |
 | Somente leitura sem próprio | `UI-08.somenteLeituraSemProprio` | Data passada sem próprio | "Nenhum cardápio foi montado nesta data. Nesse dia valeu o cardápio herdado." | Derivado de RN-08, RN-50 |
 | Sem permissão | `UI-08.semPermissao` | Operador | `AcessoNegado` | Derivado de RN-39 |
 
-**Observações:** a tela não mostra o `AvisoCardapioHerdado` global, porque ela própria é o destino do aviso. Validação de "nenhum item selecionado" não foi especificada — ver lacuna 7.
+**Observações:** a tela não mostra o `AvisoCardapioHerdado` global, porque ela própria é o destino do aviso.
 
 ---
 
@@ -318,6 +327,9 @@ Elementos transversais, sem ID de tela (ver seção 5): `AppShell` (topo com usu
 | RN-06 | UI-10 | `.editarGramagem`: aviso equivalente para gramagem |
 | RN-12 | UI-11 | Confirmação de desativar: "Ele sai do cardápio e da tela de registro imediatamente." |
 | RN-49 | UI-09, 10, 11 | Desativados visíveis pelo filtro, com "Reativar"; nome duplicado de um desativado oferece "Reativar" em vez de criar |
+| RN-58 | UI-09, 10 | Desativar proteína usada por prato ativo, ou prato com item ativo, é recusado com a lista dos dependentes e atalho para a aba deles (`.desativarBloqueado`). A linha já mostra quantos dependentes ativos o cadastro tem ("1 prato ativo", "2 itens") |
+| RN-59 | UI-09, 10, 11 | Nome de proteína e de prato único, sem diferenciar maiúsculas; no máximo um item por prato × formato |
+| — | UI-09, 10, 11 | Listas em ordem alfabética; nomes até 60 caracteres (lacuna 16) |
 
 **Estados comuns às três** (prefixo `UI-09.`, `UI-10.`, `UI-11.`):
 
@@ -340,10 +352,14 @@ Elementos transversais, sem ID de tela (ver seção 5): `AppShell` (topo com usu
 
 | Estado | ID | Quando ocorre | O que o usuário vê | Origem |
 |---|---|---|---|---|
-| Duplicado | `UI-09.duplicado` | Nome igual ao de proteína ativa | "Já existe uma proteína “Frango”." | Derivado de RN-01, CA-29 |
+| Duplicado | `UI-09.duplicado` | Nome igual ao de proteína ativa (ignorando maiúsculas) | "Já existe uma proteína “Frango”." | Derivado de RN-01, RN-59, CA-29 |
 | Duplicado desativado | `UI-09.duplicadoDesativado` | Nome igual ao de desativada | "“Carne suína” já existe e está desativada." + Reativar | Derivado de RN-49 |
+| Desativação bloqueada | `UI-09.desativarBloqueado` | Proteína usada por prato ativo | "Não é possível desativar “Frango”" + lista dos pratos + "Ir para Pratos" | Derivado de RN-58, CA-62 |
+| Duplicado | `UI-10.duplicado` | Nome igual ao de prato ativo (ignorando maiúsculas) | "Já existe um prato “Frango grelhado”." | Derivado de RN-59, CA-63 |
+| Duplicado desativado | `UI-10.duplicadoDesativado` | Nome igual ao de prato desativado | "“Feijoada” já existe e está desativado." + Reativar | Derivado de RN-49, RN-59 |
+| Desativação bloqueada | `UI-10.desativarBloqueado` | Prato com item ativo | "Não é possível desativar “Frango grelhado”" + lista dos itens + "Ir para Itens" | Derivado de RN-58 |
 | Editar gramagem | `UI-10.editarGramagem` | Edição de prato | Form + aviso RN-06 | Derivado de RN-06, CA-12 |
-| Duplicado | `UI-11.duplicado` | Prato × formato já existe ativo | "“Frango grelhado” já tem item Marmita. Edite o existente." | Derivado de RN-03, CA-47 |
+| Duplicado | `UI-11.duplicado` | Prato × formato já existe ativo | "“Frango grelhado” já tem item Marmita. Edite o existente." | Derivado de RN-59, CA-64 |
 | Duplicado desativado | `UI-11.duplicadoDesativado` | Prato × formato existe desativado | "“Feijoada · PF” já existe e está desativado." + Reativar | Derivado de RN-49, CA-47 |
 | Editar preço | `UI-11.editarPreco` | Edição de item | Prato e formato só leitura; Preço editável; aviso RN-05 | Derivado de RN-05, CA-11 |
 
@@ -356,8 +372,9 @@ Elementos transversais, sem ID de tela (ver seção 5): `AppShell` (topo com usu
 
 | Regra | Como aparece na tela |
 |---|---|
-| RN-34 | Novo operador (nome, usuário, senha inicial); Desativar / Reativar; nunca excluir |
-| RN-52 | "Redefinir senha": a senha anterior deixa de funcionar e o bloqueio da conta é liberado na hora |
+| RN-34 | Novo operador (nome, usuário, senha inicial); Desativar / Reativar; nunca excluir. O formulário **não tem campo de perfil**: a interface só cadastra Operador (lacuna 12) |
+| RN-52 | "Redefinir senha": a senha anterior deixa de funcionar e o bloqueio da conta é liberado na hora. Conta bloqueada aparece com a marca "Bloqueado até HH:MM" (lacuna 11) |
+| RN-60 | Usuário único, sem diferenciar maiúsculas (até 30 caracteres, sem espaços); senha com no mínimo 8 caracteres, indicado no próprio rótulo do campo |
 | — | A linha do próprio ADMIN aparece como "(você)", sem ações |
 
 | Estado | ID | Quando ocorre | O que o usuário vê | Origem |
@@ -365,9 +382,11 @@ Elementos transversais, sem ID de tela (ver seção 5): `AppShell` (topo com usu
 | Carregando | `UI-12.carregando` | Busca | Skeleton | Derivado do PRD |
 | Padrão | `UI-12.default` | Há operadores | Nome, usuário, perfil; Redefinir senha, Desativar | Derivado de RN-34, RN-52 |
 | Com desativados | `UI-12.comDesativados` | Filtro ligado | Desativados com Reativar | Derivado de RN-34, CA-53 |
+| Com bloqueado | `UI-12.comBloqueado` | Operador bloqueado por tentativas | Marca "Bloqueado até 12:40" na linha; ação Redefinir senha continua disponível | Derivado de RN-52, RN-37 |
 | Vazio | `UI-12.vazio` | Só o ADMIN | "Nenhum operador cadastrado." + Novo operador | Derivado do PRD |
 | Formulário | `UI-12.formulario` | Novo operador | Nome, Usuário, Senha inicial; "Entregue a senha ao operador pessoalmente." | Derivado de RN-34, RN-52 (sem canal externo) |
-| Validação | `UI-12.validacao` | Usuário já em uso | Erro no campo | Derivado (implícito no login por usuário) — **ver lacuna 10** |
+| Validação | `UI-12.validacao` | Usuário já em uso (ignorando maiúsculas) | "Este usuário já está em uso." | Derivado de RN-60, CA-65 |
+| Senha curta | `UI-12.senhaCurta` | Senha inicial com menos de 8 | "A senha precisa ter pelo menos 8 caracteres." | Derivado de RN-60, CA-66 |
 | Salvando | `UI-12.salvando` | Envio | Desabilitado | Derivado do PRD |
 | Erro de envio | `UI-12.erroEnvio` | Falha | Dados preservados | Derivado de RN-48 |
 | Confirmar desativar | `UI-12.confirmarDesativar` | Desativar | "Ele deixa de conseguir entrar. As vendas que ele registrou continuam atribuídas a ele." | Derivado de RN-34, CA-27 |
@@ -388,6 +407,7 @@ Elementos transversais, sem ID de tela (ver seção 5): `AppShell` (topo com usu
 |---|---|---|---|---|
 | Padrão | `UI-13.default` | Aberto | Senha atual, Nova senha, Repita a nova senha | Derivado de RN-53 |
 | Validação | `UI-13.validacao` | Repetição não confere | Erro no campo | Derivado de RN-46 |
+| Senha curta | `UI-13.senhaCurta` | Nova senha com menos de 8 | "A senha precisa ter pelo menos 8 caracteres." | Derivado de RN-60, CA-66 |
 | Enviando | `UI-13.enviando` | Envio | Desabilitado | Derivado do PRD |
 | Senha atual incorreta | `UI-13.senhaAtualIncorreta` | Recusado | Erro no campo "Senha atual" | Derivado de RN-53, CA-52 |
 | Sucesso | `UI-13.sucesso` | Trocada | "Senha alterada." | Derivado de CA-52 |
@@ -404,14 +424,14 @@ Elementos transversais, sem ID de tela (ver seção 5): `AppShell` (topo com usu
 | `MenuMais` | AppShell (ADMIN) | Painel com Minhas vendas de hoje, Proteínas, Pratos, Itens, Usuários, Trocar minha senha, Sair | aberto, fechado |
 | `AvisoCardapioHerdado` | AppShell (ADMIN), UI-02 | Aviso "Cardápio de hoje herdado de DD/MM" + "Revisar cardápio" → UI-08. Some quando o ADMIN confirma ou substitui (RN-09) | visível, oculto |
 | `AcessoNegado` | `.semPermissao` de UI-05 a UI-13 | Tela inteira bloqueada + "Voltar ao registro" (RN-39) | — |
-| `GradeCardapio` / `BotaoItem` | UI-02 | Uma linha por prato, colunas fixas PF / Marmita, alvo ≥ 64 px | habilitado, desabilitado, célula vaga |
+| `GradeCardapio` / `BotaoItem` | UI-02 | Uma linha por prato em ordem alfabética, colunas fixas PF / Marmita, preço abaixo do formato, alvo ≥ 64 px; botão "↻ Atualizar" | habilitado, desabilitado, célula vaga |
 | `PainelInferior` | UI-03, UI-06, formulários de UI-09 a UI-12, MenuMais | Bottom sheet com fundo escurecido | aberto, processando |
 | `SeletorQuantidade` | UI-03 | `−` valor `+`, faixa 1–20, sem teclado | mínimo, intermediário, máximo |
 | `NavegadorData` | UI-05, UI-07, UI-08 | ‹ data › + escolha de data; limite superior configurável (hoje em UI-05/07; livre em UI-08); granularidade dia ou mês (mês só na UI-07) | padrão, limite atingido |
 | `SeletorPeriodo` | UI-07 | Controle segmentado Dia \| Mês (RN-55) | dia, mês |
 | `Aviso` (banner) | todas | Variantes falha / aviso / informação / sucesso; falha com `role="alert"` | — |
 | `Toast` | UI-02, UI-06, UI-08, UI-09 a UI-12 | Confirmação curta de sucesso | — |
-| `AvisoFalhaEnvio` | UI-02 | Lista de vendas NÃO registradas, cada uma com Reenviar (mesma chave, RN-18); persiste até sucesso | falha, reenviando |
+| `AvisoFalhaEnvio` | UI-02 | Lista de vendas pendentes (NÃO registradas), cada uma com Reenviar (mesma chave, RN-18) e Descartar (com confirmação); guardada na sessão da aba com usuário e dia operacional (RN-56); aviso do navegador ao fechar com pendência | falha, reenviando, confirmar descarte, pendência descartada |
 | `EstadoVazio` | UI-02, UI-04, UI-05, UI-07, UI-08, UI-09 a UI-12 | Mensagem + ação sugerida | — |
 | `ErroCarregamento` | todas as telas que buscam dados | Mensagem sem detalhe técnico (RN-48) + "Tentar de novo" | — |
 | `Skeleton` | todas as telas que buscam dados | Linhas cinzas na forma do conteúdo | — |
@@ -488,7 +508,7 @@ flowchart LR
 | RN-29 | UI-07 | ✅ Coberta |
 | RN-30 | UI-07 (proteína por tipo) | ✅ Coberta |
 | RN-31 | UI-07 (faturamento por formato e total) | ✅ Coberta |
-| RN-32 | UI-07 (`.cancelamentoPosterior`) | ✅ Coberta — ver lacuna 13 |
+| RN-32 | UI-07 (`.cancelamentoPosterior`) | ✅ Coberta |
 | RN-33 | UI-07 (`.dataPassada`) | ✅ Coberta |
 | RN-34 | UI-12 | ✅ Coberta |
 | RN-35 | — | ⚠️ Regra de backend (hash bcrypt) |
@@ -512,8 +532,14 @@ flowchart LR
 | RN-53 | UI-13 | ✅ Coberta |
 | RN-54 | `AppShell` (Sair), UI-01 (`.saiu`) | ✅ Coberta (invalidação da sessão no backend) |
 | RN-55 | UI-07 (`.mes`, `SeletorPeriodo`) | ✅ Coberta |
+| RN-56 | UI-02 (`.falhaEnvio`, `.confirmarDescarte`, `.pendenciaDescartada`, `.sessaoExpirada`), `AvisoFalhaEnvio` | ✅ Coberta |
+| RN-57 | UI-08 (`.validacao`) | ✅ Coberta |
+| RN-58 | UI-09, UI-10 (`.desativarBloqueado`) | ✅ Coberta |
+| RN-59 | UI-09, UI-10, UI-11 (`.duplicado`, `.duplicadoDesativado`) | ✅ Coberta |
+| RN-60 | UI-12 (`.validacao`, `.senhaCurta`), UI-13 (`.senhaCurta`) | ✅ Coberta |
+| RN-61 | UI-07 (`.cancelamentoPosterior`) | ✅ Coberta |
 
-**Resumo:** 45 de 55 regras se manifestam em tela. As 10 restantes (RN-15, 17, 35, 41, 42, 43, 44, 45, 46, 47) são de backend ou de infraestrutura. Nenhuma regra de interface ficou sem manifestação.
+**Resumo:** 51 de 61 regras se manifestam em tela. As 10 restantes (RN-15, 17, 35, 41, 42, 43, 44, 45, 46, 47) são de backend ou de infraestrutura. Nenhuma regra de interface ficou sem manifestação.
 
 ### Cenários Gherkin
 
@@ -527,7 +553,7 @@ flowchart LR
 | CA-06 | UI-02.recusado | ✅ Coberto (cenário é de API; a tela trata a recusa) |
 | CA-07 | UI-02.herdado, UI-08.herdado, `AvisoCardapioHerdado` | ✅ Coberto |
 | CA-08 | UI-02.herdado, UI-08.herdado | ✅ Coberto |
-| CA-09 | UI-08.editando → .sucesso; UI-02 passa a mostrar o novo | ✅ Coberto — mecanismo de atualização da UI-02 na lacuna 2 |
+| CA-09 | UI-08.editando → .sucesso; UI-02 mostra o novo ao ser atualizada (↻ Atualizar) | ✅ Coberto |
 | CA-10 | UI-02.vazio | ✅ Coberto |
 | CA-11 | UI-11.editarPreco; UI-07 | ✅ Coberto |
 | CA-12 | UI-10.editarGramagem; UI-07 | ✅ Coberto |
@@ -576,47 +602,53 @@ flowchart LR
 | CA-55 | UI-02 (ausência de interrupção) | ✅ Coberto (verificação por teste de sessão) |
 | CA-56 | `AppShell` (Sair) → UI-01.saiu | ✅ Coberto (recusa do cookie antigo é do backend) |
 | CA-57 | UI-07.mes | ✅ Coberto |
+| CA-58 | UI-02.falhaEnvio → .confirmarDescarte | ✅ Coberto |
+| CA-59 | UI-02.sessaoExpirada → UI-01 → UI-02.falhaEnvio (mesmo usuário) ou .pendenciaDescartada (outro usuário) | ✅ Coberto |
+| CA-60 | UI-02.pendenciaDescartada | ✅ Coberto |
+| CA-61 | UI-08.validacao | ✅ Coberto |
+| CA-62 | UI-09.desativarBloqueado | ✅ Coberto |
+| CA-63 | UI-10.duplicado | ✅ Coberto |
+| CA-64 | UI-11.duplicado | ✅ Coberto |
+| CA-65 | UI-12.validacao | ✅ Coberto |
+| CA-66 | UI-12.senhaCurta, UI-13.senhaCurta | ✅ Coberto (redefinição de senha pela API) |
+| CA-67 | UI-07.cancelamentoPosterior | ✅ Coberto |
 
-**Resumo:** 43 de 57 cenários acontecem em tela. Os 14 restantes (CA-19, 20, 25, 28, 33, 38, 39, 40 a 46) são de backend ou de infraestrutura. **Nenhum cenário ficou sem tela por falta de tela.**
+**Resumo:** 53 de 67 cenários acontecem em tela. Os 14 restantes (CA-19, 20, 25, 28, 33, 38, 39, 40 a 46) são de backend ou de infraestrutura. **Nenhum cenário ficou sem tela por falta de tela.**
 
 **Cruzamento reverso — telas e elementos sem RN nem CA:**
 - **Menu "Mais"**: é navegação e não pede regra.
-- *(Resolvidos em 2026-09-28: a ação **Sair** e o **fechamento do mês** nasceram nesta fase e foram levados ao PRD como RN-54/CA-56 e RN-55/CA-57.)*
-- **UI-07.cancelamentoPosterior**: vem da mitigação de risco do PRD §15, sem RN própria (lacuna 13).
+- *(Resolvidos em 2026-09-28: a ação **Sair**, o **fechamento do mês** e o **aviso de cancelamento posterior** nasceram nesta fase e foram levados ao PRD como RN-54/CA-56, RN-55/CA-57 e RN-61/CA-67.)*
 
 ---
 
 ## 8. Lacunas e pendências
 
-### Decidir antes do plano (afetam regra, API ou modelo)
+Todas as lacunas levantadas nesta fase foram **decididas em 2026-09-28**. As que são regra de negócio foram levadas ao PRD; as que são só de tela ficam registradas aqui.
 
-| # | Lacuna | Impacto | Decisão necessária |
+### Decisões
+
+| # | Lacuna | Decisão | Onde ficou |
 |---|---|---|---|
-| 2 | **Como a UI-02 fica sabendo de um cardápio novo.** CA-09 diz que o operador "passa a ver o novo", mas a tela fica aberta o dia todo | Sem mecanismo, o operador vende do cardápio velho até recarregar a página; a API recusa (RN-19) e cai em `UI-02.recusado` | Recarregar ao voltar o foco para a aba + após cada recusa? Consulta periódica (ex.: 60 s)? |
-| 3 | **Venda com falha que nunca é reenviada.** O PRD só prevê "Reenviar". Não há "Descartar", e a lista de falhas vive na memória da aba | Se a rede não volta ou a aba é fechada, a venda some sem registro — exatamente o silêncio que o CA-04 proíbe | Incluir "Descartar" com confirmação? Guardar as pendências em `sessionStorage` para sobreviver a recarregar a página? |
-| 4 | **Venda pendente quando a sessão expira** (`UI-02.sessaoExpirada`) | O wireframe pede para registrar de novo depois de entrar. Reenviar sozinho após o login exigiria guardar a venda e a chave | Aceitar "registre de novo" ou reenviar automaticamente após o login? |
-| 5 | ~~**Ação Sair** não está no PRD~~ | — | ✅ **Resolvida em 2026-09-28:** RN-54 e CA-56 no PRD |
-| 7 | **Cardápio sem nenhum item.** O PRD não diz se o ADMIN pode salvar um cardápio vazio | Salvo vazio, a UI-02 ficaria sem itens, mas não no estado RN-11 | Proibir (validação "Selecione pelo menos um item") ou permitir (dia sem vendas) |
-| 8 | **Desativação em cascata.** O que acontece com pratos ativos quando a proteína é desativada, e com itens ativos quando o prato é desativado? | Afeta a entidade e a tela de registro | Bloquear a desativação enquanto houver dependentes ativos? Desativar em cascata? Só impedir uso novo? |
-| 9 | **Unicidade além da proteína.** A RN-01 só fala da proteína. A unicidade do nome do prato e do par prato × formato está apenas implícita (CA-47, RN-49) | Índices únicos e estados `.duplicado` de UI-10 e UI-11 | Formalizar: prato com nome único? Par prato × formato único? (UI-11 já assume que sim) |
-| 10 | **Unicidade do usuário (login) e política mínima de senha** | Índice único e validação em UI-12, UI-13 e UI-01 | Usuário único por estabelecimento? Tamanho mínimo de senha? |
-| 13 | **Aviso de cancelamento posterior no fechamento** vem da mitigação do PRD §15, sem RN | Precisa de consulta que compare `cancelada_em` com o dia operacional da venda | Manter (e virar RN) ou remover `UI-07.cancelamentoPosterior` |
-| 14 | **"Caber sem rolagem" (PRD §14) × cardápio sem limite de itens.** Com mais de ~6 pratos, a UI-02 rola em 375 × 667 | Define se há teto de itens no cardápio ou se a meta vira "itens mais vendidos no topo" | Teto de itens por cardápio? Aceitar rolagem acima de N? |
+| 1 | Preço no botão do item | **Mostrar**, pequeno abaixo do formato. A RN-40 restringe a lista e o faturamento, não o preço unitário | PRD RN-40 (esclarecimento); UI-02 |
+| 2 | Como a UI-02 fica sabendo de um cardápio novo | **Só ao atualizar a tela** (botão "↻ Atualizar"). Sem consulta periódica. O ADMIN é orientado a avisar o balcão ao salvar; venda de item que saiu do cardápio é recusada com orientação de atualizar | PRD §7.2 e CA-09; UI-02, UI-08.sucesso, UI-02.recusado |
+| 3 | Venda com falha que nunca é reenviada | **Reenviar + Descartar com confirmação**; pendência sobrevive a recarregar a página (sessão da aba), aviso do navegador ao fechar com pendência | PRD RN-56, CA-58; UI-02 |
+| 4 | Venda pendente quando a sessão expira | **Continua pendente para o mesmo usuário**, que reenvia após entrar de novo; outro usuário ou virada do dia descartam com aviso, nunca reenviam (RN-17, RN-20) | PRD RN-56, CA-59, CA-60; UI-02 |
+| 5 | Ação Sair | **Incluída** | PRD RN-54, CA-56; `AppShell`, UI-01.saiu |
+| 6 | Tela inicial do ADMIN | **Registrar venda**, igual ao operador | UI-01 (navegação) |
+| 7 | Cardápio sem nenhum item | **Proibido**: pelo menos um item | PRD RN-57, CA-61; UI-08.validacao |
+| 8 | Desativação com dependentes ativos | **Bloqueada**, listando os dependentes | PRD RN-58, CA-62; UI-09, UI-10 `.desativarBloqueado` |
+| 9 | Unicidade além da proteína | **Nome de prato único** e **no máximo um item por prato × formato**; nomes comparados sem diferenciar maiúsculas | PRD RN-59, CA-63, CA-64; UI-09 a UI-11 |
+| 10 | Login único e senha mínima | **Usuário único** (sem diferenciar maiúsculas) e **senha com no mínimo 8 caracteres**, sem regra de composição | PRD RN-60, CA-65, CA-66; UI-12, UI-13 |
+| 11 | Bloqueio visível ao ADMIN | **Mostrar** "Bloqueado até HH:MM" na lista de usuários | PRD RN-52 (esclarecimento); UI-12.comBloqueado |
+| 12 | ADMIN cadastra outro ADMIN | **Não**: a interface só cadastra Operador; ADMIN adicional por operação técnica | PRD RN-34 (esclarecimento); UI-12 |
+| 13 | Aviso de cancelamento posterior | **Mantido e virou regra** | PRD RN-61, CA-67; UI-07.cancelamentoPosterior |
+| 14 | "Sem rolagem" × cardápio sem limite | **Sem teto**; a meta vale até 6 pratos (12 itens) em 375 × 667; pratos em ordem alfabética estável | PRD §14; UI-02 |
+| 15 | "Minhas vendas" do ADMIN | **Igual ao operador, sem preço**; preço e valor ficam em UI-05 | UI-04 |
+| 16 | Limites de texto | **Nomes** (proteína, prato, pessoa) até **60** caracteres; **motivo** de cancelamento até **200**; **usuário** até **30**, sem espaços. Fixados no schema (RN-46) | Seção 9 |
 
-### Pode decidir durante a implementação
+### Pendente — validação visual
 
-| # | Lacuna | Impacto | Decisão necessária |
-|---|---|---|---|
-| 1 | **Preço no botão do item (UI-02).** O PRD não pede, e a RN-40 só esconde preço na lista do operador | O operador pode precisar do preço para cobrar; o payload do cardápio muda | Mostrar ou não o preço na grade. O wireframe está **sem** preço |
-| 6 | **Tela inicial do ADMIN após o login** | Navegação | O wireframe manda os dois perfis para a UI-02. Alternativa: ADMIN abre no Fechamento |
-| 11 | **Mostrar ao ADMIN que a conta de um operador está bloqueada** (UI-12) | Ajuda no CA-51; a RN-38 só restringe a mensagem de login | Exibir a marca "Bloqueado até HH:MM"? O wireframe não exibe |
-| 12 | **ADMIN cadastra outro ADMIN?** O PRD só fala de operadores; a arquitetura prevê "eventualmente 2" | Campo perfil no formulário da UI-12 | O wireframe só cadastra operador |
-| 15 | **"Minhas vendas" do ADMIN** usa a UI-04 sem preço | Consistência | Aceitar ou mostrar preço quando o perfil é ADMIN |
-| 16 | **Tamanho máximo do motivo de cancelamento** e dos nomes | RN-46 exige limite; o layout precisa acomodar nome longo (o nome do prato quebra em 2 linhas na UI-02) | Definir limites no schema |
-
-### Validação
-
-| # | Lacuna | Impacto | Decisão necessária |
+| # | Pendência | Impacto | Como resolver |
 |---|---|---|---|
 | 17 | **Todos os estados são derivados ou gerados**, nenhum validado visualmente | Pode haver ajuste na passada de UI/UX | Validar com a skill de UI/UX (seção 10) antes de implementar as telas |
 | 18 | **Sem tokens de design** | A implementação não tem paleta nem tipografia | Definidos pela passada de UI/UX (direção B) |
@@ -632,8 +664,10 @@ flowchart LR
 - **Client components** em todo o app autenticado, sem SSR (ADR-002)
 - **Nenhum token ou dado de sessão em JavaScript**: sessão só por cookie httpOnly (ADR-006)
 - **Nenhuma alteração de estado por `GET`**: Sair, confirmar cardápio, cancelar e salvar são `POST`/`PATCH`; abrir UI-02 e UI-08 não grava nada (RN-42, RN-08)
-- **Falha nunca é silenciosa**: aviso de falha de envio é persistente e usa `role="alert"` (CA-04)
-- **Sem instante do dispositivo**: o cliente não envia data nem hora de venda (RN-17)
+- **Falha nunca é silenciosa**: aviso de falha de envio é persistente e usa `role="alert"` (CA-04); fechar a aba com venda pendente dispara o aviso do navegador (RN-56)
+- **Sem instante do dispositivo**: o cliente não envia data nem hora de venda (RN-17); o dia operacional de uma pendência vem do servidor
+- **Pendência só na sessão da aba** (`sessionStorage` ou equivalente), com chave de idempotência, usuário e dia operacional — nunca armazenamento que sobreviva ao fechamento da aba (RN-56)
+- **Limites de texto** (RN-46, lacuna 16): nomes até 60 caracteres, motivo até 200, usuário até 30 sem espaços; senha com mínimo de 8 (RN-60). O `maxlength` do campo espelha o schema, que é quem valida
 
 ---
 
@@ -660,4 +694,4 @@ Componentes: seção 5
 
 **Exige atualizar esta SPEC** (e reconferir a seção 7): juntar ou separar telas, criar ou remover estado, mudar o fluxo de dois toques, mover uma ação de uma tela para outra, esconder informação que uma RN manda exibir (ou exibir o que ela manda esconder, como preço na UI-04), trocar a navegação por perfil.
 
-**Não negociável:** falha de envio inequívoca e persistente (CA-04); painel de confirmação antes de todo registro (RN-13); quantidade só por `−`/`+` com teto 20 (RN-14); mensagem única de login (RN-38); sem preço nem faturamento para o Operador (RN-40).
+**Não negociável:** falha de envio inequívoca e persistente, com Reenviar e Descartar — descarte sempre confirmado (CA-04, RN-56); painel de confirmação antes de todo registro (RN-13); quantidade só por `−`/`+` com teto 20 (RN-14); mensagem única de login (RN-38); sem preço na lista e sem faturamento para o Operador (RN-40); colunas fixas PF / Marmita e pratos em ordem alfabética na tela de registro (lacuna 14).
