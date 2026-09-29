@@ -4,16 +4,16 @@
 **Tipo:** Epic
 **Autor:** Thiago Barcelos
 **Data:** 2026-09-22
-**Status:** Aprovado (2026-09-25)
+**Status:** Aprovado (2026-09-25) · revisado em 2026-09-28 na fase de protótipo — RN-54 e CA-56 (sair da sessão), RN-55 e CA-57 (fechamento do mês)
 **Arquitetura base:** [`docs/architecture/proposta-arquitetural.md`](../architecture/proposta-arquitetural.md) — ADR-001 a ADR-009
 
 ---
 
 ## Resumo de rastreabilidade
 
-> 📸 **Snapshot de 2026-09-25.** Esta tabela é conferência, não fonte de verdade — a fonte são as seções 8 e 9. Ao editar regras ou cenários, reconte com o comando ao final do bloco.
+> 📸 **Snapshot de 2026-09-28.** Esta tabela é conferência, não fonte de verdade — a fonte são as seções 8 e 9. Ao editar regras ou cenários, reconte com o comando ao final do bloco.
 
-**53 regras de negócio** (RN-01 a RN-53) · **55 cenários de aceite** (CA-01 a CA-55)
+**55 regras de negócio** (RN-01 a RN-55) · **57 cenários de aceite** (CA-01 a CA-57)
 
 | Bloco | RN | CA |
 |---|---:|---:|
@@ -21,13 +21,13 @@
 | Cardápio do dia | 7 | 6 |
 | Registro de venda | 8 | 7 |
 | Cancelamento | 6 | 6 |
-| Fechamento e relatórios | 8 | 7 |
-| Identidade e acesso | 10 | 16 |
+| Fechamento e relatórios | 9 | 8 |
+| Identidade e acesso | 11 | 17 |
 | Segurança transversal | 7 | 7 |
 | Imutabilidade do histórico | — | 3 |
-| **Total** | **53** | **55** |
+| **Total** | **55** | **57** |
 
-A numeração segue a ordem de criação, não a de bloco: as regras RN-49 a RN-53 e os cenários CA-47 a CA-55, acrescentados em 2026-09-25, estão nos blocos a que pertencem.
+A numeração segue a ordem de criação, não a de bloco: as regras RN-49 a RN-53 e os cenários CA-47 a CA-55, acrescentados em 2026-09-25, e as regras RN-54 e RN-55 com os cenários CA-56 e CA-57, acrescentados em 2026-09-28 durante a especificação de interface (SPEC-UI-001), estão nos blocos a que pertencem.
 
 Duas assimetrias da tabela são propositais e vale registrar o porquê:
 
@@ -79,7 +79,7 @@ Permitir que o responsável saiba, ao fim de cada dia, quantos PFs e marmitas fo
 
 ### 4.1. Dentro do escopo
 
-- Autenticação com dois perfis — ADMIN e Operador — e cadastro, desativação e reativação de operadores pelo ADMIN
+- Autenticação com dois perfis — ADMIN e Operador —, encerramento da própria sessão (Sair), e cadastro, desativação e reativação de operadores pelo ADMIN
 - Redefinição da senha de operador pelo ADMIN e troca da própria senha pelo ADMIN
 - Cadastro de proteínas, pratos (com proteína e gramagem por porção) e itens de cardápio (prato × formato, com preço), com desativação e reativação
 - Montagem do cardápio por data — corrente ou futura —, com herança automática do último cardápio quando a data não tiver um
@@ -88,6 +88,7 @@ Permitir que o responsável saiba, ao fim de cada dia, quantos PFs e marmitas fo
 - Cancelamento de venda pelo ADMIN, com registro de quem cancelou, quando e por quê
 - Fechamento do dia: unidades por item e por prato, separando PF e marmita; proteína consumida por tipo; faturamento
 - Consulta do fechamento de qualquer data passada
+- Fechamento do mês — corrente ou passado —, com os mesmos totais do fechamento do dia e a quebra por dia
 
 ### 4.2. Fora do escopo
 
@@ -96,7 +97,8 @@ Permitir que o responsável saiba, ao fim de cada dia, quantos PFs e marmitas fo
 - **Delivery** e integração com marketplaces
 - **Estoque de insumos em geral** — arroz, feijão, salada e embalagem ficam de fora; só proteína é rastreada, porque só ela justifica o esforço de cadastro
 - **Funcionamento offline** — decidido na fase de arquitetura; ver Dívida 2 da proposta
-- **Projeções e previsão de demanda** — objetivo declarado para o futuro. Este PRD garante que o dado seja coletado com fidelidade desde o primeiro dia, mas não especifica nenhum cálculo de projeção
+- **Projeções e previsão de demanda** — objetivo declarado para o futuro. Este PRD garante que o dado seja coletado com fidelidade desde o primeiro dia, mas não especifica nenhum cálculo de projeção. O fechamento do mês (RN-55) **não** é projeção: é a soma do que já foi vendido
+- **Intervalo livre de datas e comparação entre períodos** — o fechamento cobre o dia e o mês; intervalos arbitrários e comparativos (mês contra mês) ficam para um PRD de relatórios
 - **Multi-estabelecimento operacional** — o modelo já carrega `estabelecimento_id` (ADR-003), mas não há onboarding, cobrança nem troca de estabelecimento na interface
 - **Gestão de despesas, custo de compra e margem** — o sistema informa quanto de proteína saiu, não quanto ela custou
 
@@ -118,7 +120,7 @@ O contraste entre os dois é o que dita as prioridades: a tela do Operador é ot
 - **Epic:** Controle de vendas de PF e marmitas com fechamento diário
 
   - **Feature 1:** Identidade e acesso
-    - **PBI 1.1:** Autenticação com sessão em cookie httpOnly e durações distintas por perfil
+    - **PBI 1.1:** Autenticação com sessão em cookie httpOnly e durações distintas por perfil, e encerramento da sessão pelo próprio usuário
     - **PBI 1.2:** Proteção do login em duas camadas — bloqueio progressivo por conta, persistido no banco, e limite de ritmo por origem na borda
     - **PBI 1.3:** Cadastro, desativação e reativação de operadores pelo ADMIN
     - **PBI 1.4:** Segurança transversal — cabeçalhos, HTTPS, higiene de log, validação de entrada e tratamento de erro (RN-42 a RN-48). Atravessa todas as Features; deve ser executado cedo, porque retrofitar cabeçalho e tratamento de erro em rotas já escritas é mais caro que nascer com eles
@@ -144,6 +146,7 @@ O contraste entre os dois é o que dita as prioridades: a tela do Operador é ot
   - **Feature 5:** Fechamento
     - **PBI 5.1:** Fechamento do dia corrente — unidades, proteína e faturamento
     - **PBI 5.2:** Consulta de fechamento de datas passadas
+    - **PBI 5.3:** Fechamento do mês, com quebra por dia
 
 > Sugestão de quebra. O PBI é unidade de backlog e costuma valer vários dias; cada um vira várias `T-XX` quando o `planner-leanwork` decompuser.
 
@@ -244,6 +247,7 @@ Como não há limite de tempo para cancelar, o fechamento de uma data passada po
 - **RN-32:** O fechamento reflete o **estado atual** dos dados. Um cancelamento posterior altera o número de uma data já consultada, e isso é esperado — a rastreabilidade de quem cancelou, quando e por quê é o que torna a mudança explicável.
 - **RN-33:** O ADMIN pode consultar o fechamento de qualquer data passada.
 - **RN-51:** O ADMIN consulta a **lista de todas as vendas** de qualquer data, de todos os usuários, com item, formato, quantidade, preço unitário, valor, quem registrou e horário (no fuso do dia operacional, RN-27). Vendas canceladas aparecem na lista, **marcadas como canceladas**, com quem cancelou, quando e o motivo — e fora dos totais (RN-28). É a partir dessa lista que o ADMIN localiza e cancela uma venda (RN-21, RN-22).
+- **RN-55:** O ADMIN consulta o **fechamento do mês** — o corrente, parcial até o momento, ou qualquer mês passado. Ele apresenta as mesmas informações da RN-29, somadas sobre todos os dias operacionais do mês (RN-27), e a **quebra por dia**: unidades e faturamento de cada dia com venda. Valem as mesmas regras do fechamento do dia: canceladas excluídas (RN-28), estado atual dos dados (RN-32), proteína e faturamento pelas fórmulas da RN-30 e da RN-31. O fechamento do mês é consulta do que foi vendido, não projeção.
 
 ### Identidade e acesso
 
@@ -260,6 +264,7 @@ Como não há limite de tempo para cancelar, o fechamento de uma data passada po
 - **RN-41:** Todo dado de domínio pertence a um estabelecimento, e **toda consulta filtra por ele** *(ADR-003)*.
 - **RN-52:** O ADMIN **redefine a senha** de um operador. A redefinição zera o contador de falhas e encerra o bloqueio temporário da conta (RN-37), para que o operador volte a registrar sem esperar. Não há recuperação de senha por e-mail ou por outro canal: o sistema não depende de serviço externo (seção 11.1).
 - **RN-53:** O ADMIN **troca a própria senha**, informando a senha atual. Se o próprio ADMIN perder o acesso, a recuperação é uma operação técnica fora da interface, definida no plano de execução.
+- **RN-54:** Qualquer usuário autenticado **encerra a própria sessão** pela ação Sair. O encerramento é uma operação que altera estado, feita por `POST` (RN-42): a sessão é invalidada no servidor e o cookie é removido, de modo que o cookie anterior deixa de autenticar. Existe porque o mesmo celular do balcão é usado por mais de uma pessoa ao longo do dia — inclusive pelo ADMIN (RN-36).
 
 ### Segurança transversal
 
@@ -531,6 +536,22 @@ Funcionalidade: Fechamento do dia
     E a venda cancelada aparece marcada, com quem cancelou, quando e o motivo (RN-51)
     E a venda cancelada não entra nos totais (RN-28)
     E a partir da lista posso cancelar qualquer venda ainda ativa (RN-51)
+
+  Cenário [CA-57]: Fechamento do mês soma os dias do mês, sem as canceladas
+    Dado que em agosto foram vendidas, sem cancelamento:
+      | dia   | item                      | proteína | gramagem | preço | quantidade |
+      | 05/08 | Frango grelhado - PF      | Frango   | 150      | 18,00 | 10         |
+      | 18/08 | Frango grelhado - Marmita | Frango   | 150      | 22,00 | 4          |
+      | 31/08 | Bife acebolado - PF       | Carne    | 180      | 20,00 | 6          |
+    E que uma venda de 2 unidades de "Bife acebolado - PF" registrada em 31/08 foi cancelada (RN-28)
+    E que em 01/09 foram vendidas 5 unidades de "Frango grelhado - PF"
+    E que estou autenticado como ADMIN
+    Quando eu consulto o fechamento de agosto (RN-55)
+    Então o total de unidades é 20 (RN-55)
+    E a proteína "Frango" apresenta 2100g consumidos e a proteína "Carne" 1080g (RN-30)
+    E o faturamento em PF é R$ 300,00, em Marmita R$ 88,00 e o total R$ 388,00 (RN-31)
+    E a quebra por dia apresenta 05/08 com 10 unidades, 18/08 com 4 e 31/08 com 6 (RN-55)
+    E as vendas de 01/09 não entram no fechamento de agosto (RN-27)
 ```
 
 ```gherkin
@@ -634,6 +655,13 @@ Funcionalidade: Acesso
     Então a troca é recusada
     Quando eu troco minha senha informando a senha atual correta (RN-53)
     Então passo a autenticar com a nova senha
+
+  Cenário [CA-56]: Sair encerra a sessão no servidor
+    Dado que estou autenticado como Operador
+    Quando eu aciono Sair (RN-54)
+    Então a sessão é encerrada por uma requisição POST (RN-54, RN-42)
+    E uma requisição feita com o cookie da sessão encerrada é recusada como não autenticada (RN-54)
+    E o próximo usuário do mesmo aparelho precisa autenticar com a própria conta
 ```
 
 ```gherkin
@@ -690,6 +718,8 @@ Funcionalidade: Segurança transversal
 | Cancelar venda | **ADMIN** | Sem limite de tempo (RN-21, RN-22). O Operador aciona o responsável |
 | Consultar fechamento do dia | ADMIN | — |
 | Consultar fechamento de data passada | ADMIN | RN-33 |
+| Consultar fechamento do mês | ADMIN | Mês corrente (parcial) ou passado, com quebra por dia (RN-55) |
+| Sair (encerrar a própria sessão) | ADMIN, Operador | Por `POST`; invalida a sessão no servidor (RN-54) |
 | Montar cardápio da data | ADMIN | Data corrente e futuras; data passada só leitura (RN-07, RN-50) |
 | Cadastrar / editar proteína, prato, item de cardápio | ADMIN | RN-01 a RN-03 |
 | Alterar preço e gramagem | ADMIN | Não afeta venda registrada (RN-05, RN-06) |
@@ -795,6 +825,7 @@ A última premissa — o cardápio herdado seria **gravado** quando a tela de re
 | Risco | **Limite de ritmo por origem deixa de valer ao escalar.** Diferente do bloqueio por conta, que é persistido (RN-37), a contagem por origem é efêmera. Se viesse da memória do processo, subir uma segunda réplica dividiria a contagem entre elas e afrouxaria o limite **em silêncio** — sem erro, sem log, sem nada quebrar visivelmente | Manter a camada por origem na **borda** e não no processo da API (RN-37). A consequência está registrada no ADR-006 para ser consultada antes de qualquer decisão de escalar |
 | Risco | **Segurança transversal deixada para "ver na implementação"** — regra não escrita não vira tarefa no plano nem finding no review | RN-42 a RN-48, com cenários CA-40 a CA-46 e um PBI próprio (1.4) para o planner ter onde pendurar as tarefas |
 | Risco | **Primeira ação do dia espera dezenas de segundos.** No plano gratuito do Render, a API dorme após cerca de 15 minutos sem requisição, o que viola o retorno em menos de um segundo exigido na seção 14 — tipicamente no login ou no primeiro registro do almoço | No estágio de estudo, ping agendado no horário de funcionamento chamando `/health`; ao entrar em uso real, plano pago do Render sem suspensão *(ADR-008 e seção 10 da proposta)* |
+| Risco | **Fechamento do mês lento** à medida que o histórico cresce (RN-55) | Volume de um mês é pequeno — algumas centenas de vendas por dia, na ordem de milhares por mês — e a agregação é no banco, filtrada por estabelecimento e intervalo de instante *(ADR-007)*. O gatilho de revisão é o da Dívida 4 da proposta |
 | Dependência | Nenhuma externa nas regras de negócio | Nenhuma regra depende de time, fornecedor ou serviço de terceiro — não há integração no caminho do registro |
 | Dependência | Provedores de hospedagem na operação | Vercel, Render e Supabase precisam estar disponíveis para o sistema funcionar. O código não usa recurso proprietário de nenhum deles, o que mantém a troca de provedor como configuração *(ADR-008)* |
 
@@ -816,7 +847,12 @@ Todas as questões levantadas na elaboração deste PRD foram resolvidas em 2026
 - [x] **Venda cancelada na lista do Operador** *(resolvida em 2026-09-25)* — continua na lista, marcada como cancelada (RN-40)
 - [x] **Sessão do ADMIN que trabalha no balcão** *(resolvida em 2026-09-25)* — as duas sessões são renovadas em uso; a do ADMIN só expira antes por inatividade (RN-36). A versão anterior encurtava a sessão do ADMIN sem renovação, o que o deslogaria no meio do almoço
 
-Nenhuma questão em aberto.
+Revisão de 2026-09-28, durante a especificação de interface (SPEC-UI-001):
+
+- [x] **Sair da sessão** *(resolvida em 2026-09-28)* — o PRD não previa; o celular do balcão é compartilhado. Qualquer usuário encerra a própria sessão por `POST` (RN-54, CA-56)
+- [x] **Visão do mês** *(resolvida em 2026-09-28)* — o fechamento só cobria um dia, enquanto o objetivo (seção 3) é planejar a compra mês a mês. Fechamento do mês com quebra por dia (RN-55, CA-57); intervalo livre e comparativos ficam fora (seção 4.2)
+
+Nenhuma questão em aberto neste documento. Lacunas de interface pendentes de decisão estão na seção 8 da `docs/prototype/SPEC-UI-001-controle-vendas-pf-marmitas.md`.
 
 ---
 
