@@ -3,7 +3,7 @@
 > **PRD de referência:** `docs/prds/PRD-001-controle-vendas-pf-marmitas.md`
 > **Arquitetura de referência:** `docs/architecture/proposta-arquitetural.md`
 > **Modo:** Geração
-> **Artefato visual:** `docs/prototype/assets/prototipo-001-visual-v2.html` — referência visual para implementar (paleta, tipografia, acabamento). O wireframe `docs/prototype/assets/prototipo-001.html` continua como referência de estrutura e é a base de onde as versões visuais partem. Nos dois, o painel lateral troca tela, estado e perfil; deep link por `#UI-XX.estado@Perfil` (ex.: `#UI-07.default@ADMIN`). A versão visual tem ainda o seletor Celular / Computador
+> **Artefato visual:** `docs/prototype/assets/prototipo-001-visual-v2.html` — **única referência visual para implementar** (paleta, tipografia, acabamento). A v1, `prototipo-001-visual-v1.html`, foi descartada e não deve ser usada (ver seção 9). O wireframe `docs/prototype/assets/prototipo-001.html` continua como referência de estrutura e é a base de onde as versões visuais partem. Nos dois, o painel lateral troca tela, estado e perfil; deep link por `#UI-XX.estado@Perfil` (ex.: `#UI-07.default@ADMIN`). A versão visual tem ainda o seletor Celular / Computador
 > **Fidelidade:** Alta fidelidade visual sobre a estrutura do wireframe. A passada de UI/UX (skill `ui-ux-pro-max`, 2026-09-29) trocou só o tratamento visual — telas, estados e fluxos são os mesmos do wireframe (ver seção 10)
 > **Autor:** Thiago Barcelos
 > **Data:** 2026-09-28
@@ -28,7 +28,7 @@
 | Arquitetura | Stack, client components, uso com uma mão, retorno otimista e reenvio com a mesma chave (7.1), sessão por cookie |
 | Entrevista (2026-09-28) | Fidelidade wireframe; direção visual B ("Quente de restaurante"); contraste WCAG AA; somente PT-BR; inclusão da ação **Sair** e do **fechamento do mês** — ambas levadas ao PRD como RN-54 e RN-55; decisão das 16 lacunas da seção 8 |
 | Gerado nesta fase | Padrão de navegação (barra inferior + menu "Mais"), disposição da grade de registro (uma linha por prato, colunas fixas PF / Marmita), copy curta das mensagens |
-| Passada de UI/UX (2026-09-29) | Skill `ui-ux-pro-max`: tokens de design (seção 2), fonte, acabamento e comportamento no computador. Duas versões geradas; a v1 (`prototipo-001-visual.html`, cor só nas ações) foi achada pálida, e a **v2** (`prototipo-001-visual-v2.html`, estrutura colorida) foi **aprovada pelo usuário** |
+| Passada de UI/UX (2026-09-29) | Skill `ui-ux-pro-max`: tokens de design (seção 2), fonte, acabamento e comportamento no computador. Duas versões geradas; a v1 (`prototipo-001-visual-v1.html`, cor só nas ações) foi achada pálida, e a **v2** (`prototipo-001-visual-v2.html`, estrutura colorida) foi **aprovada pelo usuário** |
 
 > **Todo estado desta SPEC é "Derivado" ou "Gerado"**. A direção visual foi aprovada na v2, mas os estados mantêm a estrutura do wireframe e não foram revistos um a um em design. A coluna Origem de cada tabela indica de onde veio.
 
@@ -667,6 +667,14 @@ Todas as lacunas levantadas nesta fase foram decididas: de 1 a 16 **em 2026-09-2
 
 ## 9. Restrições de interface
 
+> **Qual arquivo usar na implementação das telas:**
+>
+> | Arquivo | Papel |
+> |---|---|
+> | `docs/prototype/assets/prototipo-001-visual-v2.html` | **Única referência visual.** Paleta, fonte, raios, sombras e acabamento saem daqui e da seção 2 |
+> | `docs/prototype/assets/prototipo-001.html` | Wireframe: referência de estrutura (telas, estados, campos). **Não** é referência visual |
+> | `docs/prototype/assets/prototipo-001-visual-v1.html` | v1, **descartada** (achada pálida). Só histórico: **não usar** |
+
 - **Contraste mínimo WCAG AA** em todo texto e controle, inclusive nas cores semânticas de falha, sucesso e aviso (entrevista)
 - **Alvos de toque ≥ 44 px**; itens da UI-02 e o Confirmar da UI-03 ≥ 64 px — uso em pé, com uma mão (arquitetura 2.4)
 - **Ações principais na metade inferior da tela** (painel de confirmação, navegação) — alcance do polegar
@@ -685,7 +693,7 @@ Todas as lacunas levantadas nesta fase foram decididas: de 1 a 16 **em 2026-09-2
 
 ## 10. Briefing para a passada de UI/UX
 
-> **Passada feita em 2026-09-29** com a skill `ui-ux-pro-max`, a partir do wireframe, que não foi alterado. A primeira versão, `prototipo-001-visual.html`, punha cor só nas ações e foi achada pálida. A segunda, `prototipo-001-visual-v2.html`, com a estrutura colorida, foi aprovada. Nenhum item de "Exige atualizar esta SPEC" foi tocado. O resultado está nas seções 1, 2, 8 e 9. O briefing abaixo fica como registro e serve para passadas futuras.
+> **Passada feita em 2026-09-29** com a skill `ui-ux-pro-max`, a partir do wireframe, que não foi alterado. A primeira versão, `prototipo-001-visual-v1.html`, punha cor só nas ações e foi achada pálida. A segunda, `prototipo-001-visual-v2.html`, com a estrutura colorida, foi aprovada. Nenhum item de "Exige atualizar esta SPEC" foi tocado. O resultado está nas seções 1, 2, 8 e 9. O briefing abaixo fica como registro e serve para passadas futuras.
 
 Para entregar à skill de UI/UX junto com `docs/prototype/assets/prototipo-001.html`:
 
