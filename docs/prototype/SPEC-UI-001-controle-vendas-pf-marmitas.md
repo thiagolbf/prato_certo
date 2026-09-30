@@ -3,11 +3,11 @@
 > **PRD de referência:** `docs/prds/PRD-001-controle-vendas-pf-marmitas.md`
 > **Arquitetura de referência:** `docs/architecture/proposta-arquitetural.md`
 > **Modo:** Geração
-> **Artefato visual:** `docs/prototype/assets/prototipo-001.html` — abrir no navegador; o painel lateral troca tela, estado e perfil; deep link por `#UI-XX.estado@Perfil` (ex.: `#UI-07.default@ADMIN`)
-> **Fidelidade:** Wireframe. Nenhuma skill de design de interface estava disponível no ambiente — o protótipo cobre estrutura, campos e estados, sem tratamento visual final. Uma passada de UI/UX está prevista (ver seção 10)
+> **Artefato visual:** `docs/prototype/assets/prototipo-001-visual-v2.html` — referência visual para implementar (paleta, tipografia, acabamento). O wireframe `docs/prototype/assets/prototipo-001.html` continua como referência de estrutura e é a base de onde as versões visuais partem. Nos dois, o painel lateral troca tela, estado e perfil; deep link por `#UI-XX.estado@Perfil` (ex.: `#UI-07.default@ADMIN`). A versão visual tem ainda o seletor Celular / Computador
+> **Fidelidade:** Alta fidelidade visual sobre a estrutura do wireframe. A passada de UI/UX (skill `ui-ux-pro-max`, 2026-09-29) trocou só o tratamento visual — telas, estados e fluxos são os mesmos do wireframe (ver seção 10)
 > **Autor:** Thiago Barcelos
 > **Data:** 2026-09-28
-> **Status:** Rascunho — revisado em 2026-09-28: RN-54 (Sair), RN-55 (fechamento do mês) e todas as lacunas da seção 8 decididas (RN-56 a RN-61 no PRD)
+> **Status:** Aprovada (2026-09-29) — revisado em 2026-09-28: RN-54 (Sair), RN-55 (fechamento do mês) e todas as lacunas da seção 8 decididas (RN-56 a RN-61 no PRD); revisado em 2026-09-29: tokens de design e comportamento no computador definidos na passada de UI/UX (pendências 17 e 18)
 
 ---
 
@@ -15,7 +15,7 @@
 
 **Arquétipo:** App de operação (registro no balcão) + área administrativa leve (cardápio, catálogo, vendas, fechamento, usuários)
 
-**Dispositivo alvo:** Mobile-first — celular, em pé, uma mão (arquitetura 2.4; PRD §14). As telas do ADMIN também são desenhadas para celular; em tela maior, apenas se alargam
+**Dispositivo alvo:** Mobile-first — celular, em pé, uma mão (arquitetura 2.4; PRD §14). As telas do ADMIN também são desenhadas para celular. No computador, todas as telas (inclusive as do ADMIN) ficam numa **coluna central de até 480 px**, sem layout largo próprio (decisão de 2026-09-29)
 
 **Stack de frontend:** Next.js (App Router) + TypeScript; telas do app autenticado como client components, sem renderização no servidor (ADR-002). API same-origin via rewrite `/api/*`, sessão em cookie httpOnly (ADR-006). Nenhuma biblioteca de componentes declarada
 
@@ -28,23 +28,37 @@
 | Arquitetura | Stack, client components, uso com uma mão, retorno otimista e reenvio com a mesma chave (7.1), sessão por cookie |
 | Entrevista (2026-09-28) | Fidelidade wireframe; direção visual B ("Quente de restaurante"); contraste WCAG AA; somente PT-BR; inclusão da ação **Sair** e do **fechamento do mês** — ambas levadas ao PRD como RN-54 e RN-55; decisão das 16 lacunas da seção 8 |
 | Gerado nesta fase | Padrão de navegação (barra inferior + menu "Mais"), disposição da grade de registro (uma linha por prato, colunas fixas PF / Marmita), copy curta das mensagens |
+| Passada de UI/UX (2026-09-29) | Skill `ui-ux-pro-max`: tokens de design (seção 2), fonte, acabamento e comportamento no computador. Duas versões geradas; a v1 (`prototipo-001-visual.html`, cor só nas ações) foi achada pálida, e a **v2** (`prototipo-001-visual-v2.html`, estrutura colorida) foi **aprovada pelo usuário** |
 
-> **Todo estado desta SPEC é "Derivado" ou "Gerado"** — nenhum passou por validação de design. A coluna Origem de cada tabela indica de onde veio.
+> **Todo estado desta SPEC é "Derivado" ou "Gerado"**. A direção visual foi aprovada na v2, mas os estados mantêm a estrutura do wireframe e não foram revistos um a um em design. A coluna Origem de cada tabela indica de onde veio.
 
 ---
 
 ## 2. Tokens de design
 
-Não há design system nem tokens no repositório (greenfield). O wireframe usa apenas uma escala de cinzas e quatro cores semânticas (falha, sucesso, aviso, informação), escolhidas para contraste AA — **não são tokens de marca**.
+Não havia design system no repositório (greenfield). Os tokens abaixo vieram da passada de UI/UX de 2026-09-29 e estão aplicados como variáveis CSS no `:root` de `docs/prototype/assets/prototipo-001-visual-v2.html`, que é a fonte a copiar na implementação.
 
-**Direção visual escolhida na entrevista — B. Quente de restaurante:** tons terrosos com acento laranja/tomate, cantos arredondados, tipografia amigável, mantendo alvos grandes. Mais "cara de produto" para vender.
+**Direção visual escolhida na entrevista — B. Quente de restaurante:** tons terrosos com acento laranja/tomate, cantos arredondados, tipografia amigável, mantendo alvos grandes. Na passada de UI/UX virou **"tomate suave" com estrutura colorida**: tomate dessaturado no topo, na ação principal e na seleção, fundo areia, cartões brancos. Suave, sem ser chamativo, por pedido do usuário. **Tema claro único**: o app é usado no salão iluminado, e ninguém pediu modo escuro.
 
 | Token | Valor | Origem |
 |---|---|---|
-| Direção | B — Quente de restaurante | Entrevista |
-| Contraste mínimo | WCAG AA em todo texto e controle | Entrevista |
+| Direção | B — Quente de restaurante, "tomate suave" com estrutura colorida | Entrevista + passada de UI/UX |
+| Contraste mínimo | WCAG AA em todo texto e controle; bordas de campo e botão ≥ 3:1 | Entrevista |
 | Alvo de toque mínimo | 44 px; itens da UI-02 e botão Confirmar da UI-03 ≥ 64 px | Derivado de arquitetura 2.4 / 3.1 |
-| Paleta, tipografia, raio, espaçamento | **A definir pela skill de UI/UX** | — |
+| Fonte | **Nunito Sans** (Google Fonts), pesos 400, 600, 700 e 800; fallback `system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`. Corpo 16 px, entrelinha 1,45 | Passada de UI/UX |
+| `--pri` | `#A5452F` tomate apagado: barra do topo, botão principal, seleção. Texto branco sobre ele: 6,0:1 | Passada de UI/UX |
+| `--pri-press` | `#8A3824` toque ou hover no principal; texto da aba ativa | Passada de UI/UX |
+| `--on-pri` / `--on-pri-sub` | `#FFFFFF` / `#F6DCD2` texto principal e secundário sobre tomate (4,6:1) | Passada de UI/UX |
+| `--canvas` | `#F3E3D3` fundo areia das telas | Passada de UI/UX |
+| `--paper` | `#FFFFFF` cartões, navegação, campos | Passada de UI/UX |
+| `--ink` / `--muted` | `#2E2622` texto (11,8:1 no fundo) / `#66574D` texto secundário (5,5:1 no fundo) | Passada de UI/UX |
+| `--line` / `--strong` | `#E6D2C3` divisória decorativa / `#86766A` borda de campo e botão (3,5:1 no fundo) | Passada de UI/UX |
+| `--soft` / `--press` / `--tabs-bg` | `#F8DCCD` realce e aba ativa / `#F1CCB9` toque em botão claro / `#EBD2C0` trilho das abas | Passada de UI/UX |
+| Semânticas (texto / fundo / borda) | Falha `#A3302A` / `#FBEAE7` / `#E7B7B0` · Sucesso `#2E6A3A` / `#E7F1E5` / `#B5D3B3` · Aviso `#7A5200` / `#FBF0D6` / `#E6CE92` · Informação `#2E5570` / `#E6EEF3` / `#B4CAD8` — todas ≥ 5,5:1 | Passada de UI/UX |
+| Raio | 10 px (pequeno) · 12 px (botão, campo) · 14 px (cartão, item) · 18 px (cartão de prato) · 24 px (painel inferior) · pílula nas etiquetas | Passada de UI/UX |
+| Sombra | Leve em cartões (`0 1px 2px` + `0 2px 8px`, marrom a 5–6 %); nenhuma em elemento plano | Passada de UI/UX |
+| Movimento | Transições de cor de 160 ms; nenhuma animação no caminho do registro além disso; tudo desligado com `prefers-reduced-motion` | Passada de UI/UX |
+| Espaçamento | Margem de tela 16 px; ritmo de 4/8 px (gaps de 6, 8, 10, 12, 14 px) | Passada de UI/UX |
 
 ---
 
@@ -623,7 +637,7 @@ flowchart LR
 
 ## 8. Lacunas e pendências
 
-Todas as lacunas levantadas nesta fase foram **decididas em 2026-09-28**. As que são regra de negócio foram levadas ao PRD; as que são só de tela ficam registradas aqui.
+Todas as lacunas levantadas nesta fase foram decididas: de 1 a 16 **em 2026-09-28**, e as pendências visuais de 17 a 19 **em 2026-09-29**, na passada de UI/UX. As que são regra de negócio foram levadas ao PRD; as que são só de tela ficam registradas aqui. Não há pendência aberta.
 
 ### Decisões
 
@@ -645,13 +659,9 @@ Todas as lacunas levantadas nesta fase foram **decididas em 2026-09-28**. As que
 | 14 | "Sem rolagem" × cardápio sem limite | **Sem teto**; a meta vale até 6 pratos (12 itens) em 375 × 667; pratos em ordem alfabética estável | PRD §14; UI-02 |
 | 15 | "Minhas vendas" do ADMIN | **Igual ao operador, sem preço**; preço e valor ficam em UI-05 | UI-04 |
 | 16 | Limites de texto | **Nomes** (proteína, prato, pessoa) até **60** caracteres; **motivo** de cancelamento até **200**; **usuário** até **30**, sem espaços. Fixados no schema (RN-46) | Seção 9 |
-
-### Pendente — validação visual
-
-| # | Pendência | Impacto | Como resolver |
-|---|---|---|---|
-| 17 | **Todos os estados são derivados ou gerados**, nenhum validado visualmente | Pode haver ajuste na passada de UI/UX | Validar com a skill de UI/UX (seção 10) antes de implementar as telas |
-| 18 | **Sem tokens de design** | A implementação não tem paleta nem tipografia | Definidos pela passada de UI/UX (direção B) |
+| 17 | Validação visual dos estados | **Direção visual aprovada** pelo usuário na v2 (2026-09-29). A passada não mudou tela, estado nem fluxo, então as seções 3 a 7 continuam valendo sem alteração | Cabeçalho; `prototipo-001-visual-v2.html` |
+| 18 | Tokens de design | **Definidos** na passada de UI/UX: paleta "tomate suave" com estrutura colorida, Nunito Sans, raios, sombra e movimento | Seção 2 |
+| 19 | Layout no computador | **Coluna central de até 480 px** em todas as telas, inclusive as do ADMIN; sem layout largo por enquanto | Seção 1 (Dispositivo alvo); seção 9 |
 
 ---
 
@@ -668,10 +678,14 @@ Todas as lacunas levantadas nesta fase foram **decididas em 2026-09-28**. As que
 - **Sem instante do dispositivo**: o cliente não envia data nem hora de venda (RN-17); o dia operacional de uma pendência vem do servidor
 - **Pendência só na sessão da aba** (`sessionStorage` ou equivalente), com chave de idempotência, usuário e dia operacional — nunca armazenamento que sobreviva ao fechamento da aba (RN-56)
 - **Limites de texto** (RN-46, lacuna 16): nomes até 60 caracteres, motivo até 200, usuário até 30 sem espaços; senha com mínimo de 8 (RN-60). O `maxlength` do campo espelha o schema, que é quem valida
+- **Computador**: todas as telas numa coluna central de até 480 px, com o fundo `--desk` ao redor; nenhuma tela ganha layout largo próprio (lacuna 19)
+- **Cor via tokens**: nenhum componente usa cor literal; tudo sai das variáveis da seção 2
 
 ---
 
 ## 10. Briefing para a passada de UI/UX
+
+> **Passada feita em 2026-09-29** com a skill `ui-ux-pro-max`, a partir do wireframe, que não foi alterado. A primeira versão, `prototipo-001-visual.html`, punha cor só nas ações e foi achada pálida. A segunda, `prototipo-001-visual-v2.html`, com a estrutura colorida, foi aprovada. Nenhum item de "Exige atualizar esta SPEC" foi tocado. O resultado está nas seções 1, 2, 8 e 9. O briefing abaixo fica como registro e serve para passadas futuras.
 
 Para entregar à skill de UI/UX junto com `docs/prototype/assets/prototipo-001.html`:
 

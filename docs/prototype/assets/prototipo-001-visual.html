@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Protótipo PF e Marmitas · Visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap">
+<!--
+  Wireframe navegável da SPEC-UI-001 (docs/prototype/SPEC-UI-001-controle-vendas-pf-marmitas.md).
+  Versão visual do wireframe prototipo-001.html: mesmas telas, estados e fluxos; só muda o tratamento visual.
+  Direção "tomate suave" (SPEC-UI-001 seção 10, direção B dessaturada), fonte Nunito Sans, contraste WCAG AA.
+  O painel lateral troca tela, estado e perfil; os IDs UI-XX.estado batem com a SPEC-UI.
+  Dados de exemplo fictícios, coerentes com os cenários do PRD-001.
+-->
+<style>
+  /* Layout: moldura de celular (ou coluna central no computador) ao lado do painel de controles do protótipo.
+     Direção "tomate suave": quente de restaurante, dessaturado; a cor principal aparece só em ação e seleção.
+     Tema claro único, de propósito: o app é usado no salão iluminado. */
+  :root {
+    --desk: #EDE4DA;      /* fundo fora do app */
+    --canvas: #FAF6F1;    /* fundo das telas */
+    --paper: #FFFFFF;     /* cartões, barras, campos */
+    --ink: #2E2622;       /* texto */
+    --muted: #6B5F57;     /* texto secundário */
+    --line: #E6DBD1;      /* divisórias decorativas */
+    --strong: #948476;    /* borda de campo e de botão (3:1) */
+    --soft: #F3E6DD;      /* realce leve, seleção */
+    --press: #EBD8CC;     /* toque em botão claro */
+    --pri: #9E4A35;       /* tomate apagado: ação principal */
+    --pri-press: #843C2A;
+    --pri-ring: rgba(158, 74, 53, .2);
+    --on-pri: #FFFFFF;
+    --bezel: #2B2420;
+    --bezel-ink: #EFE4DA;
+    --err: #A3302A;  --errbg: #FBEAE7;  --errline: #E7B7B0;
+    --ok: #2E6A3A;   --okbg: #E7F1E5;   --okline: #B5D3B3;
+    --warn: #7A5200; --warnbg: #FBF0D6; --warnline: #E6CE92;
+    --info: #2E5570; --infobg: #E6EEF3; --infoline: #B4CAD8;
+    --skel-a: #F1E8E0; --skel-b: #F7F1EB;
+    --scrim: rgba(46, 38, 34, .45);
+    --shadow: 0 1px 2px rgba(46, 38, 34, .06), 0 2px 8px rgba(46, 38, 34, .05);
+    --shadow-up: 0 12px 32px rgba(46, 38, 34, .16);
+    --font: "Nunito Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, Consolas, monospace;
+    --r-sm: 10px; --r: 14px; --r-lg: 18px;
+    --t: 160ms ease-out;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.45 var(--font); color: var(--ink); background: var(--desk);
+         display: flex; gap: 24px; padding: 20px 16px; justify-content: center; align-items: flex-start; flex-wrap: wrap;
+         -webkit-font-smoothing: antialiased; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--pri); outline-offset: 2px; }
+  h1, h2, h3 { text-wrap: balance; }
+
+  /* Painel de controles do protótipo (não faz parte do app) */
+  #ctl { width: 320px; background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 18px;
+         position: sticky; top: 20px; box-shadow: var(--shadow); }
+  #ctl h1 { font-size: 18px; font-weight: 800; margin: 0 0 4px; }
+  #ctl label { display: block; margin: 12px 0 4px; font-weight: 700; font-size: 14px; }
+  #ctl select { width: 100%; min-height: 42px; border: 1px solid var(--strong); border-radius: var(--r-sm); padding: 0 10px; background: var(--paper); }
+  #ctl fieldset { border: 1px solid var(--line); border-radius: var(--r-sm); margin: 12px 0 0; padding: 8px 12px; }
+  #ctl legend { font-weight: 700; font-size: 14px; padding: 0 4px; }
+  #ctl fieldset label { display: inline-flex; gap: 6px; margin: 4px 16px 4px 0; font-weight: 400; }
+  #ctl .chk { display: flex; gap: 8px; font-weight: 400; align-items: flex-start; }
+  #ctl input[type=radio], #ctl input[type=checkbox] { accent-color: var(--pri); }
+  #info { margin-top: 16px; font-size: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+  #info dt { font-weight: 700; margin-top: 8px; }
+  #info dd { margin: 2px 0 0; color: var(--muted); }
+  #dispNota { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+
+  /* Moldura do celular */
+  .phone { width: 375px; height: 740px; background: var(--canvas); border: 8px solid var(--bezel); border-radius: 40px; overflow: hidden;
+           display: flex; flex-direction: column; position: relative; box-shadow: var(--shadow-up); }
+  .statebar { background: var(--bezel); color: var(--bezel-ink); font: 12px/1 var(--mono); padding: 6px 14px 8px; }
+  .screen { flex: 1; display: flex; flex-direction: column; position: relative; min-height: 0; background: var(--canvas); }
+
+  /* Casca do app */
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px; background: var(--paper); border-bottom: 1px solid var(--line); }
+  .top h1 { font-size: 19px; font-weight: 800; margin: 0; letter-spacing: -.01em; }
+  .top .who { font-size: 13px; color: var(--muted); display: block; }
+  .content { flex: 1; overflow: auto; padding: 16px; }
+  .nav { display: flex; background: var(--paper); border-top: 1px solid var(--line); }
+  .nav button { flex: 1; min-height: 58px; border: 0; background: none; color: var(--muted); font-size: 13px; font-weight: 700;
+                border-top: 3px solid transparent; cursor: pointer; transition: background var(--t), color var(--t); }
+  .nav button:hover { color: var(--ink); }
+  .nav button[aria-current="page"] { color: var(--pri); border-top-color: var(--pri); background: var(--soft); }
+
+  /* Botões */
+  .btn { min-height: 44px; border: 1.5px solid var(--strong); background: var(--paper); color: var(--ink); border-radius: 12px; padding: 0 16px;
+         font-weight: 700; cursor: pointer; transition: background var(--t), border-color var(--t), color var(--t); }
+  .btn:hover { background: var(--soft); }
+  .btn:active { background: var(--press); }
+  .btn.pri { background: var(--pri); border-color: var(--pri); color: var(--on-pri); box-shadow: 0 2px 6px rgba(158, 74, 53, .25); }
+  .btn.pri:hover, .btn.pri:active { background: var(--pri-press); border-color: var(--pri-press); }
+  .btn.ghost { border-color: transparent; background: none; color: var(--pri); text-decoration: underline; text-underline-offset: 3px; }
+  .btn.sm { min-height: 38px; padding: 0 12px; font-size: 14px; }
+  .btn.xl { min-height: 64px; font-size: 20px; width: 100%; border-radius: var(--r); }
+  .btn.full { width: 100%; }
+  .btn.danger { border-color: var(--err); color: var(--err); }
+  .btn.danger:hover { background: var(--errbg); }
+  .btn.danger.pri { background: var(--err); color: var(--on-pri); box-shadow: none; }
+  .btn:disabled, .btn:disabled:hover { opacity: .45; cursor: not-allowed; background: var(--paper); }
+  .btn.pri:disabled, .btn.pri:disabled:hover { background: var(--pri); }
+  .lnk { background: none; border: 0; color: var(--pri); text-decoration: underline; text-underline-offset: 3px; min-height: 44px; padding: 0 4px; cursor: pointer; font-weight: 700; }
+
+  /* Avisos */
+  .banner { border-radius: 12px; padding: 12px 14px; margin: 0 0 12px; border: 1px solid; font-size: 15px; }
+  .banner.err { background: var(--errbg); border-color: var(--errline); color: var(--err); }
+  .banner.ok { background: var(--okbg); border-color: var(--okline); color: var(--ok); }
+  .banner.warn { background: var(--warnbg); border-color: var(--warnline); color: var(--warn); }
+  .banner.info { background: var(--infobg); border-color: var(--infoline); color: var(--info); }
+  .banner .acts { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .shellbanner { margin: 10px 16px 0; }
+  .sub { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; font-weight: 700; }
+  .tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--soft); color: var(--muted); white-space: nowrap; }
+  .tag.err { background: var(--errbg); color: var(--err); }
+  .tag.warn { background: var(--warnbg); color: var(--warn); }
+  .muted { color: var(--muted); }
+  .center { text-align: center; padding: 32px 8px; }
+  .big { font-size: 20px; font-weight: 800; margin: 0 0 8px; }
+  .skel { height: 64px; border-radius: var(--r); margin-bottom: 10px;
+          background: linear-gradient(90deg, var(--skel-a) 0 30%, var(--skel-b) 50%, var(--skel-a) 70%); background-size: 200% 100%;
+          animation: skel 1.4s ease-in-out infinite; }
+  @keyframes skel { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+
+  /* Registro (UI-02 / UI-03) */
+  .grade { display: flex; flex-direction: column; gap: 10px; }
+  .prato { display: flex; align-items: center; gap: 10px; background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-lg);
+           padding: 10px 10px 10px 14px; box-shadow: var(--shadow); }
+  .pnome { flex: 1; font-weight: 800; font-size: 17px; line-height: 1.25; }
+  .fmts { display: flex; gap: 8px; }
+  .item { min-width: 92px; min-height: 64px; border: 1.5px solid var(--pri); border-radius: var(--r); background: var(--paper); color: var(--pri);
+          font-weight: 800; font-size: 17px; cursor: pointer; transition: background var(--t); }
+  .item:hover { background: var(--soft); }
+  .item:active { background: var(--press); }
+  .item:disabled { opacity: .4; cursor: not-allowed; background: var(--paper); }
+  .item.vago { border: 0; background: none; display: inline-block; }
+  .item small { display: block; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .toast { position: absolute; left: 16px; right: 16px; bottom: 72px; padding: 14px 16px; border-radius: var(--r); font-weight: 700; border: 1px solid;
+           box-shadow: 0 6px 20px rgba(46, 38, 34, .14); }
+  .toast.ok { background: var(--okbg); border-color: var(--okline); color: var(--ok); }
+  .scrim { position: absolute; inset: 0; background: var(--scrim); }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--paper); border-radius: 24px 24px 0 0; padding: 22px 18px 18px;
+           display: flex; flex-direction: column; gap: 12px; max-height: 88%; overflow: auto; box-shadow: 0 -8px 24px rgba(46, 38, 34, .12); }
+  .sheet::before { content: ""; position: absolute; top: 8px; left: 50%; width: 40px; height: 4px; margin-left: -20px; border-radius: 4px; background: var(--line); }
+  .sheet h2 { margin: 0; font-size: 21px; font-weight: 800; }
+  .stepper { display: flex; align-items: center; justify-content: center; gap: 20px; }
+  .step { width: 72px; min-height: 72px; font-size: 32px; border-radius: 50%; border-color: var(--pri); color: var(--pri); }
+  .qtd { font-size: 44px; font-weight: 800; min-width: 64px; text-align: center; font-variant-numeric: tabular-nums; }
+  .hint { margin: 0; text-align: center; font-size: 15px; color: var(--muted); }
+  .hint.warn { color: var(--warn); font-weight: 700; }
+
+  /* Listas e cartões */
+  .list { list-style: none; margin: 0; padding: 0; background: var(--paper); border: 1px solid var(--line); border-radius: var(--r); }
+  .list li { display: flex; gap: 8px; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .list li:last-child { border-bottom: 0; }
+  .list .time { font-variant-numeric: tabular-nums; color: var(--muted); width: 44px; }
+  .grow { flex: 1; }
+  .qty { font-weight: 800; font-variant-numeric: tabular-nums; }
+  .cancel .grow, .cancel .qty, .cancel .val { text-decoration: line-through; color: var(--muted); }
+  .card { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; margin-bottom: 10px; box-shadow: var(--shadow); }
+  .card.cancel { background: var(--canvas); box-shadow: none; }
+  .card .l1 { display: flex; justify-content: space-between; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .card .l2 { font-weight: 800; margin: 4px 0; }
+  .card .l3 { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .card .why { font-size: 14px; color: var(--muted); margin-top: 6px; text-decoration: none; }
+
+  /* Relatórios */
+  .datenav { display: flex; gap: 8px; margin-bottom: 14px; }
+  .datenav .datebtn { flex: 1; }
+  .datenav .icon { width: 48px; padding: 0; font-size: 22px; }
+  .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .kpi { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; }
+  .kpi small { display: block; color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .kpi strong { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .kpi.total { grid-column: 1 / -1; background: var(--soft); border-color: transparent; }
+  .kpi.total strong { font-size: 24px; color: var(--pri); }
+  h3 { font-size: 13px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin: 18px 0 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--paper); }
+  th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--line); }
+  th { font-size: 12px; color: var(--muted); font-weight: 700; background: var(--canvas); }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* Formulários */
+  .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+  .field span { font-weight: 700; font-size: 14px; }
+  .field input, .field select, .field textarea { min-height: 46px; border: 1.5px solid var(--strong); border-radius: 12px; padding: 8px 12px; background: var(--paper);
+    transition: border-color var(--t), box-shadow var(--t); }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px var(--pri-ring); }
+  .field.bad input, .field.bad textarea, .field.bad select { border-color: var(--err); }
+  .field .msg { color: var(--err); font-size: 14px; font-weight: 700; }
+  .seg { display: flex; gap: 8px; }
+  .seg .btn { flex: 1; }
+  .seg .btn[aria-pressed="true"] { background: var(--pri); border-color: var(--pri); color: var(--on-pri); }
+  .tabs { display: flex; gap: 6px; margin-bottom: 14px; padding: 4px; background: var(--soft); border-radius: 14px; }
+  .tabs .btn { flex: 1; font-size: 14px; padding: 0 6px; border-color: transparent; background: none; color: var(--muted); }
+  .tabs .btn:hover { color: var(--ink); }
+  .tabs .btn[aria-current="page"] { background: var(--paper); color: var(--pri); box-shadow: var(--shadow); }
+  .rowact { display: flex; gap: 6px; }
+  .off .grow { color: var(--muted); }
+  .check { display: flex; align-items: center; gap: 10px; min-height: 48px; border-bottom: 1px solid var(--line); }
+  .check input { width: 24px; height: 24px; accent-color: var(--pri); }
+  .login { flex: 1; padding: 32px 22px; display: flex; flex-direction: column; justify-content: center; background: var(--canvas); }
+  .login h1 { font-size: 26px; font-weight: 800; margin: 0 0 24px; text-align: center; color: var(--pri); }
+  .menu a, .menu button { display: block; width: 100%; text-align: left; min-height: 50px; border: 0; border-bottom: 1px solid var(--line); background: none;
+                          font-weight: 700; cursor: pointer; padding: 0 6px; border-radius: 8px; }
+  .menu a:hover, .menu button:hover { background: var(--soft); }
+
+  /* Computador: a mesma tela numa coluna de até 480 px, centralizada */
+  body.desk main { flex: 1 1 640px; min-width: 0; max-width: 1280px; }
+  .phone.desk { width: 100%; height: 760px; border: 1px solid var(--strong); border-radius: 12px; background: var(--desk); }
+  .phone.desk .statebar { background: var(--line); color: var(--ink); padding: 10px 14px; display: flex; gap: 10px; align-items: center; }
+  .phone.desk .statebar::before { content: ""; width: 42px; height: 10px; flex: none;
+    background: radial-gradient(circle, var(--strong) 4px, transparent 5px) 0 0 / 14px 10px repeat-x; }
+  .phone.desk .screen { width: 100%; max-width: 480px; margin: 0 auto; border-inline: 1px solid var(--line); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+  @media (max-width: 760px) {
+    body { padding: 8px; gap: 12px; }
+    #ctl { width: 100%; position: static; }
+    .phone { width: 100%; height: 700px; border-width: 6px; border-radius: 28px; }
+  }
+</style>
+</head>
+<body>
+
+<aside id="ctl" aria-label="Controles do protótipo">
+  <h1>Protótipo · PRD-001</h1>
+  <div class="muted" style="font-size:14px">Versão visual · SPEC-UI-001. Mesmas telas e estados do wireframe.</div>
+  <label for="selTela">Tela</label>
+  <select id="selTela"></select>
+  <label for="selEstado">Estado</label>
+  <select id="selEstado"></select>
+  <fieldset>
+    <legend>Perfil autenticado</legend>
+    <label><input type="radio" name="perfil" value="Operador" checked> Operador</label>
+    <label><input type="radio" name="perfil" value="ADMIN"> ADMIN</label>
+  </fieldset>
+  <fieldset>
+    <legend>Dispositivo</legend>
+    <label><input type="radio" name="disp" id="dispCel" value="cel" checked> Celular</label>
+    <label><input type="radio" name="disp" id="dispCol" value="coluna"> Computador</label>
+    <p id="dispNota"></p>
+  </fieldset>
+  <label class="chk"><input type="checkbox" id="chkHerdado"> Cardápio de hoje é herdado (aviso global ao ADMIN, RN-09)</label>
+  <dl id="info"></dl>
+</aside>
+
+<main>
+  <div class="phone">
+    <div class="statebar" id="sb"></div>
+    <div class="screen" id="screen"></div>
+  </div>
+</main>
+
+<script>
+/* ---------- Dados de exemplo (coerentes com os cenários do PRD-001) ---------- */
+const HOJE = 'seg 28/09';
+const PRATOS = [
+  { nome: 'Frango grelhado', prot: 'Frango', g: 150, itens: [['PF', 18], ['Marmita', 22]] },
+  { nome: 'Bife acebolado', prot: 'Carne bovina', g: 180, itens: [['PF', 20], ['Marmita', 24]] },
+  { nome: 'Peixe frito', prot: 'Peixe', g: 160, itens: [['PF', 21]] },
+  { nome: 'Omelete', prot: 'Ovo', g: 120, itens: [['PF', 15], ['Marmita', 18]] },
+];
+const HERDADO = [
+  { nome: 'Frango grelhado', itens: [['PF', 18], ['Marmita', 22]] },
+  { nome: 'Bife acebolado', itens: [['PF', 20]] },
+  { nome: 'Omelete', itens: [['PF', 15]] },
+];
+const MINHAS = [['11:58', 'Frango grelhado', 'PF', 1], ['11:52', 'Bife acebolado', 'Marmita', 2], ['11:40', 'Omelete', 'PF', 1], ['11:31', 'Frango grelhado', 'Marmita', 3]];
+const VENDAS = [
+  ['12:04', 'Maria', 'Frango grelhado', 'PF', 2, 18], ['11:58', 'João', 'Frango grelhado', 'PF', 1, 18],
+  ['11:52', 'João', 'Bife acebolado', 'Marmita', 2, 24], ['11:40', 'Maria', 'Omelete', 'PF', 1, 15],
+  ['11:31', 'João', 'Frango grelhado', 'Marmita', 3, 22],
+];
+const FECH_HOJE = [['Frango grelhado', 'Frango', 150, 'PF', 10, 18], ['Frango grelhado', 'Frango', 150, 'Marmita', 4, 22], ['Bife acebolado', 'Carne bovina', 180, 'PF', 6, 20]];
+const FECH_1509 = [['Frango grelhado', 'Frango', 150, 'PF', 22, 17], ['Feijoada', 'Carne suína', 200, 'PF', 18, 22], ['Feijoada', 'Carne suína', 200, 'Marmita', 12, 26], ['Omelete', 'Ovo', 120, 'PF', 26, 15]];
+
+const S = { disp: 'cel', tela: 'UI-02', estado: 'default', perfil: 'Operador', herdado: false, item: { prato: 'Frango grelhado', fmt: 'PF' }, qtd: 1, mais: false };
+
+/* ---------- Helpers ---------- */
+const brl = v => 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// Gramas como no PRD; kg ao lado porque é a unidade em que a proteína é comprada
+const gr = v => v.toLocaleString('pt-BR') + ' g' + (v >= 1000 ? ` <span class="muted">(${(v / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg)</span>` : '');
+const go = (t, st = 'default') => `data-go="${t}" data-st="${st}"`;
+const btn = (label, attrs = '', cls = '') => `<button class="btn ${cls}" ${attrs}>${label}</button>`;
+const banner = (tipo, html) => `<div class="banner ${tipo}" role="${tipo === 'err' ? 'alert' : 'status'}">${html}</div>`;
+const skel = n => Array.from({ length: n }, () => '<div class="skel"></div>').join('');
+const isAdmin = () => S.perfil === 'ADMIN';
+const erroCarga = (o) => `<div class="center">${banner('err', 'Não foi possível carregar. Verifique a conexão e tente de novo.')}${btn('Tentar de novo', go(S.tela))}</div>`;
+const datenav = (label, prox = true) => `<div class="datenav"><button class="btn icon" aria-label="Dia anterior">‹</button><button class="btn datebtn" aria-label="Escolher data">${label}</button><button class="btn icon" aria-label="Próximo dia" ${prox ? '' : 'disabled'}>›</button></div>`;
+const field = (label, input, msg) => `<label class="field ${msg ? 'bad' : ''}"><span>${label}</span>${input}${msg ? `<span class="msg">${msg}</span>` : ''}</label>`;
+
+function shell(o) {
+  const p = o.perfil || S.perfil;
+  const who = p === 'ADMIN' ? 'Carla · ADMIN' : 'João · Operador';
+  const showBanner = p === 'ADMIN' && !o.noBanner && (S.herdado || o.forceBanner);
+  const nav = p === 'ADMIN'
+    ? [['UI-02', 'Registrar'], ['UI-05', 'Vendas'], ['UI-07', 'Fechamento'], ['UI-08', 'Cardápio'], ['MAIS', 'Mais']]
+    : [['UI-02', 'Registrar'], ['UI-04', 'Minhas vendas']];
+  const cur = o.nav || S.tela;
+  return `<header class="top"><div><h1>${o.title}</h1><span class="who">${who}</span></div><button class="lnk" data-act="sair">Sair</button></header>
+    ${showBanner ? `<div class="shellbanner">${banner('warn', `<strong>Cardápio de hoje herdado de sáb 26/09.</strong> Revise ou confirme. <div class="acts">${btn('Revisar cardápio', go('UI-08', 'herdado'), 'sm')}</div>`)}</div>` : ''}
+    <div class="content">${o.body}</div>
+    ${o.toast ? `<div class="toast ${o.toast[0]}" role="status">${o.toast[1]}</div>` : ''}
+    <nav class="nav" aria-label="Navegação principal">${nav.map(([t, l]) => `<button ${t === 'MAIS' ? 'data-go="MAIS"' : go(t)} ${t === cur ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>
+    ${o.overlay || ''}
+    ${S.mais && p === 'ADMIN' ? menuMais() : ''}`;
+}
+
+function menuMais() {
+  const it = [['UI-04', 'Minhas vendas de hoje'], ['UI-09', 'Catálogo · Proteínas'], ['UI-10', 'Catálogo · Pratos'], ['UI-11', 'Catálogo · Itens de cardápio'], ['UI-12', 'Usuários'], ['UI-13', 'Trocar minha senha']];
+  return `<div class="scrim" data-act="fecharMais"></div><div class="sheet menu" role="dialog" aria-label="Mais opções">
+    ${it.map(([t, l]) => `<button ${go(t)}>${l}</button>`).join('')}<button data-act="sair">Sair</button></div>`;
+}
+
+function semPerm() {
+  return shell({ perfil: 'Operador', title: 'Acesso negado', nav: '-', body: `<div class="center"><p class="big">Você não tem acesso a esta tela.</p><p class="muted">Ela é exclusiva do responsável.</p>${btn('Voltar ao registro', go('UI-02'), 'pri')}</div>` });
+}
+const SEMPERM = { d: 'Operador acessa a rota diretamente (CA-26). Tela inteira bloqueada; o menu do Operador nem mostra o link', o: 'Derivado de CA-26, RN-39', r: semPerm };
+
+/* ---------- UI-02 / UI-03 ---------- */
+function grade(pratos = PRATOS, disabled = false) {
+  // Colunas fixas (PF sempre à esquerda, Marmita à direita) e pratos em ordem alfabética:
+  // o polegar aprende a posição. Preço visível para o operador cobrar (RN-40).
+  const slot = (p, f) => {
+    const it = p.itens.find(([x]) => x === f);
+    return it
+      ? `<button class="item" data-act="abrir" data-prato="${p.nome}" data-fmt="${f}" ${disabled ? 'disabled' : ''}>${f}<small>${brl(it[1])}</small></button>`
+      : '<span class="item vago" aria-hidden="true"></span>';
+  };
+  const ord = [...pratos].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  return `<div class="grade">${ord.map(p => `<div class="prato"><span class="pnome">${p.nome}</span><span class="fmts">${slot(p, 'PF')}${slot(p, 'Marmita')}</span></div>`).join('')}</div>`;
+}
+// A tela não se atualiza sozinha (§7.2): o botão Atualizar é o jeito de ver o cardápio novo
+const subReg = (extra = '') => `<div class="sub"><span>Cardápio de hoje · ${HOJE}${extra ? `<br>${extra}` : ''}</span>${btn('↻ Atualizar', `${go('UI-02', 'carregando')} aria-label="Atualizar cardápio"`, 'sm')}</div>`;
+const sheetDlg = (html) => `<div class="scrim"></div><div class="sheet" role="dialog">${html}</div>`;
+const reg = (body, extra = {}) => shell(Object.assign({ title: 'Registrar venda', nav: 'UI-02', body }, extra));
+const itemTxt = () => `${S.qtd}× ${S.item.prato} · ${S.item.fmt}`;
+
+function painel() {
+  const q = S.qtd;
+  return `<div class="scrim"></div><div class="sheet" role="dialog" aria-label="Confirmar venda">
+    <span class="muted">Confirmar venda</span><h2>${S.item.prato} · ${S.item.fmt}</h2>
+    <div class="stepper"><button class="btn step" data-act="menos" ${q <= 1 ? 'disabled' : ''} aria-label="Diminuir quantidade">−</button>
+    <output class="qtd" aria-live="polite">${q}</output>
+    <button class="btn step" data-act="mais" ${q >= 20 ? 'disabled' : ''} aria-label="Aumentar quantidade">+</button></div>
+    ${q >= 20 ? '<p class="hint warn">Máximo de 20 por lançamento. Para mais, confirme este e faça outro lançamento.</p>' : `<p class="hint muted">${q === 1 ? '1 unidade' : q + ' unidades'}</p>`}
+    ${btn('Confirmar', 'data-act="confirmar"', 'pri xl')}
+    ${btn('Cancelar', 'data-act="fechar"', 'ghost')}</div>`;
+}
+
+/* ---------- UI-05 / UI-06 ---------- */
+function vendasBody(cancIdx = -1, cancTxt = 'por Carla às 12:10 · motivo: lançado em dobro') {
+  const ativos = VENDAS.filter((_, i) => i !== cancIdx);
+  const un = ativos.reduce((s, v) => s + v[4], 0), val = ativos.reduce((s, v) => s + v[4] * v[5], 0);
+  return `${datenav(HOJE, false)}
+    <div class="sub"><span>${VENDAS.length} lançamentos${cancIdx >= 0 ? ' · 1 cancelado' : ''}</span><span>${un} un. · ${brl(val)}</span></div>
+    <p class="muted" style="margin-top:-8px;font-size:13px">Totais sem as canceladas.</p>
+    ${VENDAS.map((v, i) => { const c = i === cancIdx; return `<div class="card ${c ? 'cancel' : ''}">
+      <div class="l1"><span>${v[0]} · ${v[1]}</span>${c ? '<span class="tag err">Cancelada</span>' : ''}</div>
+      <div class="l2 ${c ? 'grow' : ''}">${v[2]} · ${v[3]}</div>
+      <div class="l3"><span class="val">${v[4]} × ${brl(v[5])} = <strong>${brl(v[4] * v[5])}</strong></span>${c ? '' : btn('Cancelar venda', `data-act="cancelarVenda"`, 'sm danger')}</div>
+      ${c ? `<div class="why">Cancelada ${cancTxt}</div>` : ''}</div>`; }).join('')}`;
+}
+const vendas = (body, extra = {}) => shell(Object.assign({ title: 'Vendas da data', nav: 'UI-05', body }, extra));
+function dlgCancelar(st) {
+  const v = VENDAS[1];
+  const motivo = st === 'validacao' ? '' : 'cliente desistiu';
+  const busy = st === 'processando';
+  return `<div class="scrim"></div><div class="sheet" role="dialog" aria-label="Cancelar venda">
+    <h2>Cancelar venda?</h2>
+    <div class="card"><div class="l1"><span>${v[0]} · ${v[1]}</span></div><div class="l2">${v[2]} · ${v[3]}</div><div>${v[4]} × ${brl(v[5])} = <strong>${brl(v[4] * v[5])}</strong></div></div>
+    <p class="muted" style="margin:0;font-size:14px">A venda inteira sai dos totais e continua no histórico, marcada como cancelada. Para corrigir a quantidade, cancele e registre de novo.</p>
+    ${st === 'jaCancelada' ? banner('err', 'Esta venda já foi cancelada por Carla às 12:10 (motivo: lançado em dobro). Nada foi alterado.') : ''}
+    ${st === 'erro' ? banner('err', 'Não foi possível cancelar. Verifique a conexão e tente de novo. O motivo digitado foi mantido.') : ''}
+    ${st === 'jaCancelada' ? btn('Voltar à lista', go('UI-05', 'comCancelada'), 'pri full') : `
+      ${field('Motivo (obrigatório)', `<textarea rows="2" maxlength="200" ${busy ? 'disabled' : ''}>${motivo}</textarea>`, st === 'validacao' ? 'Informe o motivo do cancelamento.' : '')}
+      ${btn(busy ? 'Cancelando…' : 'Cancelar venda', `${busy ? 'disabled' : ''} ${go('UI-06', 'sucesso')}`, 'danger pri full')}
+      ${btn('Voltar', `${busy ? 'disabled' : ''} ${go('UI-05')}`, 'ghost')}`}
+  </div>`;
+}
+
+/* ---------- UI-07 ---------- */
+// Mês de exemplo: setembro/2026 até hoje (28/09), sem domingos. Gerado dia a dia para que
+// a quebra por dia some exatamente o total do mês.
+const MES = (() => {
+  const wdN = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'], dias = [], itens = {};
+  for (let d = 1; d <= 28; d++) {
+    const wd = (d + 1) % 7; // 01/09/2026 é terça
+    if (wd === 0) continue;
+    const vendas = [
+      ['Frango grelhado', 'Frango', 150, 'PF', 8 + (d * 3) % 6, 18], ['Frango grelhado', 'Frango', 150, 'Marmita', 3 + d % 4, 22],
+      ['Bife acebolado', 'Carne bovina', 180, 'PF', 4 + (d * 7) % 5, 20], ['Bife acebolado', 'Carne bovina', 180, 'Marmita', 2 + d % 3, 24],
+      ['Peixe frito', 'Peixe', 160, 'PF', wd === 5 ? 12 : 3 + d % 2, 21],
+      ['Omelete', 'Ovo', 120, 'PF', 2 + d % 3, 15], ['Omelete', 'Ovo', 120, 'Marmita', 1 + d % 2, 18],
+    ];
+    let un = 0, fat = 0;
+    vendas.forEach(v => { un += v[4]; fat += v[4] * v[5]; const k = v[0] + '|' + v[3]; itens[k] = itens[k] ? (itens[k][4] += v[4], itens[k]) : v.slice(); });
+    dias.push([`${wdN[wd]} ${String(d).padStart(2, '0')}/09`, un, fat]);
+  }
+  return { dias: dias.reverse(), itens: Object.values(itens) };
+})();
+const modoSeg = (modo) => `<div class="seg" style="margin-bottom:12px" role="group" aria-label="Período"><button class="btn" ${go('UI-07', 'default')} aria-pressed="${modo === 'dia'}">Dia</button><button class="btn" ${go('UI-07', 'mes')} aria-pressed="${modo === 'mes'}">Mês</button></div>`;
+const porDia = () => `<h3>Por dia</h3><table><thead><tr><th>Dia</th><th class="n">Unid.</th><th class="n">Faturamento</th></tr></thead><tbody>${MES.dias.map(([l, u, f]) => `<tr ${go('UI-07', 'dataPassada')} style="cursor:pointer"><td><u>${l}</u></td><td class="n">${u}</td><td class="n">${brl(f)}</td></tr>`).join('')}</tbody></table>`;
+
+function fechBody(dados, label, prox, extraTop = '', modo = 'dia') {
+  let fPF = 0, fM = 0, uPF = 0, uM = 0; const prot = {}, porPrato = {}, porItem = [];
+  dados.forEach(([p, pr, g, f, q, v]) => {
+    if (f === 'PF') { fPF += q * v; uPF += q; } else { fM += q * v; uM += q; }
+    prot[pr] = (prot[pr] || 0) + g * q;
+    porPrato[p] = porPrato[p] || { PF: 0, Marmita: 0 }; porPrato[p][f] += q;
+    porItem.push([p, f, q]);
+  });
+  return `${modoSeg(modo)}${datenav(label, prox)}${extraTop}
+    <h3>Faturamento</h3>
+    <div class="kpis"><div class="kpi"><small>PF</small><strong>${brl(fPF)}</strong></div><div class="kpi"><small>Marmita</small><strong>${brl(fM)}</strong></div><div class="kpi total"><small>Total</small><strong>${brl(fPF + fM)}</strong></div></div>
+    <h3>Unidades</h3>
+    <div class="kpis"><div class="kpi"><small>PF</small><strong>${uPF}</strong></div><div class="kpi"><small>Marmita</small><strong>${uM}</strong></div><div class="kpi total"><small>Total</small><strong>${uPF + uM}</strong></div></div>
+    <h3>Proteína consumida (estimada)</h3>
+    <table><thead><tr><th>Proteína</th><th class="n">Consumo</th></tr></thead><tbody>${Object.entries(prot).map(([k, v]) => `<tr><td>${k}</td><td class="n">${gr(v)}</td></tr>`).join('')}</tbody></table>
+    <h3>Por prato</h3>
+    <table><thead><tr><th>Prato</th><th class="n">PF</th><th class="n">Marm.</th><th class="n">Total</th></tr></thead><tbody>${Object.entries(porPrato).map(([k, v]) => `<tr><td>${k}</td><td class="n">${v.PF}</td><td class="n">${v.Marmita}</td><td class="n"><strong>${v.PF + v.Marmita}</strong></td></tr>`).join('')}</tbody></table>
+    <h3>Por item de cardápio</h3>
+    <table><thead><tr><th>Item</th><th class="n">Unid.</th></tr></thead><tbody>${porItem.map(([p, f, q]) => `<tr><td>${p} · ${f}</td><td class="n">${q}</td></tr>`).join('')}</tbody></table>
+    ${modo === 'mes' ? porDia() : `<p style="margin-top:16px">${btn('Ver vendas desta data', go('UI-05'), 'full')}</p>`}`;
+}
+const fech = (body) => shell({ title: 'Fechamento', nav: 'UI-07', body });
+
+/* ---------- UI-08 ---------- */
+const cardList = (pratos) => `<ul class="list">${pratos.flatMap(p => p.itens.map(([f, v]) => `<li><span class="grow">${p.nome} · ${f}</span><span>${brl(v)}</span></li>`)).join('')}</ul>`;
+const card = (body) => shell({ title: 'Cardápio', nav: 'UI-08', body, noBanner: true });
+function cardEdit(st) {
+  const sel = new Set(st === 'validacao' ? [] : ['Frango grelhado|PF', 'Frango grelhado|Marmita', 'Bife acebolado|PF', 'Omelete|PF', 'Peixe frito|PF']);
+  const busy = st === 'salvando';
+  return `${datenav(HOJE)}
+    ${banner('info', 'As vendas já registradas hoje (12) não mudam: cada uma guarda o preço e a gramagem do momento do registro.')}
+    ${st === 'erroEnvio' ? banner('err', 'Não foi possível salvar. Sua seleção foi mantida — tente de novo.') : ''}
+    <div class="sub"><span>Itens disponíveis hoje</span><span>${sel.size} selecionados</span></div>
+    ${PRATOS.flatMap(p => p.itens.map(([f, v]) => `<label class="check"><input type="checkbox" ${sel.has(p.nome + '|' + f) ? 'checked' : ''} ${busy ? 'disabled' : ''}><span class="grow">${p.nome} · ${f}</span><span>${brl(v)}</span></label>`)).join('')}
+    <p class="muted" style="font-size:14px">Itens desativados não aparecem aqui. Para trazer um de volta, reative em Catálogo → Itens.</p>
+    ${st === 'validacao' ? banner('err', 'Selecione pelo menos um item. Um cardápio não pode ficar vazio.') : ''}
+    ${btn(busy ? 'Salvando…' : 'Salvar cardápio de hoje', `${busy ? 'disabled' : ''} ${go('UI-08', 'sucesso')}`, 'pri full')}
+    ${btn('Descartar alterações', `${busy ? 'disabled' : ''} ${go('UI-08', 'proprio')}`, 'ghost full')}`;
+}
+
+/* ---------- Catálogo (UI-09 a UI-11) ---------- */
+const tabs = (cur) => `<div class="tabs">${[['UI-09', 'Proteínas'], ['UI-10', 'Pratos'], ['UI-11', 'Itens']].map(([t, l]) => `<button class="btn" ${go(t)} ${t === cur ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</div>`;
+function catList(cfg, showOff) {
+  const rows = cfg.rows.filter(r => showOff || !r.off);
+  return `${tabs(cfg.id)}<div class="sub"><label class="chk" style="font-weight:400"><input type="checkbox" ${showOff ? 'checked' : ''} ${go(cfg.id, showOff ? 'default' : 'comDesativados')}> Mostrar desativados</label>${btn(cfg.novo, go(cfg.id, 'formulario'), 'sm pri')}</div>
+    <ul class="list">${rows.map(r => `<li class="${r.off ? 'off' : ''}"><span class="grow">${r.t}${r.s ? `<br><small class="muted">${r.s}</small>` : ''}</span>${r.off ? `<span class="tag">Desativado</span>${btn('Reativar', go(cfg.id, 'sucesso'), 'sm')}` : `<span class="rowact">${btn('Editar', go(cfg.id, cfg.editState || 'formulario'), 'sm')}${btn('Desativar', go(cfg.id, 'confirmarDesativar'), 'sm')}</span>`}</li>`).join('')}</ul>`;
+}
+function catalogo(cfg) {
+  const scr = (body, overlay, toast) => shell({ title: 'Catálogo', nav: 'MAIS', body, overlay, toast });
+  const sheet = (html) => `<div class="scrim"></div><div class="sheet" role="dialog">${html}</div>`;
+  const E = {
+    carregando: { d: 'Buscando cadastros', o: 'Derivado do PRD', r: () => scr(tabs(cfg.id) + skel(5)) },
+    default: { d: 'Lista dos ativos', o: 'Derivado do PRD', r: () => scr(catList(cfg, false)) },
+    vazio: { d: 'Nenhum cadastro ainda — educa e oferece a próxima ação', o: 'Derivado do PRD', r: () => scr(`${tabs(cfg.id)}<div class="center"><p class="big">${cfg.vazio}</p><p class="muted">${cfg.vazioDica}</p>${btn(cfg.novo, go(cfg.id, 'formulario'), 'pri')}</div>`) },
+    comDesativados: { d: 'Filtro "Mostrar desativados": linhas desativadas com ação Reativar (RN-49)', o: 'Derivado de RN-04, RN-49', r: () => scr(catList(cfg, true)) },
+    formulario: { d: 'Novo cadastro em painel inferior', o: 'Derivado do PRD', r: () => scr(catList(cfg, false), sheet(cfg.form(''))) },
+    validacao: { d: 'Erro por campo, dados preservados', o: 'Derivado de RN-46', r: () => scr(catList(cfg, false), sheet(cfg.form('validacao'))) },
+    salvando: { d: 'Envio em andamento; botão desabilitado previne envio duplo', o: 'Derivado do PRD', r: () => scr(catList(cfg, false), sheet(cfg.form('salvando'))) },
+    erroEnvio: { d: 'Falha no servidor; dados digitados preservados', o: 'Derivado de RN-48', r: () => scr(catList(cfg, false), sheet(cfg.form('erroEnvio'))) },
+    confirmarDesativar: { d: 'Confirmação antes de desativar', o: 'Derivado de ' + cfg.rnDesat, r: () => scr(catList(cfg, false), sheet(`<h2>Desativar ${cfg.exemplo}?</h2><p>${cfg.desatTxt}</p>${btn('Desativar', go(cfg.id, 'sucesso'), 'pri full')}${btn('Voltar', go(cfg.id), 'ghost')}`)) },
+    sucesso: { d: 'Operação concluída; lista atualizada', o: 'Derivado do PRD', r: () => scr(catList(cfg, false), '', ['ok', '✓ Salvo.']) },
+    erro: { d: 'Falha ao carregar a lista', o: 'Derivado de RN-48', r: () => scr(tabs(cfg.id) + erroCarga()) },
+    semPermissao: SEMPERM,
+  };
+  return Object.assign(E, cfg.extra ? cfg.extra(scr, sheet) : {});
+}
+function formActs(st, id) {
+  const busy = st === 'salvando';
+  return `${st === 'erroEnvio' ? banner('err', 'Não foi possível salvar. Seus dados foram mantidos — tente de novo.') : ''}
+    ${btn(busy ? 'Salvando…' : 'Salvar', `${busy ? 'disabled' : ''} ${go(id, 'sucesso')}`, 'pri full')}${btn('Cancelar', `${busy ? 'disabled' : ''} ${go(id)}`, 'ghost')}`;
+}
+
+const CFG_PROT = {
+  id: 'UI-09', novo: 'Nova proteína', exemplo: '“Linguiça”', rnDesat: 'RN-04, RN-58', vazio: 'Nenhuma proteína cadastrada.', vazioDica: 'Cadastre as proteínas antes dos pratos: todo prato usa exatamente uma.',
+  desatTxt: 'Nenhum prato ativo usa esta proteína. Ela deixa de poder ser usada em pratos novos; vendas e relatórios anteriores não mudam. Você pode reativá-la depois.',
+  rows: [{ t: 'Carne bovina', s: '1 prato ativo' }, { t: 'Frango', s: '1 prato ativo' }, { t: 'Linguiça', s: 'nenhum prato ativo' }, { t: 'Ovo', s: '1 prato ativo' }, { t: 'Peixe', s: '1 prato ativo' }, { t: 'Carne suína', off: true }],
+  form: (st) => `<h2>Nova proteína</h2>${field('Nome', `<input maxlength="60" value="${st === 'validacao' ? '' : 'Camarão'}" ${st === 'salvando' ? 'disabled' : ''}>`, st === 'validacao' ? 'Informe o nome.' : '')}${formActs(st, 'UI-09')}`,
+  extra: (scr, sheet) => ({
+    desativarBloqueado: { d: 'Proteína usada por prato ativo: desativação recusada, listando os dependentes', o: 'Derivado de RN-58, CA-62', r: () => scr(catList(CFG_PROT, false), sheet(`<h2>Não é possível desativar “Frango”</h2><p>Este prato ativo usa esta proteína:</p><ul><li>Frango grelhado</li></ul><p class="muted" style="font-size:14px">Desative os pratos antes e tente de novo.</p>${btn('Ir para Pratos', go('UI-10'), 'pri full')}${btn('Voltar', go('UI-09'), 'ghost')}`)) },
+    duplicado: { d: 'Nome já existe entre as ativas, sem diferenciar maiúsculas (CA-29)', o: 'Derivado de CA-29, RN-01, RN-59', r: () => scr(catList(CFG_PROT, false), sheet(`<h2>Nova proteína</h2>${field('Nome', '<input value="frango">', 'Já existe uma proteína “Frango”.')}${formActs('', 'UI-09')}`)) },
+    duplicadoDesativado: { d: 'Nome já existe, mas desativado: oferece reativar em vez de duplicar', o: 'Derivado de RN-49', r: () => scr(catList(CFG_PROT, false), sheet(`<h2>Nova proteína</h2>${field('Nome', '<input value="Carne suína">', '“Carne suína” já existe e está desativada.')}${btn('Reativar “Carne suína”', go('UI-09', 'sucesso'), 'pri full')}${btn('Cancelar', go('UI-09'), 'ghost')}`)) },
+  }),
+};
+const CFG_PRATO = {
+  id: 'UI-10', novo: 'Novo prato', exemplo: '“Strogonoff”', rnDesat: 'RN-04, RN-58', vazio: 'Nenhum prato cadastrado.', vazioDica: 'Um prato tem uma proteína e a gramagem dela por porção. Depois, crie os itens (PF / Marmita) com preço.',
+  desatTxt: 'Nenhum item ativo é deste prato. Ele deixa de poder ser usado em itens novos; vendas e relatórios anteriores continuam mostrando o prato pelo nome. Você pode reativá-lo depois.',
+  editState: 'editarGramagem',
+  rows: [...PRATOS].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map(p => ({ t: p.nome, s: `${p.prot} · ${p.g} g por porção · ${p.itens.length} ${p.itens.length > 1 ? 'itens' : 'item'}` })).concat([{ t: 'Strogonoff', s: 'Frango · 150 g por porção · nenhum item' }, { t: 'Feijoada', s: 'Carne suína · 200 g por porção', off: true }]),
+  form: (st) => `<h2>Novo prato</h2>
+    ${field('Nome', `<input maxlength="60" value="Frango à parmegiana" ${st === 'salvando' ? 'disabled' : ''}>`)}
+    ${field('Proteína', `<select ${st === 'salvando' ? 'disabled' : ''}><option>Frango</option><option>Carne bovina</option><option>Peixe</option><option>Ovo</option></select>`)}
+    ${field('Gramagem de proteína por porção (g)', `<input inputmode="numeric" value="${st === 'validacao' ? '' : '150'}" ${st === 'salvando' ? 'disabled' : ''}>`, st === 'validacao' ? 'Informe a gramagem em gramas, maior que zero.' : '')}
+    <p class="muted" style="font-size:14px;margin:0 0 8px">A mesma gramagem vale para PF e marmita.</p>${formActs(st, 'UI-10')}`,
+  extra: (scr, sheet) => ({
+    duplicado: { d: 'Nome de prato já existe entre os ativos, sem diferenciar maiúsculas', o: 'Derivado de RN-59, CA-63', r: () => scr(catList(CFG_PRATO, false), sheet(`<h2>Novo prato</h2>${field('Nome', '<input value="frango grelhado">', 'Já existe um prato “Frango grelhado”.')}${formActs('', 'UI-10')}`)) },
+    duplicadoDesativado: { d: 'Nome existe, mas desativado: oferece reativar em vez de duplicar', o: 'Derivado de RN-49, RN-59', r: () => scr(catList(CFG_PRATO, false), sheet(`<h2>Novo prato</h2>${field('Nome', '<input value="Feijoada">', '“Feijoada” já existe e está desativado.')}${btn('Reativar “Feijoada”', go('UI-10', 'sucesso'), 'pri full')}${btn('Cancelar', go('UI-10'), 'ghost')}`)) },
+    desativarBloqueado: { d: 'Prato com item ativo: desativação recusada, listando os dependentes', o: 'Derivado de RN-58', r: () => scr(catList(CFG_PRATO, false), sheet(`<h2>Não é possível desativar “Frango grelhado”</h2><p>Estes itens ativos são deste prato:</p><ul><li>Frango grelhado · PF</li><li>Frango grelhado · Marmita</li></ul><p class="muted" style="font-size:14px">Desative os itens antes e tente de novo.</p>${btn('Ir para Itens', go('UI-11'), 'pri full')}${btn('Voltar', go('UI-10'), 'ghost')}`)) },
+    editarGramagem: { d: 'Edição de prato existente com aviso de que a nova gramagem não altera vendas registradas (CA-12)', o: 'Derivado de RN-06, CA-12', r: () => scr(catList(CFG_PRATO, false), sheet(`<h2>Editar prato</h2>${field('Nome', '<input value="Frango grelhado">')}${field('Proteína', '<select><option>Frango</option></select>')}${field('Gramagem de proteína por porção (g)', '<input inputmode="numeric" value="180">')}${banner('info', 'A nova gramagem vale para vendas registradas a partir de agora. As anteriores continuam calculadas com 150 g.')}${formActs('', 'UI-10')}`)) },
+  }),
+};
+const CFG_ITEM = {
+  id: 'UI-11', novo: 'Novo item', exemplo: '“Peixe frito · PF”', rnDesat: 'RN-04, RN-12', vazio: 'Nenhum item de cardápio.', vazioDica: 'Um item é um prato em um formato (PF ou Marmita), com preço próprio. É o item que o operador toca para vender.',
+  desatTxt: 'Ele sai do cardápio e da tela de registro imediatamente. Vendas e fechamentos anteriores continuam mostrando o item pelo nome. Você pode reativá-lo depois.',
+  editState: 'editarPreco',
+  rows: [...PRATOS].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).flatMap(p => p.itens.map(([f, v]) => ({ t: `${p.nome} · ${f}`, s: brl(v) }))).concat([{ t: 'Feijoada · PF', s: brl(22), off: true }]),
+  form: (st) => `<h2>Novo item</h2>
+    ${field('Prato', `<select ${st === 'salvando' ? 'disabled' : ''}><option>Peixe frito</option><option>Frango grelhado</option></select>`)}
+    <div class="field"><span>Formato</span><div class="seg"><button class="btn" aria-pressed="false">PF</button><button class="btn" aria-pressed="true">Marmita</button></div></div>
+    ${field('Preço (R$)', `<input inputmode="decimal" value="${st === 'validacao' ? '' : '25,00'}" ${st === 'salvando' ? 'disabled' : ''}>`, st === 'validacao' ? 'Informe o preço, maior que zero.' : '')}${formActs(st, 'UI-11')}`,
+  extra: (scr, sheet) => ({
+    duplicado: { d: 'Par prato × formato já existe ativo', o: 'Derivado de RN-59, CA-64', r: () => scr(catList(CFG_ITEM, false), sheet(`<h2>Novo item</h2>${field('Prato', '<select><option>Frango grelhado</option></select>')}<div class="field bad"><span>Formato</span><div class="seg"><button class="btn" aria-pressed="false">PF</button><button class="btn" aria-pressed="true">Marmita</button></div><span class="msg">“Frango grelhado” já tem item Marmita. Edite o existente.</span></div>${formActs('', 'UI-11')}`)) },
+    duplicadoDesativado: { d: 'Par prato × formato existe desativado: oferece reativar (CA-47)', o: 'Derivado de RN-49, CA-47', r: () => scr(catList(CFG_ITEM, false), sheet(`<h2>Novo item</h2>${field('Prato', '<select><option>Feijoada</option></select>')}<div class="field bad"><span>Formato</span><div class="seg"><button class="btn" aria-pressed="true">PF</button><button class="btn" aria-pressed="false">Marmita</button></div><span class="msg">“Feijoada · PF” já existe e está desativado.</span></div>${btn('Reativar “Feijoada · PF”', go('UI-11', 'sucesso'), 'pri full')}${btn('Cancelar', go('UI-11'), 'ghost')}`)) },
+    editarPreco: { d: 'Edição de item existente: só o preço muda; aviso de que vendas registradas não mudam (CA-11)', o: 'Derivado de RN-05, CA-11', r: () => scr(catList(CFG_ITEM, false), sheet(`<h2>Editar item</h2><p style="margin:0"><strong>Frango grelhado · PF</strong></p>${field('Preço (R$)', '<input inputmode="decimal" value="20,00">')}${banner('info', 'O novo preço vale para vendas registradas a partir de agora. As anteriores continuam com R$ 18,00.')}${formActs('', 'UI-11')}`)) },
+  }),
+};
+
+/* ---------- UI-12 ---------- */
+const USERS = [{ n: 'Carla', u: 'carla', p: 'ADMIN', me: true }, { n: 'João', u: 'joao', p: 'Operador' }, { n: 'Maria', u: 'maria', p: 'Operador' }, { n: 'Pedro', u: 'pedro', p: 'Operador', off: true }];
+function usersList(showOff, bloq = false) {
+  return `<div class="sub"><label class="chk" style="font-weight:400"><input type="checkbox" ${showOff ? 'checked' : ''} ${go('UI-12', showOff ? 'default' : 'comDesativados')}> Mostrar desativados</label>${btn('Novo operador', go('UI-12', 'formulario'), 'sm pri')}</div>
+    <ul class="list">${USERS.filter(x => showOff || !x.off).map(x => `<li class="${x.off ? 'off' : ''}"><span class="grow">${x.n}${x.me ? ' (você)' : ''}<br><small class="muted">${x.u} · ${x.p}</small>${bloq && x.u === 'joao' ? '<br><span class="tag warn">Bloqueado até 12:40</span>' : ''}</span>
+      ${x.me ? '' : x.off ? `<span class="tag">Desativado</span>${btn('Reativar', go('UI-12', 'sucesso'), 'sm')}` : `<span class="rowact">${btn('Redefinir senha', go('UI-12', 'redefinirSenha'), 'sm')}${btn('Desativar', go('UI-12', 'confirmarDesativar'), 'sm')}</span>`}</li>`).join('')}</ul>`;
+}
+const users = (body, overlay, toast) => shell({ title: 'Usuários', nav: 'MAIS', body, overlay, toast });
+const sh = (html) => `<div class="scrim"></div><div class="sheet" role="dialog">${html}</div>`;
+function userForm(st) {
+  const busy = st === 'salvando';
+  return `<h2>Novo operador</h2>
+    ${field('Nome', `<input maxlength="60" value="Lucas" ${busy ? 'disabled' : ''}>`)}
+    ${field('Usuário (para entrar)', `<input maxlength="30" value="${st === 'validacao' ? 'Joao' : 'lucas'}" autocapitalize="none" ${busy ? 'disabled' : ''}>`, st === 'validacao' ? 'Este usuário já está em uso.' : '')}
+    ${field('Senha inicial (mínimo 8 caracteres)', `<input type="password" value="${st === 'senhaCurta' ? '•••••••' : '••••••••'}" ${busy ? 'disabled' : ''}>`, st === 'senhaCurta' ? 'A senha precisa ter pelo menos 8 caracteres.' : '')}
+    <p class="muted" style="font-size:14px;margin:0 0 8px">Entregue a senha ao operador pessoalmente. Não há envio por e-mail.</p>
+    ${formActs(st, 'UI-12')}`;
+}
+
+/* ---------- UI-13 ---------- */
+function senhaBody(st) {
+  const busy = st === 'enviando';
+  return `${st === 'erroEnvio' ? banner('err', 'Não foi possível trocar a senha. Tente de novo.') : ''}
+    ${st === 'sucesso' ? banner('ok', '✓ Senha alterada. Use a nova senha no próximo acesso.') : ''}
+    ${field('Senha atual', `<input type="password" value="••••••" ${busy ? 'disabled' : ''}>`, st === 'senhaAtualIncorreta' ? 'Senha atual incorreta.' : '')}
+    ${field('Nova senha (mínimo 8 caracteres)', `<input type="password" value="${st === 'senhaCurta' ? '•••••••' : '••••••••'}" ${busy ? 'disabled' : ''}>`, st === 'senhaCurta' ? 'A senha precisa ter pelo menos 8 caracteres.' : '')}
+    ${field('Repita a nova senha', `<input type="password" value="${st === 'validacao' ? '•••••••' : '••••••••'}" ${busy ? 'disabled' : ''}>`, st === 'validacao' ? 'As senhas não conferem.' : '')}
+    ${btn(busy ? 'Salvando…' : 'Trocar senha', `${busy ? 'disabled' : ''} ${go('UI-13', 'sucesso')}`, 'pri full')}`;
+}
+
+/* ---------- UI-01 ---------- */
+function login(st) {
+  const busy = st === 'enviando';
+  const msgs = {
+    credencialInvalida: banner('err', 'Usuário ou senha inválidos. Se o problema continuar, fale com o responsável.'),
+    limiteRitmo: banner('warn', 'Muitas tentativas em pouco tempo. Aguarde alguns segundos e tente de novo.'),
+    sessaoExpirada: banner('info', 'Sua sessão terminou por inatividade. Entre de novo para continuar.'),
+    saiu: banner('info', 'Você saiu. Até a próxima.'),
+    erro: banner('err', 'Não foi possível conectar ao servidor. Verifique a internet e tente de novo.'),
+  };
+  return `<div class="login"><h1>PF &amp; Marmitas</h1>${msgs[st] || ''}
+    ${field('Usuário', `<input autocapitalize="none" value="${st === 'validacao' ? '' : 'joao'}" ${busy ? 'disabled' : ''}>`, st === 'validacao' ? 'Informe o usuário.' : '')}
+    ${field('Senha', `<input type="password" value="${st === 'validacao' ? '' : '••••••'}" ${busy ? 'disabled' : ''}>`, st === 'validacao' ? 'Informe a senha.' : '')}
+    ${btn(busy ? 'Entrando…' : 'Entrar', `data-act="entrar" ${busy ? 'disabled' : ''}`, 'pri xl')}
+    ${busy ? '<p class="muted" style="text-align:center">Conectando… a primeira conexão do dia pode levar alguns segundos.</p>' : ''}</div>`;
+}
+
+/* ---------- Registro de telas ---------- */
+const T = {
+  'UI-01': { nome: 'Entrar', rota: '/login', perfis: ['todos'], rn: 'RN-34, 36, 37, 38, 54', ca: 'CA-24, 25, 27, 32, 34, 35, 51, 53, 56', estados: {
+    default: { d: 'Formulário de acesso', o: 'Derivado do PRD', r: () => login('default') },
+    validacao: { d: 'Campo vazio; erro por campo', o: 'Derivado de RN-46', r: () => login('validacao') },
+    enviando: { d: 'Autenticando; botão desabilitado. Texto de espera cobre o cold start do Render (PRD §15)', o: 'Derivado do PRD §15', r: () => login('enviando') },
+    credencialInvalida: { d: 'Mensagem ÚNICA para usuário inexistente, senha errada, conta bloqueada ou desativada', o: 'Derivado de RN-38, CA-35, CA-24, CA-27', r: () => login('credencialInvalida') },
+    limiteRitmo: { d: 'Limite de ritmo por origem (429). Não bloqueia conta nem revela nada sobre ela', o: 'Derivado de RN-37 (camada 2), CA-34', r: () => login('limiteRitmo') },
+    sessaoExpirada: { d: 'Chegou aqui porque a sessão expirou por inatividade', o: 'Derivado de RN-36, CA-32', r: () => login('sessaoExpirada') },
+    saiu: { d: 'Após a ação Sair (POST; sessão invalidada no servidor)', o: 'Derivado de RN-54, CA-56', r: () => login('saiu') },
+    erro: { d: 'Servidor inalcançável', o: 'Derivado de RN-48', r: () => login('erro') },
+  } },
+  'UI-02': { nome: 'Registrar venda', rota: '/registrar', perfis: ['ADMIN', 'Operador'], rn: 'RN-07, 08, 09, 11, 12, 13, 18, 19, 36, 40, 50, 56', ca: 'CA-01, 02, 04, 06, 07, 08, 09, 10, 13, 48, 55, 58, 59, 60', estados: {
+    carregando: { d: 'Buscando o cardápio vigente', o: 'Derivado do PRD', r: () => reg(subReg() + skel(4)) },
+    default: { d: 'Cardápio próprio de hoje. Toque em PF ou Marmita abre o painel (UI-03)', o: 'Derivado de RN-13, §7.1', r: () => reg(subReg() + grade()) },
+    herdado: { d: 'Sem cardápio próprio: vale o herdado de 26/09, sem o item desativado (RN-08, RN-12). Operador vê a marca; ADMIN vê o aviso com ação (RN-09)', o: 'Derivado de CA-07, CA-08', r: () => reg(subReg('<span class="tag warn">Herdado de 26/09</span>') + grade(HERDADO), { forceBanner: true }) },
+    vazio: { d: 'Primeiro uso: não há cardápio algum para herdar. Nenhuma venda pode ser registrada', o: 'Derivado de RN-11, CA-10', r: () => reg(subReg() + `<div class="center"><p class="big">Ainda não há cardápio.</p><p>${isAdmin() ? 'Monte o cardápio de hoje para liberar o registro.' : 'Chame o responsável para montar o cardápio do dia.'}</p>${isAdmin() ? btn('Montar cardápio', go('UI-08', 'vazio'), 'pri') : ''}</div>`) },
+    erro: { d: 'Falha ao carregar o cardápio', o: 'Derivado de RN-48', r: () => reg(subReg() + erroCarga()) },
+    registrado: { d: 'Retorno otimista logo após confirmar, sem esperar o servidor', o: 'Derivado de CA-01, §7.1', r: () => reg(subReg() + grade(), { toast: ['ok', `✓ Registrado: ${itemTxt()}`] }) },
+    falhaEnvio: { d: 'Servidor não confirmou (rede). A venda fica PENDENTE no aparelho (sobrevive a recarregar a página). Aviso persistente; a grade segue utilizável. Reenviar usa a MESMA chave; Descartar pede confirmação', o: 'Derivado de CA-04, CA-03, RN-18, RN-56', r: () => reg(banner('err', `<strong>Venda NÃO registrada — sem conexão.</strong><br>${itemTxt()}<br><small>Não feche esta aba enquanto houver venda pendente.</small><div class="acts">${btn('Reenviar', go('UI-02', 'reenviando'), 'sm pri')}${btn('Descartar', go('UI-02', 'confirmarDescarte'), 'sm')}</div>`) + subReg() + grade()) },
+    reenviando: { d: 'Reenvio em andamento', o: 'Derivado de §7.1', r: () => reg(banner('err', `<strong>Reenviando…</strong><br>${itemTxt()}<div class="acts">${btn('Reenviando…', 'disabled', 'sm pri')}</div>`) + subReg() + grade()) },
+    confirmarDescarte: { d: 'Confirmação antes de descartar a pendência: a venda não será registrada nem contada', o: 'Derivado de RN-56, CA-58', r: () => reg(banner('err', `<strong>Venda NÃO registrada — sem conexão.</strong><br>${itemTxt()}`) + subReg() + grade(), { overlay: sheetDlg(`<h2>Descartar esta venda?</h2><p><strong>${itemTxt()}</strong> não será registrada e não entra no fechamento. Só descarte se a venda não aconteceu ou se você vai registrá-la de novo.</p>${btn('Descartar venda', go('UI-02'), 'danger pri full')}${btn('Voltar', go('UI-02', 'falhaEnvio'), 'ghost')}`) }) },
+    pendenciaDescartada: { d: 'Pendência de outro dia operacional ou de outro usuário foi descartada automaticamente, nunca reenviada', o: 'Derivado de RN-56, CA-59, CA-60', r: () => reg(banner('warn', `<strong>Uma venda pendente foi descartada sem ser registrada.</strong><br>${itemTxt()} — ficou pendente em dom 27/09 e não pode ser enviada hoje. Se ela aconteceu, avise o responsável.<div class="acts">${btn('Entendi', go('UI-02'), 'sm')}</div>`) + subReg() + grade()) },
+    recusado: { d: 'API recusou: item saiu do cardápio (RN-19) ou quantidade inválida (RN-14). Sem reenvio; orienta a atualizar, porque a tela não se atualiza sozinha', o: 'Derivado de CA-06, CA-05, §7.2', r: () => reg(banner('err', `<strong>Venda NÃO registrada.</strong><br>“Peixe frito · PF” não está no cardápio de hoje — o cardápio desta tela está desatualizado.<div class="acts">${btn('Atualizar cardápio', go('UI-02', 'carregando'), 'sm pri')}</div>`) + subReg() + grade()) },
+    sessaoExpirada: { d: 'Envio voltou 401: a venda NÃO entrou e fica pendente para o MESMO usuário reenviar após entrar. Grade bloqueada até lá', o: 'Derivado de RN-36, RN-56, CA-59', r: () => reg(banner('err', `<strong>Sua sessão expirou. A venda NÃO foi registrada.</strong><br>${itemTxt()} ficou pendente neste aparelho. Entre de novo com o mesmo usuário para reenviar.<div class="acts">${btn('Entrar novamente', go('UI-01', 'sessaoExpirada'), 'sm pri')}</div>`) + subReg() + grade(PRATOS, true)) },
+  } },
+  'UI-03': { nome: 'Painel de confirmação (sobre UI-02)', rota: '/registrar (painel)', perfis: ['ADMIN', 'Operador'], rn: 'RN-13, 14, 18', ca: 'CA-01, 02, 05', estados: {
+    default: { q: 1, d: 'Abre com quantidade 1. Confirmar = segundo toque', o: 'Derivado de RN-13, CA-01', r: () => reg(subReg() + grade(), { overlay: painel() }) },
+    ajustando: { q: 3, d: 'Quantidade ajustada com − / + (sem teclado)', o: 'Derivado de CA-02', r: () => reg(subReg() + grade(), { overlay: painel() }) },
+    limite: { q: 20, d: 'Teto de 20: “+” desabilitado e orientação para novo lançamento', o: 'Derivado de RN-14, CA-05', r: () => reg(subReg() + grade(), { overlay: painel() }) },
+  } },
+  'UI-04': { nome: 'Minhas vendas de hoje', rota: '/minhas-vendas', perfis: ['ADMIN', 'Operador'], rn: 'RN-17, 21, 27, 40', ca: 'CA-15, 36, 54', estados: {
+    carregando: { d: 'Buscando', o: 'Derivado do PRD', r: () => shell({ title: 'Minhas vendas', nav: 'UI-04', body: skel(4) }) },
+    default: { d: 'Só as vendas do usuário no dia; item, formato, quantidade e horário. SEM preço, SEM faturamento, SEM ação de cancelar', o: 'Derivado de RN-40, CA-36, CA-15', r: () => shell({ title: 'Minhas vendas', nav: 'UI-04', body: `<div class="sub"><span>Hoje · ${HOJE}</span><span>${MINHAS.length} lançamentos</span></div><ul class="list">${MINHAS.map(r => `<li><span class="time">${r[0]}</span><span class="grow">${r[1]} · ${r[2]}</span><span class="qty">${r[3]} un.</span></li>`).join('')}</ul><p class="muted" style="font-size:14px">Lançou errado? Chame o responsável e aponte a venda nesta lista.</p>` }) },
+    comCancelada: { d: 'Venda cancelada pelo ADMIN continua na lista, marcada', o: 'Derivado de RN-40, CA-54', r: () => shell({ title: 'Minhas vendas', nav: 'UI-04', body: `<div class="sub"><span>Hoje · ${HOJE}</span><span>${MINHAS.length} lançamentos</span></div><ul class="list">${MINHAS.map((r, i) => `<li class="${i === 1 ? 'cancel' : ''}"><span class="time">${r[0]}</span><span class="grow">${r[1]} · ${r[2]}</span><span class="qty">${r[3]} un.</span>${i === 1 ? '<span class="tag err">Cancelada</span>' : ''}</li>`).join('')}</ul>` }) },
+    vazio: { d: 'Nenhuma venda do usuário hoje', o: 'Derivado do PRD', r: () => shell({ title: 'Minhas vendas', nav: 'UI-04', body: `<div class="center"><p class="big">Nenhuma venda sua hoje.</p><p class="muted">As vendas que você registrar aparecem aqui.</p>${btn('Registrar venda', go('UI-02'), 'pri')}</div>` }) },
+    erro: { d: 'Falha ao carregar', o: 'Derivado de RN-48', r: () => shell({ title: 'Minhas vendas', nav: 'UI-04', body: erroCarga() }) },
+  } },
+  'UI-05': { nome: 'Vendas da data', rota: '/vendas?data=AAAA-MM-DD', perfis: ['ADMIN'], rn: 'RN-20, 21, 22, 27, 28, 51', ca: 'CA-14, 18, 31, 50', estados: {
+    carregando: { d: 'Buscando', o: 'Derivado do PRD', r: () => vendas(datenav(HOJE, false) + skel(4)) },
+    default: { d: 'Todas as vendas da data, de todos os usuários: horário, autor, item, formato, qtd, preço, valor. Ação Cancelar em cada ativa', o: 'Derivado de RN-51, CA-50', r: () => vendas(vendasBody()) },
+    comCancelada: { d: 'Cancelada marcada, com quem, quando e motivo; fora dos totais', o: 'Derivado de RN-51, RN-28, CA-50', r: () => vendas(vendasBody(2)) },
+    vazio: { d: 'Nenhuma venda na data escolhida', o: 'Derivado do PRD', r: () => vendas(datenav('dom 27/09') + '<div class="center"><p class="big">Nenhuma venda em 27/09.</p><p class="muted">Use as setas para ver outra data.</p></div>') },
+    erro: { d: 'Falha ao carregar', o: 'Derivado de RN-48', r: () => vendas(datenav(HOJE, false) + erroCarga()) },
+    semPermissao: SEMPERM,
+  } },
+  'UI-06': { nome: 'Cancelar venda (diálogo sobre UI-05)', rota: '/vendas (diálogo)', perfis: ['ADMIN'], rn: 'RN-21, 23, 24, 25, 26', ca: 'CA-14, 16, 17, 18, 31', estados: {
+    confirmacao: { d: 'Resumo da venda + motivo obrigatório + aviso de que cancela a linha inteira', o: 'Derivado de RN-23, RN-24, RN-26, CA-14', r: () => vendas(vendasBody(), { overlay: dlgCancelar('confirmacao') }) },
+    validacao: { d: 'Motivo vazio', o: 'Derivado de RN-26, CA-16', r: () => vendas(vendasBody(), { overlay: dlgCancelar('validacao') }) },
+    processando: { d: 'Cancelando; controles desabilitados', o: 'Derivado do PRD', r: () => vendas(vendasBody(), { overlay: dlgCancelar('processando') }) },
+    jaCancelada: { d: 'Outro ADMIN cancelou antes (conflito). Dados do cancelamento original preservados', o: 'Derivado de RN-25, CA-17', r: () => vendas(vendasBody(), { overlay: dlgCancelar('jaCancelada') }) },
+    erro: { d: 'Falha no servidor; motivo digitado preservado', o: 'Derivado de RN-48', r: () => vendas(vendasBody(), { overlay: dlgCancelar('erro') }) },
+    sucesso: { d: 'Diálogo fecha; linha passa a cancelada; totais recalculados', o: 'Derivado de CA-14, RN-28', r: () => vendas(vendasBody(1, 'por Carla agora · motivo: cliente desistiu'), { toast: ['ok', '✓ Venda cancelada. Totais atualizados.'] }) },
+    semPermissao: SEMPERM,
+  } },
+  'UI-07': { nome: 'Fechamento', rota: '/fechamento?data=AAAA-MM-DD | ?mes=AAAA-MM', perfis: ['ADMIN'], rn: 'RN-04, 27, 28, 29, 30, 31, 32, 33, 55, 61', ca: 'CA-11, 12, 13, 18, 19, 20, 21, 22, 23, 37, 57, 67', estados: {
+    carregando: { d: 'Buscando', o: 'Derivado do PRD', r: () => fech(modoSeg('dia') + datenav(HOJE, false) + skel(5)) },
+    mes: { d: 'Modo Mês: mesmos blocos do dia somados sobre o mês (parcial se corrente) + quebra por dia; cada dia leva ao fechamento daquela data', o: 'Derivado de RN-55, CA-57', r: () => fech(fechBody(MES.itens, 'setembro 2026 (parcial)', false, '', 'mes')) },
+    default: { d: 'Hoje, parcial. Faturamento por formato + total; unidades por formato; proteína por tipo; por prato; por item', o: 'Derivado de RN-29, CA-21, CA-22, CA-37', r: () => fech(fechBody(FECH_HOJE, HOJE + ' (parcial)', false)) },
+    dataPassada: { d: 'Data passada; item hoje desativado (Feijoada) aparece pelo nome', o: 'Derivado de RN-33, CA-23, CA-13', r: () => fech(fechBody(FECH_1509, 'ter 15/09', true)) },
+    cancelamentoPosterior: { d: 'Data com cancelamento feito depois dela: avisa que o número mudou e por quê', o: 'Derivado de RN-61, CA-67, RN-32', r: () => fech(fechBody(FECH_1509, 'ter 15/09', true, banner('info', `Uma venda desta data foi cancelada depois, em 20/09 por Carla (motivo: lançado em dobro). Os números já refletem o cancelamento. <div class="acts">${btn('Ver vendas de 15/09', go('UI-05', 'comCancelada'), 'sm')}</div>`))) },
+    vazio: { d: 'Nenhuma venda na data ou no mês (zeros explícitos, não tela em branco)', o: 'Derivado do PRD', r: () => fech(modoSeg('dia') + datenav('dom 27/09') + '<div class="center"><p class="big">Nenhuma venda em 27/09.</p><p class="muted">Faturamento R$ 0,00 · 0 unidades · 0 g de proteína.</p></div>') },
+    erro: { d: 'Falha ao carregar', o: 'Derivado de RN-48', r: () => fech(modoSeg('dia') + datenav(HOJE, false) + erroCarga()) },
+    semPermissao: SEMPERM,
+  } },
+  'UI-08': { nome: 'Cardápio da data', rota: '/cardapio?data=AAAA-MM-DD', perfis: ['ADMIN'], rn: 'RN-07, 08, 09, 10, 11, 12, 50, 57', ca: 'CA-07, 08, 09, 10, 47, 48, 49, 61', estados: {
+    carregando: { d: 'Buscando', o: 'Derivado do PRD', r: () => card(datenav(HOJE) + skel(5)) },
+    proprio: { d: 'Cardápio próprio da data (gravado)', o: 'Derivado de RN-07', r: () => card(`${datenav(HOJE)}<div class="sub"><span>Cardápio de hoje</span><span class="tag">Próprio</span></div>${cardList(PRATOS)}${btn('Editar cardápio', go('UI-08', 'editando'), 'pri full')}`) },
+    herdado: { d: 'Sem próprio: mostra o herdado (não gravado) com origem, o que foi removido por desativação e as ações Confirmar / Editar', o: 'Derivado de RN-08, RN-09, RN-10, RN-12, CA-07, CA-08', r: () => card(`${datenav(HOJE)}${banner('warn', '<strong>Herdado de sáb 26/09 — ainda não confirmado.</strong> Os operadores já estão vendendo com ele.')}${cardList(HERDADO)}<p class="muted" style="font-size:14px">“Feijoada · PF” estava no cardápio de 26/09 e foi removido por estar desativado.</p>${btn('Confirmar este cardápio', go('UI-08', 'sucesso'), 'pri full')}<p></p>${btn('Editar antes de confirmar', go('UI-08', 'editando'), 'full')}`) },
+    vazio: { d: 'Nunca houve cardápio (primeiro uso)', o: 'Derivado de RN-11, CA-10', r: () => card(`${datenav(HOJE)}<div class="center"><p class="big">Nenhum cardápio montado ainda.</p><p>Os operadores não conseguem registrar vendas até você montar o primeiro.</p>${btn('Montar cardápio', go('UI-08', 'editando'), 'pri')}</div>`) },
+    futuroSemCardapio: { d: 'Data futura sem cardápio próprio', o: 'Derivado de RN-50, RN-08', r: () => card(`${datenav('ter 29/09')}<div class="center"><p class="big">Nenhum cardápio montado para 29/09.</p><p class="muted">Se nada for montado, nesse dia vale o cardápio mais recente anterior, como herdado.</p>${btn('Montar cardápio de 29/09', go('UI-08', 'editando'), 'pri')}</div>`) },
+    editando: { d: 'Seleção dos itens ativos; desativados não aparecem (RN-12). Aviso de que vendas já feitas não mudam (RN-10)', o: 'Derivado de RN-10, RN-12, CA-09, CA-48', r: () => card(cardEdit('editando')) },
+    validacao: { d: 'Tentou salvar sem nenhum item selecionado', o: 'Derivado de RN-57, CA-61', r: () => card(cardEdit('validacao')) },
+    salvando: { d: 'Salvando; controles desabilitados', o: 'Derivado do PRD', r: () => card(cardEdit('salvando')) },
+    erroEnvio: { d: 'Falha ao salvar; seleção preservada', o: 'Derivado de RN-48', r: () => card(cardEdit('erroEnvio')) },
+    sucesso: { d: 'Gravado como próprio. A tela de registro NÃO se atualiza sozinha: o ADMIN é orientado a avisar o balcão', o: 'Derivado de RN-10, CA-09, §7.2', r: () => shell({ title: 'Cardápio', nav: 'UI-08', noBanner: true, body: `${datenav(HOJE)}<div class="sub"><span>Cardápio de hoje</span><span class="tag">Próprio</span></div>${cardList(PRATOS)}`, toast: ['ok', '✓ Cardápio salvo. Avise o balcão: ele aparece quando a tela de registro for atualizada.'] }) },
+    somenteLeitura: { d: 'Data passada: sem ações de edição', o: 'Derivado de RN-50, CA-49', r: () => card(`${datenav('dom 20/09')}<div class="sub"><span>Cardápio de 20/09</span><span class="tag">Somente leitura</span></div>${cardList(HERDADO)}<p class="muted" style="font-size:14px">Cardápios de datas passadas não podem ser alterados.</p>`) },
+    somenteLeituraSemProprio: { d: 'Data passada em que nenhum cardápio foi montado (o herdado não é gravado)', o: 'Derivado de RN-08, RN-50', r: () => card(`${datenav('sáb 19/09')}<div class="sub"><span>Cardápio de 19/09</span><span class="tag">Somente leitura</span></div><div class="center"><p class="big">Nenhum cardápio foi montado nesta data.</p><p class="muted">Nesse dia valeu o cardápio herdado da data anterior.</p></div>`) },
+    semPermissao: SEMPERM,
+  } },
+  'UI-09': { nome: 'Catálogo · Proteínas', rota: '/catalogo/proteinas', perfis: ['ADMIN'], rn: 'RN-01, 04, 49, 58, 59', ca: 'CA-29, 62', estados: catalogo(CFG_PROT) },
+  'UI-10': { nome: 'Catálogo · Pratos', rota: '/catalogo/pratos', perfis: ['ADMIN'], rn: 'RN-02, 04, 06, 49, 58, 59', ca: 'CA-12, 26, 30, 63', estados: catalogo(CFG_PRATO) },
+  'UI-11': { nome: 'Catálogo · Itens de cardápio', rota: '/catalogo/itens', perfis: ['ADMIN'], rn: 'RN-03, 04, 05, 12, 49, 59', ca: 'CA-11, 13, 30, 47, 64', estados: catalogo(CFG_ITEM) },
+  'UI-12': { nome: 'Usuários', rota: '/usuarios', perfis: ['ADMIN'], rn: 'RN-34, 37, 52, 60', ca: 'CA-27, 51, 53, 65, 66', estados: {
+    carregando: { d: 'Buscando', o: 'Derivado do PRD', r: () => users(skel(4)) },
+    default: { d: 'Usuários ativos. Ações: Redefinir senha, Desativar. O próprio ADMIN não tem ações na lista. Só cadastra Operador (RN-34)', o: 'Derivado de RN-34, RN-52', r: () => users(usersList(false)) },
+    comBloqueado: { d: 'Operador bloqueado por tentativas: marca com o horário de liberação, para o ADMIN decidir entre esperar e redefinir', o: 'Derivado de RN-52, RN-37', r: () => users(usersList(false, true)) },
+    comDesativados: { d: 'Desativados visíveis com Reativar', o: 'Derivado de RN-34, CA-53', r: () => users(usersList(true)) },
+    vazio: { d: 'Só existe o ADMIN', o: 'Derivado do PRD', r: () => users(`<div class="center"><p class="big">Nenhum operador cadastrado.</p><p class="muted">Cadastre quem vai registrar vendas no balcão.</p>${btn('Novo operador', go('UI-12', 'formulario'), 'pri')}</div>`) },
+    formulario: { d: 'Cadastro de operador: nome, usuário, senha inicial', o: 'Derivado de RN-34', r: () => users(usersList(false), sh(userForm(''))) },
+    validacao: { d: 'Usuário (login) já em uso, sem diferenciar maiúsculas', o: 'Derivado de RN-60, CA-65', r: () => users(usersList(false), sh(userForm('validacao'))) },
+    senhaCurta: { d: 'Senha inicial com menos de 8 caracteres', o: 'Derivado de RN-60, CA-66', r: () => users(usersList(false), sh(userForm('senhaCurta'))) },
+    salvando: { d: 'Salvando', o: 'Derivado do PRD', r: () => users(usersList(false), sh(userForm('salvando'))) },
+    erroEnvio: { d: 'Falha; dados preservados', o: 'Derivado de RN-48', r: () => users(usersList(false), sh(userForm('erroEnvio'))) },
+    confirmarDesativar: { d: 'Confirma desativação; autoria das vendas preservada', o: 'Derivado de RN-34, CA-27', r: () => users(usersList(false), sh(`<h2>Desativar João?</h2><p>Ele deixa de conseguir entrar. As vendas que ele registrou continuam atribuídas a ele. Você pode reativá-lo depois.</p>${btn('Desativar', go('UI-12', 'sucesso'), 'pri full')}${btn('Voltar', go('UI-12'), 'ghost')}`)) },
+    redefinirSenha: { d: 'Nova senha para o operador; desbloqueia a conta e invalida a senha anterior', o: 'Derivado de RN-52, CA-51', r: () => users(usersList(false), sh(`<h2>Redefinir senha de João</h2>${field('Nova senha (mínimo 8 caracteres)', '<input type="password" value="••••••••">')}<p class="muted" style="font-size:14px;margin:0 0 8px">A senha anterior deixa de funcionar e, se a conta estiver bloqueada por tentativas, ela é liberada na hora.</p>${btn('Redefinir senha', go('UI-12', 'redefinirSucesso'), 'pri full')}${btn('Voltar', go('UI-12'), 'ghost')}`)) },
+    redefinirSucesso: { d: 'Senha redefinida', o: 'Derivado de CA-51', r: () => users(usersList(false), '', ['ok', '✓ Senha de João redefinida. Entregue a nova senha a ele.']) },
+    sucesso: { d: 'Operação concluída', o: 'Derivado do PRD', r: () => users(usersList(false), '', ['ok', '✓ Salvo.']) },
+    erro: { d: 'Falha ao carregar', o: 'Derivado de RN-48', r: () => users(erroCarga()) },
+    semPermissao: SEMPERM,
+  } },
+  'UI-13': { nome: 'Trocar minha senha', rota: '/conta/senha', perfis: ['ADMIN'], rn: 'RN-53, 60', ca: 'CA-52, 66', estados: {
+    default: { d: 'Senha atual + nova + repetição', o: 'Derivado de RN-53', r: () => shell({ title: 'Minha senha', nav: 'MAIS', body: senhaBody('default') }) },
+    validacao: { d: 'Repetição não confere', o: 'Derivado de RN-46', r: () => shell({ title: 'Minha senha', nav: 'MAIS', body: senhaBody('validacao') }) },
+    senhaCurta: { d: 'Nova senha com menos de 8 caracteres', o: 'Derivado de RN-60, CA-66', r: () => shell({ title: 'Minha senha', nav: 'MAIS', body: senhaBody('senhaCurta') }) },
+    enviando: { d: 'Salvando', o: 'Derivado do PRD', r: () => shell({ title: 'Minha senha', nav: 'MAIS', body: senhaBody('enviando') }) },
+    senhaAtualIncorreta: { d: 'Senha atual errada: troca recusada', o: 'Derivado de CA-52', r: () => shell({ title: 'Minha senha', nav: 'MAIS', body: senhaBody('senhaAtualIncorreta') }) },
+    sucesso: { d: 'Senha trocada', o: 'Derivado de CA-52', r: () => shell({ title: 'Minha senha', nav: 'MAIS', body: senhaBody('sucesso') }) },
+    erroEnvio: { d: 'Falha no servidor', o: 'Derivado de RN-48', r: () => shell({ title: 'Minha senha', nav: 'MAIS', body: senhaBody('erroEnvio') }) },
+    semPermissao: SEMPERM,
+  } },
+};
+// Estado inicial de cada tela
+Object.values(T).forEach(t => { t.first = t.estados.default ? 'default' : Object.keys(t.estados)[0]; });
+
+/* ---------- Render e controles ---------- */
+const $ = id => document.getElementById(id);
+function render() {
+  const t = T[S.tela];
+  let st = S.estado;
+  if (t.perfis[0] !== 'todos' && !t.perfis.includes(S.perfil)) st = 'semPermissao';
+  if (!t.estados[st]) st = t.first;
+  S.estado = st;
+  const e = t.estados[st];
+  $('screen').innerHTML = e.r();
+  const perfilSb = st === 'semPermissao' ? 'Operador' : S.perfil;
+  $('sb').textContent = S.disp === 'cel' ? `${S.tela}.${st} · ${perfilSb}` : `pfmarmitas.app${t.rota} · ${S.tela}.${st} · ${perfilSb}`;
+  $('selTela').value = S.tela;
+  $('selEstado').innerHTML = Object.keys(t.estados).map(k => `<option value="${k}">${S.tela}.${k}</option>`).join('');
+  $('selEstado').value = st;
+  try { history.replaceState(null, '', `#${S.tela}.${st}@${S.perfil}`); } catch (_) {}
+  $('info').innerHTML = `<dt>${S.tela} — ${t.nome}</dt><dd>Rota: <code>${t.rota}</code> · Perfis: ${t.perfis.join(', ')}</dd>
+    <dt>Implementa</dt><dd>${t.rn}</dd><dt>Valida</dt><dd>${t.ca}</dd>
+    <dt>Estado ${st}</dt><dd>${e.d}</dd><dt>Origem</dt><dd>${e.o}</dd>`;
+}
+function setEstado(st) {
+  S.estado = st;
+  const e = T[S.tela].estados[st];
+  if (e && e.q) S.qtd = e.q;
+}
+$('selTela').innerHTML = Object.entries(T).map(([k, t]) => `<option value="${k}">${k} — ${t.nome}</option>`).join('');
+$('selTela').addEventListener('change', e => { S.tela = e.target.value; S.mais = false; setEstado(T[S.tela].first); render(); });
+$('selEstado').addEventListener('change', e => { S.mais = false; setEstado(e.target.value); render(); });
+document.querySelectorAll('input[name=perfil]').forEach(r => r.addEventListener('change', e => { S.perfil = e.target.value; S.mais = false; if (S.estado === 'semPermissao') setEstado(T[S.tela].first); render(); }));
+$('chkHerdado').addEventListener('change', e => { S.herdado = e.target.checked; render(); });
+const NOTA_DISP = {
+  cel: 'Celular de 375 px, o alvo do projeto (mobile first).',
+  coluna: 'No computador, a mesma tela numa coluna de até 480 px, centralizada.',
+};
+function setDisp(d) {
+  S.disp = d;
+  document.body.classList.toggle('desk', d !== 'cel');
+  document.querySelector('.phone').classList.toggle('desk', d !== 'cel');
+  $('dispNota').textContent = NOTA_DISP[d];
+  render();
+}
+document.querySelectorAll('input[name=disp]').forEach(r => r.addEventListener('change', e => setDisp(e.target.value)));
+$('dispNota').textContent = NOTA_DISP.cel;
+
+$('screen').addEventListener('click', e => {
+  const el = e.target.closest('[data-go],[data-act]');
+  if (!el || el.disabled) return;
+  if (el.dataset.go) {
+    if (el.dataset.go === 'MAIS') { S.mais = !S.mais; render(); return; }
+    S.mais = false; S.tela = el.dataset.go; setEstado(el.dataset.st || T[S.tela].first); render(); return;
+  }
+  const a = el.dataset.act;
+  if (a === 'abrir') { S.item = { prato: el.dataset.prato, fmt: el.dataset.fmt }; S.qtd = 1; S.tela = 'UI-03'; S.estado = 'default'; }
+  else if (a === 'mais') { S.qtd = Math.min(20, S.qtd + 1); S.estado = S.qtd === 20 ? 'limite' : 'ajustando'; }
+  else if (a === 'menos') { S.qtd = Math.max(1, S.qtd - 1); S.estado = S.qtd === 1 ? 'default' : 'ajustando'; }
+  else if (a === 'confirmar') { S.tela = 'UI-02'; S.estado = 'registrado'; }
+  else if (a === 'fechar') { S.tela = 'UI-02'; S.estado = 'default'; S.qtd = 1; }
+  else if (a === 'cancelarVenda') { S.tela = 'UI-06'; S.estado = 'confirmacao'; }
+  else if (a === 'sair') { S.mais = false; S.tela = 'UI-01'; S.estado = 'saiu'; }
+  else if (a === 'entrar') { S.tela = 'UI-02'; S.estado = 'default'; }
+  else if (a === 'fecharMais') { S.mais = false; }
+  render();
+});
+// Deep link: #UI-07.default@ADMIN abre direto na tela, estado e perfil
+(() => {
+  const m = /^#(UI-\d+)(?:\.(\w+))?(?:@(ADMIN|Operador))?$/.exec(location.hash || '');
+  if (!m || !T[m[1]]) return;
+  S.tela = m[1];
+  if (m[3]) { S.perfil = m[3]; document.querySelectorAll('input[name=perfil]').forEach(r => { r.checked = r.value === m[3]; }); }
+  setEstado(m[2] || T[S.tela].first);
+})();
+render();
+</script>
+</body>
+</html>
