@@ -2106,4 +2106,4 @@ Nenhuma questão em aberto.
 
 | Tarefa | Status | Concluída em | Commit | Observação |
 |--------|--------|--------------|--------|------------|
-| T-01   | Concluído | 2026-09-29 | — | PostgreSQL 17 (versão dos projetos novos do Supabase). `.gitignore` já cobria `.env` e `.venv`, sem mudança. `api/.python-version` criado pelo uv e usado pelo Dockerfile. Review: Aprovado com ressalvas (REVIEW-T-01-2026-09-29); as sugestões R-01, R-02 e R-03 (REVIEW-T-01-2026-09-29) foram aplicadas na mesma tarefa: timeout de banco no `/health` (`BANCO_TIMEOUT_SEGUNDOS`), `tests/apoio.py` e imagem `python:3.12.14-slim-trixie` |
+| T-01   | Concluído | 2026-09-29 | `4c22453` | PostgreSQL 17 (versão dos projetos novos do Supabase). `.gitignore` já cobria `.env` e `.venv`, sem mudança. `api/.python-version` criado pelo uv e usado pelo Dockerfile. Review: Aprovado com ressalvas (REVIEW-T-01-2026-09-29); as sugestões R-01, R-02 e R-03 (REVIEW-T-01-2026-09-29) foram aplicadas na mesma tarefa: timeout de banco no `/health` (`BANCO_TIMEOUT_SEGUNDOS`), `tests/apoio.py` e imagem `python:3.12.14-slim-trixie` |
