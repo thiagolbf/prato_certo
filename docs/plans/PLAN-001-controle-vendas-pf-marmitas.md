@@ -217,7 +217,7 @@ A Fase 6 depende da API apenas nos pontos marcados, então a interface pode come
 
 #### T-01 — Criar o projeto da API com uv, Dockerfile e Docker Compose
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** nenhuma
 - **Implementa:** RN-47
@@ -236,9 +236,9 @@ A Fase 6 depende da API apenas nos pontos marcados, então a interface pode come
 Criar o projeto com `uv init`, Python 3.12, dependências de execução (`fastapi`, `uvicorn`, `sqlalchemy[asyncio]`, `asyncpg`, `alembic`, `pydantic-settings`, `bcrypt`, `httpx`) e de desenvolvimento (`pytest`, `pytest-asyncio`, `ruff`). `core/config.py` lê toda configuração de variável de ambiente com `pydantic-settings` (`DATABASE_URL`, `SEGREDO_SESSAO`, `PORT` e os parâmetros das premissas); `core/db.py` cria o engine async e a dependência que entrega uma `AsyncSession` por requisição. `main.py` monta a aplicação e a rota `GET /health`, que executa `SELECT 1`. O `Dockerfile` instala com `uv sync --frozen` e sobe o `uvicorn` escutando em `$PORT`. O `docker-compose.yml` sobe o PostgreSQL (imagem na versão principal do Supabase, conferida agora) com um banco da aplicação e um de teste, e a API a partir do `Dockerfile`. O `conftest.py` prepara o cliente `httpx.AsyncClient` com `ASGITransport` e a sessão de teste dentro de uma transação desfeita ao final. Os quatro pacotes de módulo nascem vazios, marcando a fronteira do ADR-001.
 
 **Critério de aceite (testável):**
-- [ ] `docker compose up` sobe PostgreSQL e API, e `GET /health` responde 200 depois de consultar o banco
-- [ ] `uv run pytest`, `uv run ruff check` e `uv run ruff format --check` passam; nenhum segredo está no código ou versionado (`.env` no `.gitignore`, só `.env.example` no repositório)
-- [ ] A API escuta na porta de `$PORT` e não grava nada em disco
+- [x] `docker compose up` sobe PostgreSQL e API, e `GET /health` responde 200 depois de consultar o banco
+- [x] `uv run pytest`, `uv run ruff check` e `uv run ruff format --check` passam; nenhum segredo está no código ou versionado (`.env` no `.gitignore`, só `.env.example` no repositório)
+- [x] A API escuta na porta de `$PORT` e não grava nada em disco
 
 **Testes a escrever:**
 - *Integration:* `test_health_responde_200_consultando_o_banco`, `test_health_responde_503_sem_banco` (engine apontando para banco inexistente)
@@ -2106,3 +2106,4 @@ Nenhuma questão em aberto.
 
 | Tarefa | Status | Concluída em | Commit | Observação |
 |--------|--------|--------------|--------|------------|
+| T-01   | Concluído | 2026-09-29 | — | PostgreSQL 17 (versão dos projetos novos do Supabase). `.gitignore` já cobria `.env` e `.venv`, sem mudança. `api/.python-version` criado pelo uv e usado pelo Dockerfile. Review: Aprovado com ressalvas (REVIEW-T-01-2026-09-29); as sugestões R-01, R-02 e R-03 (REVIEW-T-01-2026-09-29) foram aplicadas na mesma tarefa: timeout de banco no `/health` (`BANCO_TIMEOUT_SEGUNDOS`), `tests/apoio.py` e imagem `python:3.12.14-slim-trixie` |

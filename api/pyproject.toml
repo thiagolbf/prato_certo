@@ -1,0 +1,38 @@
+[project]
+name = "pfmarmitas-api"
+version = "0.1.0"
+description = "API do Controle de PF e Marmitas — monolito modular em FastAPI (ADR-001)"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.20.0",
+    "asyncpg>=0.31.0",
+    "bcrypt>=5.0.0",
+    "fastapi>=0.142.1",
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.15.0",
+    "sqlalchemy[asyncio]>=2.1.1",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.16.9",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+# Engine e loop compartilhados pela sessão de teste inteira: o engine async
+# fica preso ao loop em que foi criado.
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# ASYNC pega chamada bloqueante dentro de async def (seção 6.2 da proposta).
+select = ["E", "F", "W", "I", "UP", "B", "ASYNC", "SIM"]

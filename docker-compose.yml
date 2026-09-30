@@ -1,0 +1,33 @@
+# Ambiente local (ADR-008): PostgreSQL na versão principal do Supabase (17) e a API
+# construída pelo mesmo Dockerfile usado no Render. Credenciais vêm do .env (RN-47).
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?defina POSTGRES_USER no .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: ${POSTGRES_DB:-pfmarmitas}
+    ports:
+      - "${POSTGRES_PORTA:-5432}:5432"
+    volumes:
+      - dados-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  api:
+    build: ./api
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-pfmarmitas}
+      SEGREDO_SESSAO: ${SEGREDO_SESSAO:?defina SEGREDO_SESSAO no .env}
+      PORT: 8000
+    ports:
+      - "${API_PORTA:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  dados-postgres:
