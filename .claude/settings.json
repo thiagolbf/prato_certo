@@ -1,13 +1,20 @@
 {
+  "enabledPlugins": {
+    "leanwork-sdd@leanwork": true,
+    "ui-ux-pro-max@ui-ux-pro-max-skill": true
+  },
   "extraKnownMarketplaces": {
     "leanwork": {
       "source": {
         "source": "github",
         "repo": "leanwork/leanwork-sdd"
       }
+    },
+    "ui-ux-pro-max-skill": {
+      "source": {
+        "source": "github",
+        "repo": "nextlevelbuilder/ui-ux-pro-max-skill"
+      }
     }
-  },
-  "enabledPlugins": {
-    "leanwork-sdd@leanwork": true
   }
 }
