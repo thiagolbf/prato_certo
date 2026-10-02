@@ -1,7 +1,7 @@
 """Ponto de entrada da API: monta a aplicação e as rotas transversais."""
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Annotated
 
@@ -17,13 +17,15 @@ from app.core.db import criar_engine, criar_fabrica_sessoes, obter_sessao
 
 def criar_app(configuracao: Configuracao | None = None) -> FastAPI:
     @asynccontextmanager
-    async def ciclo_de_vida(app: FastAPI) -> AsyncIterator[None]:
+    async def ciclo_de_vida(app: FastAPI) -> AsyncGenerator[None, None]:
         config = configuracao or obter_configuracao()
         engine = criar_engine(config)
         app.state.configuracao = config
         app.state.fabrica_sessoes = criar_fabrica_sessoes(engine)
-        yield
-        await engine.dispose()
+        try:
+            yield
+        finally:
+            await engine.dispose()
 
     app = FastAPI(title="Controle de PF e Marmitas", lifespan=ciclo_de_vida)
 
