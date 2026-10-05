@@ -7,7 +7,7 @@
 **Stack:** API em Python 3.12 + FastAPI + SQLAlchemy 2.0 async (`asyncpg`) + Alembic, gerida com `uv` e `ruff`; Web em Next.js (App Router) + TypeScript com CSS Modules, gerida com `npm`; PostgreSQL na mesma versão principal do Supabase, local em Docker Compose; testes com pytest + pytest-asyncio + httpx (API) e Vitest + Testing Library (Web)
 **Autor:** Thiago Barcelos
 **Data:** 2026-09-29
-**Status:** Rascunho
+**Status:** Aprovado (2026-09-29)
 
 ---
 
@@ -2106,4 +2106,4 @@ Nenhuma questão em aberto.
 
 | Tarefa | Status | Concluída em | Commit | Observação |
 |--------|--------|--------------|--------|------------|
-| T-01   | Concluído | 2026-09-29 | `4c22453` | PostgreSQL 17 (versão dos projetos novos do Supabase). `.gitignore` já cobria `.env` e `.venv`, sem mudança. `api/.python-version` criado pelo uv e usado pelo Dockerfile. Review: Aprovado com ressalvas (REVIEW-T-01-2026-09-29); as sugestões R-01, R-02 e R-03 (REVIEW-T-01-2026-09-29) foram aplicadas na mesma tarefa: timeout de banco no `/health` (`BANCO_TIMEOUT_SEGUNDOS`), `tests/apoio.py` e imagem `python:3.12.14-slim-trixie` |
+| T-01   | Concluído | 2026-09-29 | `4c22453` | PostgreSQL 17 (versão dos projetos novos do Supabase). `.gitignore` já cobria `.env` e `.venv`, sem mudança. `api/.python-version` criado pelo uv e usado pelo Dockerfile. Review: Aprovado com ressalvas (REVIEW-T-01-2026-09-29); as sugestões R-01, R-02 e R-03 (REVIEW-T-01-2026-09-29) foram aplicadas na mesma tarefa: timeout de banco no `/health` (`BANCO_TIMEOUT_SEGUNDOS`), `tests/apoio.py` e imagem `python:3.12.14-slim-trixie`. Ajustes posteriores ao review, em 2026-10-01: `259455f` (lifespan tipado como `AsyncGenerator`, `engine.dispose()` em `finally`) e `f7969c6` (config lê o `.env` da raiz para rodar a API no terminal; teste de leitura e de prioridade da variável de ambiente) |
