@@ -38,9 +38,13 @@ npm test
 npm run lint
 npm run typecheck
 npm run build
-```
 
-<!-- TODO: comando de migrations — o Alembic é configurado na T-03 -->
+# Migrations (em api/) — banco da DATABASE_URL
+uv run alembic upgrade head
+uv run alembic downgrade -1
+uv run alembic revision --autogenerate --rev-id 0002 -m usuario  # gera alembic/versions/0002_usuario.py
+uv run alembic check                 # acusa modelo e migrations fora de sincronia
+```
 
 ## Convenções
 
@@ -64,6 +68,7 @@ npm run build
 - Telas do app autenticado são client components, sem renderização no servidor (ADR-002)
 - Toda configuração por variável de ambiente; API escuta em `$PORT`, expõe `/health` tocando o banco; nada gravado em disco; nenhum recurso proprietário de Vercel/Render/Supabase (ADR-008)
 - Migrations sempre via Alembic, desde a primeira tabela; toda tabela de domínio tem `estabelecimento_id` (ADR-003)
+- Banco: tabelas no singular, snake_case, em português; chave `BIGINT GENERATED ALWAYS AS IDENTITY`; nomes de constraint pela convenção da `Base` (`app/core/modelo_base.py`); revisões numeradas `000N_<slug>.py`. Todo módulo com modelo é importado em `api/alembic/env.py`, senão o autogenerate o ignora. Testes montam o banco pelas migrations, nunca por `create_all`
 - Testes de cenário do PRD carregam o ID do CA no nome: `test_CA_XX_descricao` na API, `describe('CA-XX — …')` na Web
 
 ## Restrições
