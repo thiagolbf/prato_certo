@@ -11,15 +11,36 @@ no horário de pico é o caminho crítico; todo o resto acontece fora dele.
 
 ## Stack
 
-- **Backend:** Python + FastAPI, SQLAlchemy 2.0 async (`asyncpg`, `AsyncSession`), Alembic
-- **Frontend:** Next.js (App Router) + TypeScript
-- **Banco:** PostgreSQL — mesma versão principal do Supabase, localmente em Docker Compose
+- **Backend:** Python 3.12 + FastAPI, SQLAlchemy 2.0 async (`asyncpg`, `AsyncSession`), Alembic — em `api/`, gerido com `uv`, lint e formatação com `ruff`
+- **Frontend:** Next.js 16 (App Router) + React 19 + TypeScript, CSS Modules — em `web/`, Node 24 (`web/.nvmrc`), gerido com `npm`
+- **Banco:** PostgreSQL 17 — mesma versão principal do Supabase, localmente em Docker Compose
 - **Infra:** local em Docker Compose; publicação em Vercel (Web), Render (API, mesmo `Dockerfile`) e Supabase (só PostgreSQL) (ADR-008)
-- **Testes:** <!-- TODO: framework de teste do backend e do frontend — não definido na proposta nem no repositório -->
+- **Testes:** API com pytest + pytest-asyncio + httpx (`ASGITransport`), contra PostgreSQL real e numa transação desfeita por teste; Web com Vitest + Testing Library + jest-dom (jsdom). Sem E2E automatizado
 
 ## Comandos
 
-<!-- TODO: nenhum comando detectado — o repositório ainda não tem scaffolding. Rodar /leanwork-context raiz de novo após o scaffolding. -->
+```bash
+# Infra local (raiz) — lê o .env da raiz (copiar de .env.example)
+docker compose up -d db              # só o PostgreSQL (necessário para os testes e para a API no terminal)
+docker compose up -d --build         # PostgreSQL + API em http://localhost:8000
+
+# API (em api/)
+uv sync
+uv run uvicorn app.main:app --reload # API no terminal, lendo o .env da raiz
+uv run pytest                        # cria o banco de teste (POSTGRES_DB_TESTE) se faltar
+uv run ruff check
+uv run ruff format --check
+
+# Web (em web/) — copiar web/.env.example para web/.env.local (API_URL)
+npm install
+npm run dev                          # http://localhost:3000, /api/* reescrito para API_URL
+npm test
+npm run lint
+npm run typecheck
+npm run build
+```
+
+<!-- TODO: comando de migrations — o Alembic é configurado na T-03 -->
 
 ## Convenções
 
@@ -43,7 +64,7 @@ no horário de pico é o caminho crítico; todo o resto acontece fora dele.
 - Telas do app autenticado são client components, sem renderização no servidor (ADR-002)
 - Toda configuração por variável de ambiente; API escuta em `$PORT`, expõe `/health` tocando o banco; nada gravado em disco; nenhum recurso proprietário de Vercel/Render/Supabase (ADR-008)
 - Migrations sempre via Alembic, desde a primeira tabela; toda tabela de domínio tem `estabelecimento_id` (ADR-003)
-- Testes de cenário do PRD carregam o ID do CA no nome (`CA_XX_descricao`), no formato que o framework exigir
+- Testes de cenário do PRD carregam o ID do CA no nome: `test_CA_XX_descricao` na API, `describe('CA-XX — …')` na Web
 
 ## Restrições
 
@@ -58,6 +79,7 @@ no horário de pico é o caminho crítico; todo o resto acontece fora dele.
 
 - **Arquitetura:** `docs/architecture/proposta-arquitetural.md` — ADRs inline na seção 5
 - **PRDs:** `docs/prds/` — requisitos (RN-XX, CA-XX)
+- **Interface:** `docs/prototype/` — SPEC-UI (telas UI-XX e estados); referência visual `docs/prototype/assets/prototipo-001-visual-v2.html`
 - **Planos:** `docs/plans/` — tarefas de execução (T-XX)
 - **Reviews:** `docs/reviews/` — relatórios de review (R-XX)
 
@@ -67,11 +89,12 @@ Este projeto usa o pipeline SDD Leanwork. Antes de implementar qualquer feature:
 
 1. Verifique se existe um plano em `docs/plans/PLAN-XXX-*.md`
 2. Identifique a próxima tarefa pendente sem bloqueio: `Status: Pendente` e todas as tarefas de `Depende de:` com `Status: Concluído`
-3. Leia a tarefa inteira, incluindo os campos `Implementa:`, `Valida:` e `Decisões base:`
+3. Leia a tarefa inteira, incluindo os campos `Implementa:`, `Valida:`, `Decisões base:` e `Telas:`
 4. Abra os artefatos referenciados:
    - Regras de negócio (`RN-XX`) → o PRD indicado no cabeçalho do plano
    - Critérios de aceite (`CA-XX`) → seção Gherkin do mesmo PRD
    - Decisões arquiteturais (`ADR-XX`) → `docs/architecture/`
+   - Telas (`UI-XX`) → `docs/prototype/SPEC-UI-*.md`
 5. Respeite os pontos de validação humana marcados no plano
 6. Nomeie os testes conforme a convenção `CA_XX_*` para preservar rastreabilidade
 7. Atualize o estado ao terminar: campo `Status:` da tarefa (`Pendente` → `Em andamento` → `Concluído`) e uma linha na tabela de Histórico de execução. O plano é a fonte de verdade do estado — tarefa concluída que continua `Pendente` fica invisível para quem retomar o trabalho
