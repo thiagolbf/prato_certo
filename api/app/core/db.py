@@ -17,6 +17,9 @@ def criar_engine(configuracao: Configuracao) -> AsyncEngine:
     return create_async_engine(
         configuracao.database_url.get_secret_value(),
         pool_pre_ping=True,
+        # Sem isso, todo erro de consulta traz `[parameters: ...]` na mensagem, e o traceback
+        # gravado no log levaria hash de senha e de token (RN-45).
+        hide_parameters=True,
         connect_args={"timeout": configuracao.banco_timeout_segundos},
     )
 
