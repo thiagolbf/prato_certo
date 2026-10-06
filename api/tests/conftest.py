@@ -10,7 +10,12 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from app.core.config import Configuracao
 from app.core.db import criar_engine, obter_sessao
 from app.main import criar_app
-from tests.apoio import ConfiguracaoTeste, configuracao_para, garantir_banco_de_teste
+from tests.apoio import (
+    ConfiguracaoTeste,
+    aplicar_migrations,
+    configuracao_para,
+    recriar_banco_de_teste,
+)
 
 
 @pytest.fixture(scope="session")
@@ -27,8 +32,11 @@ def configuracao(config_teste: ConfiguracaoTeste) -> Configuracao:
 async def engine(
     config_teste: ConfiguracaoTeste, configuracao: Configuracao
 ) -> AsyncIterator[AsyncEngine]:
-    await garantir_banco_de_teste(config_teste)
+    await recriar_banco_de_teste(config_teste)
     engine = criar_engine(configuracao)
+    # O esquema vem das migrations, como em produção — nunca de create_all (T-03).
+    async with engine.begin() as conexao:
+        await conexao.run_sync(aplicar_migrations)
     yield engine
     await engine.dispose()
 

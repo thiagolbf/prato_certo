@@ -36,3 +36,7 @@ target-version = "py312"
 [tool.ruff.lint]
 # ASYNC pega chamada bloqueante dentro de async def (seção 6.2 da proposta).
 select = ["E", "F", "W", "I", "UP", "B", "ASYNC", "SIM"]
+
+[tool.ruff.lint.isort]
+# A pasta api/alembic/ (migrations) faria o ruff tratar o pacote alembic como do projeto.
+known-third-party = ["alembic"]

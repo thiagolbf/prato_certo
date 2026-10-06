@@ -8,8 +8,12 @@ from pathlib import Path
 from urllib.parse import quote
 
 import asyncpg
+from alembic import command
+from alembic.config import Config as AlembicConfig
+from alembic.script import ScriptDirectory
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import Connection
 
 from app.core.config import Configuracao
 
@@ -33,16 +37,51 @@ class ConfiguracaoTeste(BaseSettings):
         return f"{driver}://{usuario}:{senha}@{self.postgres_host}:{self.postgres_porta}/{banco}"
 
 
-async def garantir_banco_de_teste(config: ConfiguracaoTeste) -> None:
+async def recriar_banco_de_teste(config: ConfiguracaoTeste) -> None:
+    """Banco de teste vazio a cada execução: o esquema é sempre o das migrations em disco,
+    mesmo quando uma migration já aplicada foi editada depois."""
+    await remover_banco(config, config.postgres_db_teste)
+    await criar_banco(config, config.postgres_db_teste)
+
+
+async def criar_banco(config: ConfiguracaoTeste, banco: str) -> None:
     conexao = await asyncpg.connect(config.url("postgres", driver="postgresql"))
     try:
-        existe = await conexao.fetchval(
-            "SELECT 1 FROM pg_database WHERE datname = $1", config.postgres_db_teste
-        )
+        existe = await conexao.fetchval("SELECT 1 FROM pg_database WHERE datname = $1", banco)
         if not existe:
-            await conexao.execute(f'CREATE DATABASE "{config.postgres_db_teste}"')
+            await conexao.execute(f'CREATE DATABASE "{banco}"')
     finally:
         await conexao.close()
+
+
+async def remover_banco(config: ConfiguracaoTeste, banco: str) -> None:
+    conexao = await asyncpg.connect(config.url("postgres", driver="postgresql"))
+    try:
+        await conexao.execute(f'DROP DATABASE IF EXISTS "{banco}" WITH (FORCE)')
+    finally:
+        await conexao.close()
+
+
+def aplicar_migrations(conexao: Connection, revisao: str = "head") -> None:
+    """Roda `alembic upgrade` na conexão dada; usar com `AsyncConnection.run_sync`."""
+    command.upgrade(_config_alembic(conexao), revisao)
+
+
+def desfazer_migrations(conexao: Connection, revisao: str = "base") -> None:
+    """Roda `alembic downgrade` na conexão dada; usar com `AsyncConnection.run_sync`."""
+    command.downgrade(_config_alembic(conexao), revisao)
+
+
+def revisao_mais_recente() -> str | None:
+    """Última revisão das migrations em disco (o `head` do Alembic)."""
+    return ScriptDirectory.from_config(_config_alembic()).get_current_head()
+
+
+def _config_alembic(conexao: Connection | None = None) -> AlembicConfig:
+    config = AlembicConfig(str(RAIZ_DO_REPOSITORIO / "api" / "alembic.ini"))
+    if conexao is not None:
+        config.attributes["connection"] = conexao
+    return config
 
 
 def configuracao_para(database_url: str, **parametros: object) -> Configuracao:
