@@ -32,6 +32,12 @@ class Configuracao(BaseSettings):
     bloqueio_minutos: list[int] = Field(default_factory=lambda: [1, 5, 15, 60])
     corpo_maximo_bytes: int = 16 * 1024
     forcar_https: bool = False
+    # De onde aceitar X-Forwarded-Proto/For: IPs ou redes separados por vírgula, ou "*".
+    # No Render o IP do proxy não é fixo e só ele alcança o container: "*" (RN-44).
+    proxies_confiaveis: str = "127.0.0.1"
+    # /docs, /redoc e /openapi.json: só no desenvolvimento local, nunca em produção, onde
+    # exporiam a lista de rotas da API, inclusive as de ADMIN (REVIEW-T-06, R-01).
+    documentacao_api: bool = False
 
 
 @lru_cache

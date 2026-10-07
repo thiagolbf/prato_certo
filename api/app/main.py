@@ -6,9 +6,10 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
+from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,6 +25,7 @@ from app.core.excecoes import (
     SemPermissao,
 )
 from app.core.log import configurar_log
+from app.core.seguranca import CABECALHOS_DE_SEGURANCA, instalar_seguranca
 
 logger = logging.getLogger("app.erros")
 
@@ -44,7 +46,10 @@ def _erro_interno(request: Request, erro: Exception) -> JSONResponse:
         exc_info=erro,
         extra={"metodo": request.method, "caminho": request.url.path},
     )
-    return JSONResponse({"detail": MENSAGEM_ERRO_INTERNO}, status_code=500)
+    # Esta resposta sai pelo ServerErrorMiddleware, por fora dos middlewares de segurança.
+    return JSONResponse(
+        {"detail": MENSAGEM_ERRO_INTERNO}, status_code=500, headers=CABECALHOS_DE_SEGURANCA
+    )
 
 
 async def _tratar_erro_de_dominio(request: Request, erro: ErroDeDominio) -> JSONResponse:
@@ -68,6 +73,33 @@ async def _tratar_erro_inesperado(request: Request, erro: Exception) -> JSONResp
     return _erro_interno(request, erro)
 
 
+def _instalar_documentacao(app: FastAPI) -> None:
+    """`/docs`, `/redoc` e `/openapi.json` só com `DOCUMENTACAO_API` (desenvolvimento local).
+
+    A configuração só existe depois do lifespan, então as rotas existem sempre e, desligadas,
+    respondem o mesmo 404 de uma rota inexistente.
+    """
+
+    def exigir_documentacao(request: Request) -> None:
+        if not request.app.state.configuracao.documentacao_api:
+            raise HTTPException(status_code=404)
+
+    @app.get("/openapi.json", include_in_schema=False)
+    async def especificacao(request: Request) -> JSONResponse:
+        exigir_documentacao(request)
+        return JSONResponse(app.openapi())
+
+    @app.get("/docs", include_in_schema=False)
+    async def swagger(request: Request) -> HTMLResponse:
+        exigir_documentacao(request)
+        return get_swagger_ui_html(openapi_url="/openapi.json", title=f"{app.title} — docs")
+
+    @app.get("/redoc", include_in_schema=False)
+    async def redoc(request: Request) -> HTMLResponse:
+        exigir_documentacao(request)
+        return get_redoc_html(openapi_url="/openapi.json", title=f"{app.title} — ReDoc")
+
+
 def criar_app(configuracao: Configuracao | None = None) -> FastAPI:
     @asynccontextmanager
     async def ciclo_de_vida(app: FastAPI) -> AsyncGenerator[None, None]:
@@ -81,12 +113,20 @@ def criar_app(configuracao: Configuracao | None = None) -> FastAPI:
             await engine.dispose()
 
     configurar_log()
-    app = FastAPI(title="Controle de PF e Marmitas", lifespan=ciclo_de_vida)
+    app = FastAPI(
+        title="Controle de PF e Marmitas",
+        lifespan=ciclo_de_vida,
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+    )
     app.add_exception_handler(ErroDeDominio, _tratar_erro_de_dominio)
     app.add_exception_handler(RequestValidationError, _tratar_erro_de_validacao)
     # Exception vai para o ServerErrorMiddleware do Starlette, que devolve esta resposta e
     # depois relança a exceção para o servidor (o uvicorn também a registra).
     app.add_exception_handler(Exception, _tratar_erro_inesperado)
+    instalar_seguranca(app)
+    _instalar_documentacao(app)
 
     @app.get("/health")
     async def health(
