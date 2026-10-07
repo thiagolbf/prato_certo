@@ -1,7 +1,7 @@
-"""Middlewares de segurança: cabeçalhos em toda resposta e HTTPS obrigatório (RN-43, RN-44).
+"""Middlewares de segurança: cabeçalhos, HTTPS obrigatório e limite de corpo (RN-43, RN-44, RN-46).
 
 Ordem, de fora para dentro, montada por `instalar_seguranca`:
-cabeçalhos → leitura do proxy → redirecionamento para HTTPS → aplicação.
+cabeçalhos → leitura do proxy → redirecionamento para HTTPS → limite de corpo → aplicação.
 A resposta 500 nasce no `ServerErrorMiddleware` do Starlette, por fora de todos eles; por
 isso o handler de erro interno também aplica `CABECALHOS_DE_SEGURANCA` (ver `app/main.py`).
 
@@ -10,8 +10,8 @@ os middlewares a leem na requisição, nunca na montagem.
 """
 
 from fastapi import FastAPI
-from starlette.datastructures import URL, MutableHeaders
-from starlette.responses import RedirectResponse
+from starlette.datastructures import URL, Headers, MutableHeaders
+from starlette.responses import JSONResponse, RedirectResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
@@ -110,8 +110,58 @@ class RedirecionaParaHttps:
         await resposta(scope, receive, send)
 
 
+class LimiteDeCorpo:
+    """Recusa com 413, antes de a rota rodar, corpo acima de `CORPO_MAXIMO_BYTES` (RN-46).
+
+    Com `Content-Length` acima do limite, recusa sem ler nada. Sem ele (corpo em fluxo), lê
+    até o limite e para no primeiro byte a mais. O corpo aceito, de no máximo o limite, é
+    entregue à aplicação já lido: interromper a leitura dentro da rota faria o FastAPI
+    responder 400 em vez de 413.
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        limite = _configuracao(scope).corpo_maximo_bytes
+        declarado = Headers(scope=scope).get("content-length", "")
+        # isdecimal só em ASCII: "²" passa no isdigit(), mas int("²") falha.
+        if declarado.isascii() and declarado.isdecimal() and int(declarado) > limite:
+            await _recusar_corpo(scope, receive, send)
+            return
+
+        mensagens: list[Message] = []
+        recebidos = 0
+        while True:
+            mensagem = await receive()
+            if mensagem["type"] == "http.disconnect":
+                return
+            recebidos += len(mensagem.get("body", b""))
+            if recebidos > limite:
+                await _recusar_corpo(scope, receive, send)
+                return
+            mensagens.append(mensagem)
+            if not mensagem.get("more_body", False):
+                break
+
+        async def repetir_corpo() -> Message:
+            # Depois do corpo, o `receive` original segue avisando a desconexão do cliente.
+            return mensagens.pop(0) if mensagens else await receive()
+
+        await self.app(scope, repetir_corpo, send)
+
+
+async def _recusar_corpo(scope: Scope, receive: Receive, send: Send) -> None:
+    resposta = JSONResponse({"detail": "Corpo da requisição acima do limite."}, status_code=413)
+    await resposta(scope, receive, send)
+
+
 def instalar_seguranca(app: FastAPI) -> None:
     # `add_middleware` põe o último adicionado por fora.
+    app.add_middleware(LimiteDeCorpo)
     app.add_middleware(RedirecionaParaHttps)
     app.add_middleware(LeituraDoProxy)
     app.add_middleware(CabecalhosDeSeguranca)
