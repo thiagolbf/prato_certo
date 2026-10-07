@@ -9,7 +9,13 @@ from pathlib import Path
 import pytest
 
 from app.core.relogio import RelogioDoServidor, obter_relogio
-from app.core.tempo import FUSO, NOME_FUSO, DiaOperacional, MesOperacional
+from app.core.tempo import (
+    FUSO,
+    NOME_FUSO,
+    DiaOperacional,
+    MesOperacional,
+    exigir_instante_com_fuso,
+)
 
 
 class RelogioFixo:
@@ -81,6 +87,14 @@ def test_dia_operacional_recusa_instante_no_construtor() -> None:
 def test_dia_operacional_recusa_valor_que_nao_e_data() -> None:
     with pytest.raises(TypeError, match="date"):
         DiaOperacional("2026-09-22")  # type: ignore[arg-type]
+
+
+def test_exigir_instante_com_fuso_aceita_utc_e_recusa_sem_fuso() -> None:
+    """Contrato único do ADR-005, usado também pelas entidades que recebem `agora`."""
+    exigir_instante_com_fuso(datetime(2026, 9, 22, 14, 0, tzinfo=UTC))
+
+    with pytest.raises(ValueError, match="fuso"):
+        exigir_instante_com_fuso(datetime(2026, 9, 22, 14, 0))
 
 
 def test_instante_sem_fuso_e_recusado() -> None:

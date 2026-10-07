@@ -17,9 +17,17 @@ NOME_FUSO = "America/Sao_Paulo"
 FUSO = ZoneInfo(NOME_FUSO)
 
 
-def _data_local(instante: datetime) -> date:
+def exigir_instante_com_fuso(instante: datetime) -> None:
+    """Recusa instante sem fuso: todo instante do sistema é UTC (ADR-005).
+
+    Usada aqui e pelas entidades que recebem `agora` (Usuario, Venda, sessão).
+    """
     if instante.tzinfo is None or instante.utcoffset() is None:
         raise ValueError("Instante sem fuso: esperado um datetime em UTC (ADR-005)")
+
+
+def _data_local(instante: datetime) -> date:
+    exigir_instante_com_fuso(instante)
     return instante.astimezone(FUSO).date()
 
 

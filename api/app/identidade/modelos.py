@@ -1,0 +1,136 @@
+"""Entidades do módulo identidade: Usuario e Perfil (RN-34, RN-37, RN-60, ADR-009).
+
+A regra do bloqueio por conta vive na entidade; o service só carrega, chama e persiste.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from enum import StrEnum
+
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Identity,
+    Index,
+    Integer,
+    Text,
+    func,
+)
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.core.modelo_base import Base
+from app.core.tempo import exigir_instante_com_fuso
+
+
+class Perfil(StrEnum):
+    ADMIN = "ADMIN"
+    OPERADOR = "OPERADOR"
+
+
+@dataclass(frozen=True)
+class PoliticaDeBloqueio:
+    """Parâmetros do bloqueio por conta (RN-37), vindos da configuração.
+
+    A entidade recebe a política; não lê o ambiente (PLAN-001, T-08).
+    """
+
+    tentativas: int
+    minutos: tuple[int, ...]
+
+    def __post_init__(self) -> None:
+        if self.tentativas < 1:
+            raise ValueError("tentativas precisa ser ao menos 1")
+        if not self.minutos or any(m <= 0 for m in self.minutos):
+            raise ValueError("a sequência de minutos precisa de valores positivos")
+
+    def duracao_do_bloqueio(self, numero: int) -> timedelta:
+        """Duração do `numero`-ésimo bloqueio (1, 2, ...); depois do último, fica no teto."""
+        return timedelta(minutes=self.minutos[min(numero, len(self.minutos)) - 1])
+
+
+class Usuario(Base):
+    __tablename__ = "usuario"
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    estabelecimento_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("estabelecimento.id"))
+    nome: Mapped[str] = mapped_column(Text)
+    login: Mapped[str] = mapped_column(Text)
+    senha_hash: Mapped[str] = mapped_column(Text)
+    perfil: Mapped[Perfil] = mapped_column(
+        Enum(Perfil, name="perfil", native_enum=False, create_constraint=True, length=8)
+    )
+    ativo: Mapped[bool] = mapped_column(Boolean)
+    # Estado do bloqueio por conta: colunas da conta, não memória de processo (RN-37).
+    falhas_consecutivas: Mapped[int] = mapped_column(Integer)
+    bloqueios: Mapped[int] = mapped_column(Integer)
+    bloqueado_ate: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    @classmethod
+    def criar(
+        cls,
+        *,
+        estabelecimento_id: int,
+        nome: str,
+        login: str,
+        senha_hash: str,
+        perfil: Perfil,
+    ) -> Usuario:
+        """Conta nova: ativa, sem falhas e sem bloqueio. O login é guardado como digitado."""
+        return cls(
+            estabelecimento_id=estabelecimento_id,
+            nome=nome,
+            login=login,
+            senha_hash=senha_hash,
+            perfil=perfil,
+            ativo=True,
+            falhas_consecutivas=0,
+            bloqueios=0,
+            bloqueado_ate=None,
+        )
+
+    def registrar_falha_login(self, agora: datetime, politica: PoliticaDeBloqueio) -> None:
+        """Conta a falha; ao atingir o limite, bloqueia pelo próximo tempo da sequência (RN-37).
+
+        O contador recomeça a cada bloqueio: o seguinte exige outras `tentativas` falhas.
+        Com a conta bloqueada, a tentativa nem chega a conferir senha e não conta: senão,
+        quem digitasse errado numa conta alheia a levaria ao teto em segundos.
+        """
+        if self.esta_bloqueado(agora):
+            return
+        self.falhas_consecutivas += 1
+        if self.falhas_consecutivas >= politica.tentativas:
+            self.bloqueios += 1
+            self.bloqueado_ate = agora + politica.duracao_do_bloqueio(self.bloqueios)
+            self.falhas_consecutivas = 0
+
+    def registrar_login_ok(self) -> None:
+        """Zera o contador de falhas (RN-37). A progressão dos bloqueios não recomeça."""
+        self.falhas_consecutivas = 0
+
+    def esta_bloqueado(self, agora: datetime) -> bool:
+        exigir_instante_com_fuso(agora)
+        return self.bloqueado_ate is not None and agora < self.bloqueado_ate
+
+    def desativar(self) -> None:
+        """Nunca exclusão: a conta fica, com a autoria das vendas que registrou (RN-34)."""
+        self.ativo = False
+
+    def reativar(self) -> None:
+        """Volta a autenticar com a mesma conta (RN-34)."""
+        self.ativo = True
+
+
+# Login único no estabelecimento, sem diferenciar maiúsculas (RN-60). Índice sobre expressão:
+# fica depois da classe porque precisa referenciar a coluna, não o nome dela.
+Index(
+    "uq_usuario_estabelecimento_id_login",
+    Usuario.estabelecimento_id,
+    func.lower(Usuario.login),
+    unique=True,
+)
