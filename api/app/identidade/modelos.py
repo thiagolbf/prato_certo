@@ -1,4 +1,4 @@
-"""Entidades do módulo identidade: Usuario e Perfil (RN-34, RN-37, RN-60, ADR-009).
+"""Entidades do módulo identidade: Usuario, Perfil e Sessao (RN-34, RN-36, RN-37, RN-54, ADR-009).
 
 A regra do bloqueio por conta vive na entidade; o service só carrega, chama e persiste.
 """
@@ -133,6 +133,71 @@ class Usuario(Base):
     def reativar(self) -> None:
         """Volta a autenticar com a mesma conta (RN-34)."""
         self.ativo = True
+
+
+@dataclass(frozen=True)
+class PoliticaDeSessao:
+    """Inatividade máxima da sessão por perfil (RN-36, ADR-006), vinda da configuração.
+
+    A do ADMIN é mais curta: é o perfil que altera preço e cadastro.
+    """
+
+    inatividade_admin: timedelta
+    inatividade_operador: timedelta
+
+    def __post_init__(self) -> None:
+        if self.inatividade_admin <= timedelta(0) or self.inatividade_operador <= timedelta(0):
+            raise ValueError("a inatividade da sessão precisa ser positiva")
+
+    def inatividade_para(self, perfil: Perfil) -> timedelta:
+        return self.inatividade_admin if perfil is Perfil.ADMIN else self.inatividade_operador
+
+
+class Sessao(Base):
+    """Sessão aberta por login. O banco guarda só o hash do token, que vai no cookie (RN-54)."""
+
+    __tablename__ = "sessao"
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    estabelecimento_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("estabelecimento.id"))
+    usuario_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("usuario.id"), index=True)
+    token_hash: Mapped[str] = mapped_column(Text, unique=True)
+    criada_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # Renovado a cada uso: a expiração é por inatividade, não por tempo desde o login (RN-36).
+    ultimo_uso_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    encerrada_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    @classmethod
+    def abrir(
+        cls, *, estabelecimento_id: int, usuario_id: int, token_hash: str, agora: datetime
+    ) -> Sessao:
+        exigir_instante_com_fuso(agora)
+        return cls(
+            estabelecimento_id=estabelecimento_id,
+            usuario_id=usuario_id,
+            token_hash=token_hash,
+            criada_em=agora,
+            ultimo_uso_em=agora,
+            encerrada_em=None,
+        )
+
+    def aceita(self, agora: datetime, usuario: Usuario, politica: PoliticaDeSessao) -> bool:
+        """Recusa sessão encerrada, de conta desativada ou parada além do limite do perfil."""
+        exigir_instante_com_fuso(agora)
+        if self.encerrada_em is not None or not usuario.ativo:
+            return False
+        return agora < self.ultimo_uso_em + politica.inatividade_para(usuario.perfil)
+
+    def renovar(self, agora: datetime) -> None:
+        """Registra um uso: a sessão volta a contar o limite de inatividade (RN-36)."""
+        exigir_instante_com_fuso(agora)
+        self.ultimo_uso_em = agora
+
+    def encerrar(self, agora: datetime) -> None:
+        """Encerra a sessão; encerrar de novo não muda o instante original (RN-54)."""
+        exigir_instante_com_fuso(agora)
+        if self.encerrada_em is None:
+            self.encerrada_em = agora
 
 
 # Login único no estabelecimento, sem diferenciar maiúsculas (RN-60). Índice sobre expressão:

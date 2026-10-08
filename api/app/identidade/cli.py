@@ -18,16 +18,19 @@ from collections.abc import Awaitable, Callable, Sequence
 from typing import Annotated
 
 from pydantic import Field, ValidationError
-from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import obter_configuracao
 from app.core.db import criar_engine, criar_fabrica_sessoes
 from app.core.estabelecimento import estabelecimento_atual
 from app.core.excecoes import Conflito, ErroDeDominio, NaoEncontrado
+from app.core.relogio import Relogio, RelogioDoServidor
 from app.core.schemas import ModeloEstrito
+from app.identidade.dependencias import politica_da_configuracao
 from app.identidade.modelos import Perfil, Usuario
+from app.identidade.repositorio import RepositorioSessoes, RepositorioUsuarios
 from app.identidade.senha import SenhaNova, gerar_hash
+from app.identidade.servico_sessao import ServicoSessao
 
 # Limites de texto da SPEC-UI-001 (lacuna 16), os mesmos do cadastro de Operador.
 Nome = Annotated[str, Field(min_length=1, max_length=60)]
@@ -51,7 +54,8 @@ class SenhasDiferentes(Exception):
 
 async def criar_admin(sessao: AsyncSession, dados: NovoAdmin) -> Usuario:
     estabelecimento_id = await estabelecimento_atual(sessao)
-    if await _buscar_por_login(sessao, estabelecimento_id, dados.login) is not None:
+    usuarios = RepositorioUsuarios(sessao, estabelecimento_id)
+    if await usuarios.buscar_por_login(dados.login) is not None:
         raise Conflito("Já existe um usuário com esse login.")
     admin = Usuario.criar(
         estabelecimento_id=estabelecimento_id,
@@ -60,32 +64,34 @@ async def criar_admin(sessao: AsyncSession, dados: NovoAdmin) -> Usuario:
         senha_hash=await gerar_hash(dados.senha),
         perfil=Perfil.ADMIN,
     )
-    sessao.add(admin)
+    usuarios.adicionar(admin)
     await sessao.flush()
     return admin
 
 
-async def redefinir_senha_admin(sessao: AsyncSession, dados: NovaSenhaAdmin) -> Usuario:
-    """Só ADMIN: a senha do Operador é redefinida pelo ADMIN, na interface (RN-52)."""
+async def redefinir_senha_admin(
+    sessao: AsyncSession, dados: NovaSenhaAdmin, relogio: Relogio | None = None
+) -> Usuario:
+    """Só ADMIN: a senha do Operador é redefinida pelo ADMIN, na interface (RN-52).
+
+    Encerra todas as sessões abertas do ADMIN: quem tinha a senha antiga perde o acesso (RN-53).
+    """
+    relogio = relogio or RelogioDoServidor()
     estabelecimento_id = await estabelecimento_atual(sessao)
-    admin = await _buscar_por_login(sessao, estabelecimento_id, dados.login)
+    usuarios = RepositorioUsuarios(sessao, estabelecimento_id)
+    admin = await usuarios.buscar_por_login(dados.login)
     if admin is None or admin.perfil is not Perfil.ADMIN:
         raise NaoEncontrado("Nenhum ADMIN com esse login.")
     admin.redefinir_senha(await gerar_hash(dados.senha))
+    servico = ServicoSessao(
+        RepositorioSessoes(sessao, estabelecimento_id),
+        usuarios,
+        politica_da_configuracao(obter_configuracao()),
+        relogio,
+    )
+    await servico.encerrar_todas_do_usuario(admin.id)
     await sessao.flush()
     return admin
-
-
-async def _buscar_por_login(
-    sessao: AsyncSession, estabelecimento_id: int, login: str
-) -> Usuario | None:
-    # Sem diferenciar maiúsculas, como o índice único (RN-60).
-    return await sessao.scalar(
-        select(Usuario).where(
-            Usuario.estabelecimento_id == estabelecimento_id,
-            func.lower(Usuario.login) == func.lower(login),
-        )
-    )
 
 
 def interpretar(argv: Sequence[str] | None = None) -> argparse.Namespace:
