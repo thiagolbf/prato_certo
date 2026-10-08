@@ -7,7 +7,7 @@
 > **Fidelidade:** Alta fidelidade visual sobre a estrutura do wireframe. A passada de UI/UX (skill `ui-ux-pro-max`, 2026-09-29) trocou só o tratamento visual — telas, estados e fluxos são os mesmos do wireframe (ver seção 10)
 > **Autor:** Thiago Barcelos
 > **Data:** 2026-09-28
-> **Status:** Aprovada (2026-09-29) — revisado em 2026-09-28: RN-54 (Sair), RN-55 (fechamento do mês) e todas as lacunas da seção 8 decididas (RN-56 a RN-61 no PRD); revisado em 2026-09-29: tokens de design e comportamento no computador definidos na passada de UI/UX (pendências 17 e 18)
+> **Status:** Aprovada (2026-09-29) — revisado em 2026-09-28: RN-54 (Sair), RN-55 (fechamento do mês) e todas as lacunas da seção 8 decididas (RN-56 a RN-61 no PRD); revisado em 2026-09-29: tokens de design e comportamento no computador definidos na passada de UI/UX (pendências 17 e 18); revisado em 2026-10-07 (T-09): senha com no máximo 72 bytes (RN-60)
 
 ---
 
@@ -388,7 +388,7 @@ Elementos transversais, sem ID de tela (ver seção 5): `AppShell` (topo com usu
 |---|---|
 | RN-34 | Novo operador (nome, usuário, senha inicial); Desativar / Reativar; nunca excluir. O formulário **não tem campo de perfil**: a interface só cadastra Operador (lacuna 12) |
 | RN-52 | "Redefinir senha": a senha anterior deixa de funcionar e o bloqueio da conta é liberado na hora. Conta bloqueada aparece com a marca "Bloqueado até HH:MM" (lacuna 11) |
-| RN-60 | Usuário único, sem diferenciar maiúsculas (até 30 caracteres, sem espaços); senha com no mínimo 8 caracteres, indicado no próprio rótulo do campo |
+| RN-60 | Usuário único, sem diferenciar maiúsculas (até 30 caracteres, sem espaços); senha com no mínimo 8 caracteres, indicado no próprio rótulo do campo, e no máximo 72 bytes (`maxlength` 72; senha acentuada perto do limite é recusada pela API com mensagem própria) |
 | — | A linha do próprio ADMIN aparece como "(você)", sem ações |
 
 | Estado | ID | Quando ocorre | O que o usuário vê | Origem |
@@ -685,7 +685,7 @@ Todas as lacunas levantadas nesta fase foram decididas: de 1 a 16 **em 2026-09-2
 - **Falha nunca é silenciosa**: aviso de falha de envio é persistente e usa `role="alert"` (CA-04); fechar a aba com venda pendente dispara o aviso do navegador (RN-56)
 - **Sem instante do dispositivo**: o cliente não envia data nem hora de venda (RN-17); o dia operacional de uma pendência vem do servidor
 - **Pendência só na sessão da aba** (`sessionStorage` ou equivalente), com chave de idempotência, usuário e dia operacional — nunca armazenamento que sobreviva ao fechamento da aba (RN-56)
-- **Limites de texto** (RN-46, lacuna 16): nomes até 60 caracteres, motivo até 200, usuário até 30 sem espaços; senha com mínimo de 8 (RN-60). O `maxlength` do campo espelha o schema, que é quem valida
+- **Limites de texto** (RN-46, lacuna 16): nomes até 60 caracteres, motivo até 200, usuário até 30 sem espaços; senha com mínimo de 8 e máximo de 72 bytes (RN-60, revisada em 2026-10-07). O `maxlength` do campo espelha o schema, que é quem valida
 - **Computador**: todas as telas numa coluna central de até 480 px, com o fundo `--desk` ao redor; nenhuma tela ganha layout largo próprio (lacuna 19)
 - **Cor via tokens**: nenhum componente usa cor literal; tudo sai das variáveis da seção 2
 

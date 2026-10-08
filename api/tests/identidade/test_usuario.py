@@ -126,6 +126,21 @@ def test_login_ok_nao_reinicia_a_progressao_dos_bloqueios() -> None:
     assert usuario.bloqueado_ate == depois + timedelta(minutes=5)
 
 
+def test_redefinir_senha_troca_o_hash_e_encerra_o_bloqueio() -> None:
+    """Quem teve a senha redefinida volta a entrar sem esperar (RN-52, RN-53)."""
+    usuario = _usuario()
+    _errar(usuario, 5)
+    _errar(usuario, 2, AGORA + timedelta(minutes=1))
+    _errar(usuario, 3, AGORA + timedelta(minutes=1))
+
+    usuario.redefinir_senha("$2b$12$hash-novo")
+
+    assert usuario.senha_hash == "$2b$12$hash-novo"
+    assert usuario.falhas_consecutivas == 0
+    assert usuario.bloqueado_ate is None
+    assert not usuario.esta_bloqueado(AGORA + timedelta(minutes=1))
+
+
 def test_esta_bloqueado_exige_instante_com_fuso() -> None:
     usuario = _usuario()
 

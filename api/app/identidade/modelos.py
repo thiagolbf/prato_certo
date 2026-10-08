@@ -113,6 +113,15 @@ class Usuario(Base):
         """Zera o contador de falhas (RN-37). A progressão dos bloqueios não recomeça."""
         self.falhas_consecutivas = 0
 
+    def redefinir_senha(self, senha_hash: str) -> None:
+        """Troca a senha e libera a conta, para entrar sem esperar o bloqueio (RN-52, RN-53).
+
+        Como no login com sucesso, a progressão dos bloqueios não recomeça.
+        """
+        self.senha_hash = senha_hash
+        self.falhas_consecutivas = 0
+        self.bloqueado_ate = None
+
     def esta_bloqueado(self, agora: datetime) -> bool:
         exigir_instante_com_fuso(agora)
         return self.bloqueado_ate is not None and agora < self.bloqueado_ate

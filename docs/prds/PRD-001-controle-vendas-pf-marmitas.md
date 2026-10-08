@@ -4,7 +4,7 @@
 **Tipo:** Epic
 **Autor:** Thiago Barcelos
 **Data:** 2026-09-22
-**Status:** Aprovado (2026-09-25) · revisado em 2026-09-28 na fase de protótipo — RN-54 e CA-56 (sair da sessão), RN-55 e CA-57 (fechamento do mês); RN-56 a RN-61 e CA-58 a CA-67 (lacunas da SPEC-UI-001)
+**Status:** Aprovado (2026-09-25) · revisado em 2026-09-28 na fase de protótipo — RN-54 e CA-56 (sair da sessão), RN-55 e CA-57 (fechamento do mês); RN-56 a RN-61 e CA-58 a CA-67 (lacunas da SPEC-UI-001); revisado em 2026-10-07 na execução da T-09 — RN-53 (recuperação técnica libera a conta) e RN-60 (senha com no máximo 72 bytes)
 **Arquitetura base:** [`docs/architecture/proposta-arquitetural.md`](../architecture/proposta-arquitetural.md) — ADR-001 a ADR-009
 
 ---
@@ -269,9 +269,9 @@ Como não há limite de tempo para cancelar, o fechamento de uma data passada po
 - **RN-40:** O Operador consulta a lista das vendas que **ele próprio** registrou no dia operacional corrente, com item, formato e quantidade — e **sem preço, sem faturamento**. É o que lhe permite apontar ao ADMIN exatamente qual lançamento corrigir, já que não pode cancelar (RN-21). Vendas dele que o ADMIN cancelou **continuam na lista, marcadas como canceladas**, para que ele veja que a correção foi feita. A restrição é da lista e do faturamento: o **preço unitário** do item pode aparecer na tela de registro, onde o Operador o usa para cobrar o cliente.
 - **RN-41:** Todo dado de domínio pertence a um estabelecimento, e **toda consulta filtra por ele** *(ADR-003)*.
 - **RN-52:** O ADMIN **redefine a senha** de um operador. A redefinição zera o contador de falhas e encerra o bloqueio temporário da conta (RN-37), para que o operador volte a registrar sem esperar. Não há recuperação de senha por e-mail ou por outro canal: o sistema não depende de serviço externo (seção 11.1). A lista de usuários indica ao ADMIN a conta de operador **temporariamente bloqueada e até quando**, para ele decidir entre aguardar e redefinir. A indicação é exclusiva da área do ADMIN e não contradiz a RN-38, que trata da tela de login.
-- **RN-53:** O ADMIN **troca a própria senha**, informando a senha atual. Se o próprio ADMIN perder o acesso, a recuperação é uma operação técnica fora da interface, definida no plano de execução.
+- **RN-53:** O ADMIN **troca a própria senha**, informando a senha atual. Se o próprio ADMIN perder o acesso, a recuperação é uma operação técnica fora da interface, definida no plano de execução. Como a redefinição da RN-52, ela zera o contador de falhas e encerra o bloqueio temporário da conta (RN-37), para o ADMIN entrar logo em seguida.
 - **RN-54:** Qualquer usuário autenticado **encerra a própria sessão** pela ação Sair. O encerramento é uma operação que altera estado, feita por `POST` (RN-42): a sessão é invalidada no servidor e o cookie é removido, de modo que o cookie anterior deixa de autenticar. Existe porque o mesmo celular do balcão é usado por mais de uma pessoa ao longo do dia — inclusive pelo ADMIN (RN-36).
-- **RN-60:** O **nome de usuário** (login) é único no estabelecimento, sem diferenciar maiúsculas de minúsculas. A **senha tem no mínimo 8 caracteres**, sem exigência de composição; o mínimo vale no cadastro, na redefinição (RN-52) e na troca (RN-53).
+- **RN-60:** O **nome de usuário** (login) é único no estabelecimento, sem diferenciar maiúsculas de minúsculas. A **senha tem no mínimo 8 caracteres e no máximo 72 bytes** (72 caracteres sem acento; o limite é do bcrypt, RN-35), sem exigência de composição; os limites valem no cadastro, na redefinição (RN-52) e na troca (RN-53).
 
 ### Segurança transversal
 
