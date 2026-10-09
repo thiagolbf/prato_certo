@@ -530,7 +530,7 @@ Modelo `sessao` com `estabelecimento_id`, `usuario_id`, `token_hash`, `criada_em
 
 #### T-11 — Expor login, logout e sessão atual com cookie httpOnly
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-05, T-07, T-09, T-10
 - **Implementa:** RN-38, RN-45, RN-54
@@ -540,14 +540,16 @@ Modelo `sessao` com `estabelecimento_id`, `usuario_id`, `token_hash`, `criada_em
   - `api/app/identidade/servico_autenticacao.py`, `api/app/identidade/schemas.py`, `api/app/identidade/router.py` *(novos)*
   - `api/app/main.py` *(editado — inclui o router)*
   - `api/tests/identidade/test_autenticacao.py` *(novo)*
+  - `api/app/core/db.py` *(editado — `obter_sessao` faz commit ao fim da requisição quando não houve exceção; decisão do usuário em 2026-10-08 sobre R-01 do REVIEW-T-10-2026-10-08)*
+  - `api/tests/core/test_db.py` *(novo — prova o commit e o rollback da dependência)*
 
 **Descrição:**
 `POST /api/auth/login` confere login e senha e, se válidos, cria a sessão e emite o cookie `httpOnly`, `Secure`, `SameSite=Lax`, `Path=/`. Qualquer falha — usuário inexistente, senha errada, conta desativada ou bloqueada — devolve 401 com a **mesma** mensagem (RN-38). Para usuário inexistente, o hash é conferido do mesmo jeito contra um hash fixo, para o tempo de resposta não revelar a conta. `POST /api/auth/logout` encerra a sessão no servidor e remove o cookie (RN-54). `GET /api/auth/me` devolve nome, perfil e o dia operacional corrente.
 
 **Critério de aceite (testável):**
-- [ ] Usuário inexistente, senha errada e usuário desativado recebem a mesma mensagem e o mesmo status (CA-35); o cookie emitido é `httpOnly`, `Secure` e `SameSite=Lax` (CA-42)
-- [ ] Depois de `POST /api/auth/logout`, uma requisição com o cookie antigo recebe 401 (CA-56)
-- [ ] O log de um login com a senha "segredo123" não contém a senha, o hash nem o valor do cookie (CA-43)
+- [x] Usuário inexistente, senha errada e usuário desativado recebem a mesma mensagem e o mesmo status (CA-35); o cookie emitido é `httpOnly`, `Secure` e `SameSite=Lax` (CA-42)
+- [x] Depois de `POST /api/auth/logout`, uma requisição com o cookie antigo recebe 401 (CA-56)
+- [x] O log de um login com a senha "segredo123" não contém a senha, o hash nem o valor do cookie (CA-43)
 
 **Testes a escrever:**
 - *Integration:* `test_CA_35_erro_de_login_nao_revela_a_conta`, `test_CA_42_cookie_de_sessao_e_secure`, `test_CA_43_log_de_login_nao_contem_a_senha`, `test_CA_56_sair_encerra_a_sessao_no_servidor`, `test_logout_por_get_nao_existe`
@@ -559,7 +561,7 @@ Modelo `sessao` com `estabelecimento_id`, `usuario_id`, `token_hash`, `criada_em
 
 #### T-12 — Aplicar o bloqueio por conta no login
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-11
 - **Implementa:** RN-37 (camada 1)
@@ -568,14 +570,16 @@ Modelo `sessao` com `estabelecimento_id`, `usuario_id`, `token_hash`, `criada_em
 - **Camadas/arquivos afetados:**
   - `api/app/identidade/servico_autenticacao.py` *(editado)*
   - `api/tests/identidade/test_bloqueio.py` *(novo)*
+  - `api/app/identidade/repositorio.py` *(editado — `buscar_por_login_para_atualizar`, com `FOR UPDATE`; necessário para o risco de falhas concorrentes abaixo)*
+  - `api/app/identidade/router.py` *(editado — injeta a `PoliticaDeBloqueio` vinda da configuração e o relógio no service, e responde 401 sem exceção quando recusa, para a falha registrada não ser desfeita pelo rollback; decisão tomada na execução)*
 
 **Descrição:**
 O serviço de autenticação carrega o usuário, pergunta `esta_bloqueado(agora)` antes de conferir a senha, e chama `registrar_falha_login` ou `registrar_login_ok` conforme o resultado, persistindo na mesma transação. Conta bloqueada recebe a mesma resposta genérica da RN-38. O bloqueio só atinge a conta que errou.
 
 **Critério de aceite (testável):**
-- [ ] Depois de 5 falhas em "joao", a sexta tentativa encontra a conta bloqueada, e "maria", da mesma origem, autentica normalmente (CA-24); o bloqueio seguinte dura mais (CA-25)
-- [ ] Um bloqueio gravado continua valendo depois de recriar a aplicação e o engine, porque está no banco (CA-38)
-- [ ] Um login correto depois de 3 falhas zera o contador (CA-39)
+- [x] Depois de 5 falhas em "joao", a sexta tentativa encontra a conta bloqueada, e "maria", da mesma origem, autentica normalmente (CA-24); o bloqueio seguinte dura mais (CA-25)
+- [x] Um bloqueio gravado continua valendo depois de recriar a aplicação e o engine, porque está no banco (CA-38)
+- [x] Um login correto depois de 3 falhas zera o contador (CA-39)
 
 **Testes a escrever:**
 - *Integration (relógio injetado):* `test_CA_24_bloqueio_atinge_so_a_conta_que_errou`, `test_CA_25_bloqueio_e_progressivo`, `test_CA_38_bloqueio_sobrevive_ao_reinicio`, `test_CA_39_login_ok_zera_o_contador`
@@ -587,7 +591,7 @@ O serviço de autenticação carrega o usuário, pergunta `esta_bloqueado(agora)
 
 #### T-13 — Expor o cadastro, a desativação e a reativação de operadores
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-11
 - **Implementa:** RN-34, RN-52 (bloqueio visível ao ADMIN), RN-60
@@ -598,14 +602,17 @@ O serviço de autenticação carrega o usuário, pergunta `esta_bloqueado(agora)
   - `api/app/identidade/schemas.py`, `api/app/identidade/router.py` *(editados)*
   - `api/app/identidade/cli.py`, `api/tests/identidade/test_cli.py` *(editados — `criar-admin` passa a usar o `servico_usuarios`; R-02 (REVIEW-T-09-2026-10-07))*
   - `api/tests/identidade/test_usuarios.py` *(novo)*
+  - `api/app/identidade/repositorio.py` *(editado — `listar` e `persistir`; a checagem de unicidade precisa gravar antes do commit para o `IntegrityError` virar 409)*
+  - `api/app/main.py` *(editado — inclui o router de usuários)*
+  - `api/app/identidade/router.py` *(editado além do previsto — router de usuários com `exige_admin` no próprio router, para nenhuma rota esquecer a dependência)*
 
 **Descrição:**
 Rotas de ADMIN: `GET /api/usuarios` lista nome, login, perfil, situação e, para conta bloqueada, até quando (RN-52); `POST /api/usuarios` cadastra **sempre** Operador — o schema não tem campo de perfil (RN-34); `POST /api/usuarios/{id}/desativar` desativa e encerra as sessões abertas do usuário; `POST /api/usuarios/{id}/reativar` reativa. Login repetido, sem diferenciar maiúsculas, é recusado com 409. Os tipos `Nome` (até 60) e `Login` (até 30, sem espaços) saem do `cli.py` para `schemas.py`, e a criação de usuário fica no `servico_usuarios`, recebendo o perfil: o cadastro pela API cria Operador, e o `criar-admin` do comando técnico chama o mesmo serviço com ADMIN. Uma única implementação da RN-60.
 
 **Critério de aceite (testável):**
-- [ ] Cadastrar "Joao" quando existe "joao" é recusado (CA-65); senha "1234567" é recusada no cadastro (CA-66)
-- [ ] Desativar encerra as sessões do usuário e impede novo login; reativar devolve o acesso com a mesma conta
-- [ ] A lista informa "bloqueado até HH:MM" para conta bloqueada; o Operador recebe 403 em todas essas rotas
+- [x] Cadastrar "Joao" quando existe "joao" é recusado (CA-65); senha "1234567" é recusada no cadastro (CA-66)
+- [x] Desativar encerra as sessões do usuário e impede novo login; reativar devolve o acesso com a mesma conta
+- [x] A lista informa "bloqueado até HH:MM" para conta bloqueada; o Operador recebe 403 em todas essas rotas
 
 **Testes a escrever:**
 - *Integration:* `test_CA_65_login_repetido_e_recusado`, `test_CA_66_senha_curta_e_recusada_no_cadastro`, `test_desativar_encerra_sessoes_e_impede_login`, `test_lista_informa_bloqueio`, `test_cadastro_sempre_cria_operador`
@@ -619,7 +626,7 @@ Rotas de ADMIN: `GET /api/usuarios` lista nome, login, perfil, situação e, par
 
 #### T-14 — Expor a redefinição de senha de operador e a troca da própria senha
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Baixa
 - **Depende de:** T-13
 - **Implementa:** RN-52, RN-53, RN-60
@@ -628,14 +635,16 @@ Rotas de ADMIN: `GET /api/usuarios` lista nome, login, perfil, situação e, par
 - **Camadas/arquivos afetados:**
   - `api/app/identidade/servico_usuarios.py`, `api/app/identidade/router.py`, `api/app/identidade/schemas.py` *(editados)*
   - `api/tests/identidade/test_senhas.py` *(novo)*
+  - `api/app/identidade/servico_sessao.py` *(editado — `encerrar_outras_do_usuario`, para a troca manter só a sessão atual; necessário para a decisão da RN-53)*
+  - `api/app/identidade/cli.py`, `api/app/main.py`, `api/tests/identidade/test_usuarios.py` *(editados — ajuste de construtor e inclusão do router `/api/conta`; fora da lista, justificados pela mudança de `ServicoUsuarios`)*
 
 **Descrição:**
 `POST /api/usuarios/{id}/redefinir-senha` (ADMIN) grava a nova senha, zera falhas, encerra o bloqueio e as sessões abertas do operador (RN-52). `POST /api/conta/senha` (ADMIN) exige a senha atual correta e grava a nova (RN-53). Nas duas, o mínimo de 8 caracteres (RN-60).
 
 **Critério de aceite (testável):**
-- [ ] Operador bloqueado autentica logo depois da redefinição, com contador zerado, e a senha anterior deixa de funcionar (CA-51)
-- [ ] Troca com senha atual errada é recusada; com a certa, o ADMIN passa a autenticar com a nova (CA-52)
-- [ ] Senha "1234567" é recusada na redefinição e na troca (CA-66)
+- [x] Operador bloqueado autentica logo depois da redefinição, com contador zerado, e a senha anterior deixa de funcionar (CA-51)
+- [x] Troca com senha atual errada é recusada; com a certa, o ADMIN passa a autenticar com a nova (CA-52)
+- [x] Senha "1234567" é recusada na redefinição e na troca (CA-66)
 
 **Testes a escrever:**
 - *Integration:* `test_CA_51_redefinicao_libera_operador_bloqueado`, `test_CA_52_troca_exige_senha_atual`, `test_CA_66_senha_curta_e_recusada_na_redefinicao_e_na_troca`
@@ -656,7 +665,7 @@ Rotas de ADMIN: `GET /api/usuarios` lista nome, login, perfil, situação e, par
 
 #### T-15 — Criar as entidades Proteina e Prato com nomes únicos
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-03, T-04
 - **Implementa:** RN-01, RN-02, RN-59
@@ -666,14 +675,16 @@ Rotas de ADMIN: `GET /api/usuarios` lista nome, login, perfil, situação e, par
   - `api/app/catalogo/modelos.py` *(novo — `Proteina`, `Prato`)*
   - `api/alembic/versions/0004_proteina_prato.py` *(novo)*
   - `api/tests/catalogo/test_proteina_prato.py` *(novo)*
+  - `api/alembic/env.py` *(editado — importa `app.catalogo.modelos`, exigido pelo CLAUDE.md para o autogenerate enxergar o modelo; fora da lista, como em T-08)*
+  - `api/tests/catalogo/__init__.py` *(novo, vazio, como em `tests/identidade`)*
 
 **Descrição:**
 `proteina` (nome, ativo) e `prato` (nome, `proteina_id`, `gramas_por_porcao`, ativo), ambos com `estabelecimento_id`. Índices únicos em `(estabelecimento_id, lower(trim(nome)))` nas duas tabelas (RN-01, RN-59). A gramagem é um inteiro positivo, fixo por prato (RN-02). Relacionamentos com `lazy="raise"`. Métodos `desativar()`, `reativar()` e `alterar_gramagem()` nas entidades.
 
 **Critério de aceite (testável):**
-- [ ] "Frango" e " frango " na mesma tabela violam o índice único; o mesmo nome em outro estabelecimento é aceito
-- [ ] Gramagem zero ou negativa é recusada pela entidade
-- [ ] Acessar a proteína de um prato não carregada explicitamente levanta erro legível, em vez de `MissingGreenlet`
+- [x] "Frango" e " frango " na mesma tabela violam o índice único; o mesmo nome em outro estabelecimento é aceito
+- [x] Gramagem zero ou negativa é recusada pela entidade
+- [x] Acessar a proteína de um prato não carregada explicitamente levanta erro legível, em vez de `MissingGreenlet`
 
 **Testes a escrever:**
 - *Unit:* `test_gramagem_precisa_ser_positiva`, `test_desativar_e_reativar_prato`
@@ -686,7 +697,7 @@ Rotas de ADMIN: `GET /api/usuarios` lista nome, login, perfil, situação e, par
 
 #### T-16 — Criar a entidade ItemCardapio com formato e preço próprio
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Baixa
 - **Depende de:** T-15
 - **Implementa:** RN-03, RN-59
@@ -696,13 +707,14 @@ Rotas de ADMIN: `GET /api/usuarios` lista nome, login, perfil, situação e, par
   - `api/app/catalogo/modelos.py` *(editado — `ItemCardapio`, `Formato`)*
   - `api/alembic/versions/0005_item_cardapio.py` *(novo)*
   - `api/tests/catalogo/test_item_cardapio.py` *(novo)*
+  - `api/app/catalogo/modelos.py` *(editado com `ItemCardapio` e `Formato`, conforme previsto)*
 
 **Descrição:**
 `item_cardapio` com `estabelecimento_id`, `prato_id`, `formato` (`PF` / `MARMITA`), `preco` em `Numeric(10, 2)` e ativo. Índice único em `(prato_id, formato)`, valendo também para desativados (RN-59). O preço entra e sai como `Dinheiro`. Métodos `alterar_preco()`, `desativar()` e `reativar()`; prato e formato não mudam depois de criados.
 
 **Critério de aceite (testável):**
-- [ ] Um segundo item do mesmo prato no mesmo formato viola o índice único
-- [ ] Preço zero ou negativo é recusado; o preço é persistido e lido como `Decimal`
+- [x] Um segundo item do mesmo prato no mesmo formato viola o índice único
+- [x] Preço zero ou negativo é recusado; o preço é persistido e lido como `Decimal`
 
 **Testes a escrever:**
 - *Unit:* `test_preco_precisa_ser_positivo`, `test_alterar_preco`
@@ -715,7 +727,7 @@ Rotas de ADMIN: `GET /api/usuarios` lista nome, login, perfil, situação e, par
 
 #### T-17 — Expor o cadastro de proteínas com desativação protegida
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-11, T-15
 - **Implementa:** RN-01, RN-04, RN-49, RN-58 (proteína)
@@ -724,14 +736,16 @@ Rotas de ADMIN: `GET /api/usuarios` lista nome, login, perfil, situação e, par
 - **Camadas/arquivos afetados:**
   - `api/app/catalogo/repositorio.py`, `api/app/catalogo/servico.py`, `api/app/catalogo/schemas.py`, `api/app/catalogo/router.py` *(novos)*
   - `api/tests/catalogo/test_api_proteinas.py` *(novo)*
+  - `api/app/catalogo/modelos.py` *(editado — `Proteina.renomear`, necessário para a rota de renomear; fora da lista, como o método de T-15)*
+  - `api/app/main.py` *(editado — inclui o router de proteínas)*
 
 **Descrição:**
 Rotas de ADMIN para proteínas: listar (com filtro de desativadas e a contagem de pratos ativos que a usam), cadastrar, renomear, desativar e reativar. Desativar proteína usada por prato ativo é recusado com 409 e a lista dos pratos que impedem (RN-58). Cadastrar nome igual ao de uma desativada devolve 409 indicando que ela pode ser reativada (RN-49). O repositório recebe o `estabelecimento_id` no construtor.
 
 **Critério de aceite (testável):**
-- [ ] Cadastrar "Frango" com "Frango" existente é recusado (CA-29); o nome de uma desativada devolve a indicação de reativar
-- [ ] Desativar "Frango" com o prato ativo "Frango grelhado" é recusado, e a resposta nomeia o prato (CA-62)
-- [ ] Desativar e reativar preservam o registro; o Operador recebe 403
+- [x] Cadastrar "Frango" com "Frango" existente é recusado (CA-29); o nome de uma desativada devolve a indicação de reativar
+- [x] Desativar "Frango" com o prato ativo "Frango grelhado" é recusado, e a resposta nomeia o prato (CA-62)
+- [x] Desativar e reativar preservam o registro; o Operador recebe 403
 
 **Testes a escrever:**
 - *Integration:* `test_CA_29_proteina_com_nome_repetido_e_recusada`, `test_CA_62_proteina_em_uso_nao_e_desativada`, `test_nome_de_desativada_indica_reativar`, `test_reativar_proteina`
@@ -743,7 +757,7 @@ Rotas de ADMIN para proteínas: listar (com filtro de desativadas e a contagem d
 
 #### T-18 — Expor o cadastro de pratos
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-16, T-17
 - **Implementa:** RN-02, RN-06, RN-58 (prato), RN-59
@@ -752,14 +766,15 @@ Rotas de ADMIN para proteínas: listar (com filtro de desativadas e a contagem d
 - **Camadas/arquivos afetados:**
   - `api/app/catalogo/servico.py`, `api/app/catalogo/schemas.py`, `api/app/catalogo/router.py`, `api/app/catalogo/repositorio.py` *(editados)*
   - `api/tests/catalogo/test_api_pratos.py` *(novo)*
+  - `api/app/catalogo/modelos.py` *(editado — `Prato.renomear`, necessário para a rota de renomear; fora da lista, como em T-17)*
 
 **Descrição:**
 Rotas de ADMIN para pratos: listar (com proteína e contagem de itens ativos), cadastrar com proteína **ativa** e gramagem, alterar nome e gramagem, desativar e reativar. Desativar prato com item ativo é recusado com a lista dos itens (RN-58). A alteração de gramagem vale dali em diante; nenhuma venda é tocada (RN-06 — a prova fica na T-55).
 
 **Critério de aceite (testável):**
-- [ ] O Operador recebe acesso negado ao cadastro de pratos (CA-26)
-- [ ] Cadastrar "frango grelhado" com "Frango grelhado" existente é recusado (CA-63)
-- [ ] Desativar prato com item ativo é recusado nomeando os itens; cadastrar prato com proteína desativada é recusado
+- [x] O Operador recebe acesso negado ao cadastro de pratos (CA-26)
+- [x] Cadastrar "frango grelhado" com "Frango grelhado" existente é recusado (CA-63)
+- [x] Desativar prato com item ativo é recusado nomeando os itens; cadastrar prato com proteína desativada é recusado
 
 **Testes a escrever:**
 - *Integration:* `test_CA_26_operador_nao_acessa_cadastro_de_pratos`, `test_CA_63_prato_com_nome_repetido_e_recusado`, `test_prato_com_item_ativo_nao_e_desativado`, `test_prato_exige_proteina_ativa`
@@ -771,7 +786,7 @@ Rotas de ADMIN para pratos: listar (com proteína e contagem de itens ativos), c
 
 #### T-19 — Expor o cadastro de itens de cardápio
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-18
 - **Implementa:** RN-03, RN-04, RN-05, RN-49, RN-59
@@ -785,9 +800,9 @@ Rotas de ADMIN para pratos: listar (com proteína e contagem de itens ativos), c
 Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), alterar **só o preço**, desativar e reativar. O segundo item do mesmo prato e formato é recusado, e, se o existente estiver desativado, a resposta indica reativar (RN-49, RN-59).
 
 **Critério de aceite (testável):**
-- [ ] "Frango grelhado - PF" a R$ 18,00 e "Frango grelhado - Marmita" a R$ 22,00 coexistem com preços independentes e a mesma gramagem do prato (CA-30)
-- [ ] Um segundo item "Frango grelhado" no formato PF é recusado (CA-64)
-- [ ] A edição não aceita trocar prato nem formato
+- [x] "Frango grelhado - PF" a R$ 18,00 e "Frango grelhado - Marmita" a R$ 22,00 coexistem com preços independentes e a mesma gramagem do prato (CA-30)
+- [x] Um segundo item "Frango grelhado" no formato PF é recusado (CA-64)
+- [x] A edição não aceita trocar prato nem formato
 
 **Testes a escrever:**
 - *Integration:* `test_CA_30_mesmo_prato_em_dois_formatos_tem_precos_independentes`, `test_CA_64_segundo_item_do_mesmo_prato_e_formato_e_recusado`, `test_edicao_so_altera_preco`, `test_reativar_item`
@@ -799,7 +814,7 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 
 #### T-20 — Criar o CardapioData com herança resolvida em memória
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-16
 - **Implementa:** RN-07, RN-08, RN-12, RN-57
@@ -814,8 +829,8 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 `cardapio_data` com `estabelecimento_id` e `data`, único por estabelecimento e data, e a associação com os itens. Só existe no banco o cardápio **próprio** (RN-07). `CardapioData.herdar_de(anterior, data)` devolve um cardápio resolvido em memória, marcado como herdado com a data de origem e sem os itens desativados (RN-08, RN-12), e que nunca é adicionado à sessão. `CardapioData.definir(data, itens)` recusa lista vazia (RN-57) e item desativado (RN-12).
 
 **Critério de aceite (testável):**
-- [ ] O cardápio herdado traz a data de origem e exclui itens desativados; nenhum registro é gravado ao herdar
-- [ ] Definir cardápio sem itens, ou com item desativado, levanta exceção de domínio
+- [x] O cardápio herdado traz a data de origem e exclui itens desativados; nenhum registro é gravado ao herdar
+- [x] Definir cardápio sem itens, ou com item desativado, levanta exceção de domínio
 
 **Testes a escrever:**
 - *Unit:* `test_herdado_descarta_item_desativado`, `test_herdado_guarda_data_de_origem`, `test_cardapio_vazio_e_recusado`, `test_item_desativado_nao_entra_em_cardapio_novo`
@@ -828,7 +843,7 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 
 #### T-21 — Implementar o serviço do cardápio vigente e a leitura de item vendável
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-20
 - **Implementa:** RN-08, RN-09, RN-11, RN-19, RN-50
@@ -844,9 +859,9 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 `cardapio_vigente(data)` devolve o próprio da data; sem ele, o herdado do cardápio mais recente **anterior** à data — um cardápio de data futura nunca é herdado por data anterior (RN-50); sem nenhum, o estado vazio (RN-11). O resultado informa `tipo` (próprio, herdado, vazio) e a data de origem, que alimenta o aviso ao ADMIN (RN-09). `item_vendavel(item_id, data)` devolve um `ItemVendavel` imutável com os campos do snapshot (nome do prato, nome da proteína, formato, preço, gramagem), ou levanta `ItemForaDoCardapio` se o item não está no vigente (RN-19). É por esse objeto — e nunca pela entidade — que `vendas` lê o catálogo.
 
 **Critério de aceite (testável):**
-- [ ] Sem próprio hoje e com o de 21/09 contendo 4 itens, um deles desativado, o vigente é herdado de 21/09 com 3 itens (CA-08)
-- [ ] O cardápio de amanhã não é herdado hoje; sem nenhum cardápio anterior, o vigente é vazio
-- [ ] Item fora do vigente levanta `ItemForaDoCardapio`; o `ItemVendavel` não expõe entidade de `catalogo`
+- [x] Sem próprio hoje e com o de 21/09 contendo 4 itens, um deles desativado, o vigente é herdado de 21/09 com 3 itens (CA-08)
+- [x] O cardápio de amanhã não é herdado hoje; sem nenhum cardápio anterior, o vigente é vazio
+- [x] Item fora do vigente levanta `ItemForaDoCardapio`; o `ItemVendavel` não expõe entidade de `catalogo`
 
 **Testes a escrever:**
 - *Integration:* `test_CA_08_item_desativado_nao_entra_no_herdado`, `test_cardapio_futuro_nao_e_herdado_por_data_anterior`, `test_sem_cardapio_algum_vigente_e_vazio`, `test_item_fora_do_vigente_e_recusado`
@@ -858,7 +873,7 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 
 #### T-22 — Expor a consulta do cardápio vigente e do cardápio por data
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Baixa
 - **Depende de:** T-11, T-21
 - **Implementa:** RN-08, RN-09, RN-11, RN-42
@@ -872,8 +887,8 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 `GET /api/cardapio/vigente` (qualquer perfil) devolve o dia operacional corrente calculado no servidor, o tipo (próprio, herdado, vazio), a data de origem se herdado e os itens ordenados por prato, em ordem alfabética, com formato e preço — o preço aparece para o Operador na tela de registro (RN-40). `GET /api/cardapio?data=` (ADMIN) devolve o cardápio da data e indica se ela é passada (somente leitura). Nenhuma das duas grava nada.
 
 **Critério de aceite (testável):**
-- [ ] Sem cardápio hoje e com o de 21/09 contendo 4 itens, o Operador recebe os 4 itens marcados como herdados de 21/09, e nenhum cardápio é gravado para hoje (CA-07)
-- [ ] Sem nenhum cardápio no sistema, a resposta é o estado vazio, sem itens (CA-10)
+- [x] Sem cardápio hoje e com o de 21/09 contendo 4 itens, o Operador recebe os 4 itens marcados como herdados de 21/09, e nenhum cardápio é gravado para hoje (CA-07)
+- [x] Sem nenhum cardápio no sistema, a resposta é o estado vazio, sem itens (CA-10)
 
 **Testes a escrever:**
 - *Integration:* `test_CA_07_cardapio_herdado_e_exibido_sem_gravar`, `test_CA_10_primeiro_uso_devolve_estado_vazio`, `test_vigente_traz_dia_operacional_do_servidor`
@@ -885,7 +900,7 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 
 #### T-23 — Expor a definição do cardápio da data pelo ADMIN
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-22
 - **Implementa:** RN-10, RN-12, RN-50, RN-57
@@ -899,9 +914,9 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 `POST /api/cardapio/{data}` (ADMIN) grava o cardápio próprio da data com a lista de itens enviada, substituindo o anterior se houver. Confirmar o herdado é enviar os mesmos itens. Data anterior ao dia operacional corrente é recusada (RN-50); lista vazia (RN-57) e item desativado (RN-12) também.
 
 **Critério de aceite (testável):**
-- [ ] Em 22/09, montar o cardápio de 23/09 com 5 itens grava o de 23/09 e não muda o que o Operador vê em 22/09; em 23/09 ele vê os 5, sem marca de herdado (CA-48)
-- [ ] Alterar o cardápio de 20/09 em 22/09 é recusado e ele continua como estava (CA-49)
-- [ ] Salvar o cardápio de amanhã sem itens é recusado e nada é gravado (CA-61)
+- [x] Em 22/09, montar o cardápio de 23/09 com 5 itens grava o de 23/09 e não muda o que o Operador vê em 22/09; em 23/09 ele vê os 5, sem marca de herdado (CA-48)
+- [x] Alterar o cardápio de 20/09 em 22/09 é recusado e ele continua como estava (CA-49)
+- [x] Salvar o cardápio de amanhã sem itens é recusado e nada é gravado (CA-61)
 
 **Testes a escrever:**
 - *Integration (relógio injetado):* `test_CA_48_admin_monta_o_cardapio_de_amanha`, `test_CA_49_cardapio_de_data_passada_nao_e_alterado`, `test_CA_61_cardapio_sem_itens_nao_e_salvo`, `test_confirmar_herdado_grava_proprio`
@@ -921,7 +936,7 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 
 #### T-24 — Criar a entidade Venda com snapshot e cálculo de valor e proteína
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-08, T-16
 - **Implementa:** RN-14, RN-15, RN-16, RN-20
@@ -937,9 +952,9 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 `venda` com `estabelecimento_id`, `item_cardapio_id`, `quantidade`, snapshot (`prato_nome`, `proteina_nome`, `formato`, `preco_unitario` em `Numeric(10, 2)`, `gramas_por_porcao`), `valor_total`, `proteina_total_g`, `registrada_em` (`timestamptz`), `registrada_por`, `chave_idempotencia` e os campos de cancelamento (`cancelada_em`, `cancelada_por`, `motivo_cancelamento`). Índice único em `(estabelecimento_id, chave_idempotencia)` e índice em `(estabelecimento_id, registrada_em)` para os relatórios. `Venda.registrar(item: ItemVendavel, quantidade, usuario_id, chave, agora)` é o **único** caminho de criação: valida 1 ≤ quantidade ≤ 20 (RN-14), copia o snapshot (RN-15) e calcula valor e proteína (RN-16).
 
 **Critério de aceite (testável):**
-- [ ] Quantidade 0 ou 21 levanta `QuantidadeForaDoLimite`
-- [ ] 3 × "Frango grelhado - Marmita" a R$ 22,00 com 150 g gera valor R$ 66,00 e proteína 450 g, com o snapshot copiado do `ItemVendavel`
-- [ ] A venda guarda quem registrou; a chave de idempotência repetida no mesmo estabelecimento viola o índice único
+- [x] Quantidade 0 ou 21 levanta `QuantidadeForaDoLimite`
+- [x] 3 × "Frango grelhado - Marmita" a R$ 22,00 com 150 g gera valor R$ 66,00 e proteína 450 g, com o snapshot copiado do `ItemVendavel`
+- [x] A venda guarda quem registrou; a chave de idempotência repetida no mesmo estabelecimento viola o índice único
 
 **Testes a escrever:**
 - *Unit:* `test_quantidade_fora_de_1_a_20_e_recusada`, `test_registrar_copia_snapshot`, `test_valor_e_proteina_pela_quantidade`
@@ -952,7 +967,7 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 
 #### T-25 — Implementar o registro idempotente de venda
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Alta
 - **Depende de:** T-21, T-24
 - **Implementa:** RN-17, RN-18, RN-19
@@ -966,9 +981,9 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 `ServicoVendas.registrar(item_id, quantidade, chave, usuario)` pede ao serviço de catálogo o `ItemVendavel` do vigente no dia operacional corrente (RN-19), chama `Venda.registrar` com o instante do relógio do servidor (RN-17) e insere. A idempotência é resolvida no banco: `INSERT … ON CONFLICT (estabelecimento_id, chave_idempotencia) DO NOTHING` seguido da leitura da venda existente, o que também cobre dois envios simultâneos da mesma chave (RN-18). O serviço informa se a venda foi criada ou reencontrada.
 
 **Critério de aceite (testável):**
-- [ ] A mesma chave enviada duas vezes, inclusive em paralelo, gera uma única venda e devolve a original (CA-03)
-- [ ] Item fora do cardápio vigente é recusado e nenhuma venda é criada (CA-06)
-- [ ] Com o relógio do "aparelho" adiantado dois dias, o instante gravado é o do servidor e a venda cai no dia operacional corrente (CA-28)
+- [x] A mesma chave enviada duas vezes, inclusive em paralelo, gera uma única venda e devolve a original (CA-03)
+- [x] Item fora do cardápio vigente é recusado e nenhuma venda é criada (CA-06)
+- [x] Com o relógio do "aparelho" adiantado dois dias, o instante gravado é o do servidor e a venda cai no dia operacional corrente (CA-28)
 
 **Testes a escrever:**
 - *Integration:* `test_CA_03_reenvio_da_mesma_chave_nao_duplica`, `test_CA_03_envios_simultaneos_da_mesma_chave_criam_uma_venda`, `test_CA_06_item_fora_do_cardapio_e_recusado`, `test_CA_28_instante_vem_do_servidor`
@@ -2123,3 +2138,18 @@ Nenhuma questão em aberto.
 | T-08   | Concluído | 2026-10-06 | `5ed61aa` | Fora da lista de arquivos: `alembic/env.py` (import de `app.identidade.modelos`, exigido pelo `CLAUDE.md` para o autogenerate enxergar o modelo) e `tests/identidade/__init__.py` (vazio, como em `tests/core`). `PoliticaDeBloqueio(tentativas, minutos)` é dataclass congelada que a entidade recebe; quem a monta a partir de `BLOQUEIO_TENTATIVAS`/`BLOQUEIO_MINUTOS` é o service da T-12. Na quinta falha a conta bloqueia, `bloqueios` soma 1 e o contador de falhas recomeça; a duração é o `bloqueios`-ésimo valor da sequência, com teto no último (1 → 5 → 15 → 60 → 60). Lacuna do PRD, sem decisão no código: a RN-37 diz que o login com sucesso zera o contador de falhas, mas não diz se a progressão dos bloqueios recomeça. Seguido o texto literal: `registrar_login_ok` zera só `falhas_consecutivas`, e `bloqueios` só cresce (testado em `test_login_ok_nao_reinicia_a_progressao_dos_bloqueios`); se a decisão for outra, entra no PRD. `Usuario.criar` monta a conta ativa, sem falhas e sem bloqueio; o login é guardado como digitado, e a unicidade vem do índice `uq_usuario_estabelecimento_id_login` sobre `(estabelecimento_id, lower(login))`, declarado depois da classe para referenciar a coluna (`func.lower("login")` geraria a constante `lower('login')`). `perfil` em `VARCHAR(8)` com CHECK `ck_usuario_perfil` (enum não nativo). Coluna `criado_em`, como em `estabelecimento`. Migration gerada pelo autogenerate e corrigida à mão: o CHECK do perfil saía duplicado (`perfil` e `ck_usuario_perfil`) e o `Enum` com `create_constraint=True` criaria um terceiro. Conferido no banco de desenvolvimento: `\d usuario` com um único CHECK, o índice sobre `lower(login)` e a FK; `alembic check` sem diferença; `downgrade -1` remove a tabela; banco deixado na `0002`. Review: Aprovado com ressalvas (REVIEW-T-08-2026-10-06); R-01 e R-02 aplicados na mesma tarefa. R-01: `registrar_falha_login` não conta falha com a conta bloqueada; antes, 15 tentativas em 14 s durante um bloqueio de 1 min levavam a conta a 1 h (bloqueio usado para trancar conta alheia). A T-12 continua perguntando `esta_bloqueado` antes, pela resposta genérica da RN-38, mas não é mais a única proteção. O teste de persistência registrava 2 falhas durante o bloqueio e esperava que contassem; passou a registrá-las depois do fim do bloqueio. R-02: a checagem de instante com fuso virou `exigir_instante_com_fuso` pública em `app/core/tempo.py` (arquivo da T-04, fora da lista), usada pelo `DiaOperacional` e pelo `Usuario`; as próximas entidades que recebem `agora` (sessão, venda) usam a mesma |
 | T-09   | Concluído | 2026-10-07 | `d8c669d` | Decisões do usuário na execução, registradas no PRD e na SPEC-UI: (1) senha com **no máximo 72 bytes** em UTF-8 (RN-60), porque o `bcrypt` 5 lança `ValueError` acima disso no hash e na conferência; cadastro, redefinição e troca recusam com mensagem própria, e `conferir` devolve `False` para senha longa, sem erro e sem gastar o hash (login nunca dá 500); (2) a recuperação técnica do ADMIN **zera as falhas e encerra o bloqueio**, como a RN-52 para o Operador (RN-53); a progressão dos bloqueios não recomeça, como no login com sucesso (lacuna da RN-37 continua aberta para a T-12). Fora da lista de arquivos, avisado antes: `modelos.py` ganhou `Usuario.redefinir_senha(senha_hash)` (troca o hash, zera falhas, limpa `bloqueado_ate`), para a regra ficar na entidade (ADR-009) — a T-14 reaproveita na redefinição pelo ADMIN (RN-52) — com teste em `test_usuario.py`; `api/README.md` criado (não existia) com os dois comandos; PRD (RN-53, RN-60) e SPEC-UI (UI-12 e seção 9). `senha.py`: `validar` (8 caracteres a 72 bytes), `gerar_hash` e `conferir` com `bcrypt.hashpw`/`checkpw` via `asyncio.to_thread`, custo 12; `SenhaInvalida(RegraViolada)`; `SenhaNova` é o tipo de schema para senha nova (`TextoLiteral` + o mesmo `validar`, para o schema e o domínio darem a mesma mensagem em português) — **T-11, T-13 e T-14 usam `SenhaNova`** em vez de `Field(min_length=8)`. `cli.py`: `criar-admin --nome --login` e `redefinir-senha --login`; senha só por `getpass`, pedida duas vezes; `--senha` é recusado pelo argparse; nome até 60, login até 30 sem espaços (limites da SPEC-UI, lacuna 16, em `cli.py` por enquanto — a T-13 pode movê-los para um `schemas.py` do módulo); login repetido sem diferenciar maiúsculas → `Conflito`; `redefinir-senha` só atinge ADMIN (Operador ou inexistente → `NaoEncontrado`). Erro de validação é impresso campo a campo, nunca com `str(ValidationError)`, que ecoaria a senha. O comando acessa o banco direto pela sessão, sem repositório, porque o `repositorio.py` do módulo nasce na T-10. Conferido de verdade: num banco descartável, com engine próprio e commit (criar, login repetido, redefinir uma conta bloqueada → falhas 0 e `bloqueado_ate` nulo); no container da API, `python -m app.identidade.cli` roda; `uv run` dentro do container instala as dependências de desenvolvimento na imagem, por isso o README manda usar `python` no container, e sem `-T` (sem TTY a senha ecoa). Para a T-10/T-14: quando existir a tabela `sessao`, `redefinir-senha` deve encerrar as sessões do ADMIN (seção 3: a sessão é invalidada ao redefinir a senha). Para a T-60: no Render, o comando roda pelo Shell do serviço, com `python -m`. Review: Aprovado com ressalvas (REVIEW-T-09-2026-10-07); nada aplicado na tarefa: R-01 (sessões do ADMIN na recuperação) e R-02 (comando sem service/repository) viraram ajustes nas T-10, T-13 e T-14; R-03 e R-05 vão para a T-13; R-04 (teste automatizado do caminho com commit) fica a critério |
 | T-10   | Concluído | 2026-10-08 | `f00c46b` | Arquivos: `identidade/modelos.py` (`Sessao`, `PoliticaDeSessao`), `repositorio.py`, `servico_sessao.py` e `dependencias.py` (novos), `cli.py`, `alembic/versions/0003_sessao.py` e `tests/identidade/test_sessao.py`. Token de 256 bits, guardado como SHA-256 (não bcrypt: não é senha). Expiração por inatividade na entidade (`Sessao.aceita`), com a política vinda da configuração. `estabelecimento_atual` só localiza o token; daí em diante o usuário autenticado carrega o `estabelecimento_id`. R-01 e R-02 (REVIEW-T-09-2026-10-07) aplicados: o `redefinir-senha` encerra as sessões do ADMIN e a busca por login foi ao repositório. Pendência para a T-11: `obter_sessao` não faz commit, então a renovação em uso só persiste quando a rota commitar; o login/logout da T-11 é a primeira rota a definir isso. Testes: 147 passando (139 anteriores + 8); ruff limpo; migration 0003 sobe e desce; `alembic check` sem diferença. |
+| T-11   | Concluído | 2026-10-08 | `4592d72` | Arquivos: `identidade/servico_autenticacao.py`, `identidade/schemas.py`, `identidade/router.py` (novos); `main.py` inclui o router; `core/db.py` (decisão do usuário sobre R-01 do REVIEW-T-10: `obter_sessao` commita ao fim da requisição sem exceção, e faz rollback com exceção; fora da lista da T-11, justificado e registrado antes da edição); `tests/identidade/test_autenticacao.py` e `tests/core/test_db.py` (novos). Login recusa conta inexistente, senha errada e desativada com a mesma mensagem e conferindo hash de referência para não revelar a conta. Cookie `sessao` httpOnly, Secure, SameSite=Lax, Path=/. Logout é POST e remove o cookie. Round 1 (REVIEW-T-11-2026-10-08): Bloqueado por R-01 — `obter_sessao` commitava depois do envio da resposta. Corrigido com `SessaoDaRequisicao` (`Depends(obter_sessao, scope="function")`) em todos os usos; dois testes de rota provam a ordem e a falha de commit, e falham com o escopo antigo. Round 2 (REVIEW-T-11-2026-10-08-round2): Aprovado com ressalvas. Testes: 158 passando; ruff limpo; `alembic check` sem diferença. Sem bloqueio de conta: fica para a T-12. |
+| T-12   | Concluído | 2026-10-08 | `4592d72` | Arquivos: `identidade/servico_autenticacao.py` (editado), `identidade/repositorio.py` (editado: `buscar_por_login_para_atualizar`, com `FOR UPDATE`), `identidade/router.py` (editado: `politica_de_bloqueio` a partir da configuração, relógio injetado, recusa em 401 sem exceção), `tests/identidade/test_bloqueio.py` (novo). Decisão RN-37 do usuário em 2026-10-08: a progressão dos bloqueios não recomeça com login bem-sucedido (registrada no PRD). Ordem do login: busca com lock, confere a senha sempre (para o tempo não revelar bloqueio), recusa conta bloqueada ou desativada sem contar falha, conta falha de senha, zera falhas no acerto. A recusa é `None` no service e 401 na rota, não exceção: uma exceção desfaria a falha registrada. Round 1 (REVIEW-T-12-2026-10-08): Bloqueado — o teste do CA-38 não provava o reinício (sem commit, sem engine novo) e não havia teste de concorrência para o `FOR UPDATE`. Corrigidos: CA-38 grava com commit, troca o engine e confere o bloqueio no banco; `test_falhas_concorrentes_nao_se_perdem` falha sem o lock (3 de 3) e passa com ele. Round 2 (REVIEW-T-12-2026-10-08-round2): Aprovado com ressalvas. Pendente: confirmar a regra de conta desativada (não conta falha). Testes: 163 passando; ruff limpo; `alembic check` sem diferença.
+| T-13   | Concluído | 2026-10-08 | `ecf45bf` | Arquivos: `identidade/servico_usuarios.py` e `tests/identidade/test_usuarios.py` (novos); `identidade/schemas.py` (Nome e Login com mensagens em português, `NovoUsuario` sem campo de perfil, `UsuarioListado`), `identidade/router.py` (router de usuários com `exige_admin`), `identidade/cli.py` (`criar-admin` usa o `ServicoUsuarios`; nome e login validados antes da senha, R-03 da T-09), `tests/identidade/test_cli.py`, `identidade/repositorio.py` e `main.py` (fora da lista, justificado acima). Decisões tomadas na execução: `bloqueado_ate` na lista só enquanto a conta está bloqueada agora; desativar encerra as sessões; corrida no cadastro vira 409 pelo `IntegrityError` (R-05 da T-09); ADMIN não desativa a própria conta (`Usuario.exigir_desativavel_por`, RN-34); `redefinir-senha` recusa conta desativada (RN-53). Logs de criação, desativação e reativação com ids. Review round 1 (REVIEW-T-13-2026-10-08): Aprovado com ressalvas; round 2 (REVIEW-T-13-2026-10-08-round2): Aprovado. Testes: 175 passando; ruff limpo; `alembic check` sem diferença.
+| T-14   | Concluído | 2026-10-08 | `3cdbe5a` | Arquivos: `identidade/servico_usuarios.py` (`redefinir_senha` e `trocar_senha_propria`), `identidade/servico_sessao.py` (`encerrar_outras_do_usuario`), `identidade/schemas.py`, `identidade/router.py` (`POST /api/usuarios/{id}/redefinir-senha` e `POST /api/conta/senha`, só ADMIN), `identidade/cli.py`, `main.py`, `tests/identidade/test_senhas.py` (novo), `test_usuarios.py` (construtor). Decisões tomadas na execução (dentro da delegação do usuário, registradas na RN-53 do PRD): a troca encerra as outras sessões do ADMIN e mantém a atual; a senha atual errada conta como falha para o bloqueio (RN-37), e a recusa sai como 422 sem exceção, para a falha ser gravada; a redefinição não atinge outro ADMIN (sai pelo comando técnico). Testes: 181 passando; ruff limpo; `alembic check` sem diferença. Review (REVIEW-T-14-2026-10-08): Aprovado com ressalvas; R-01 (teste da contagem da senha atual) corrigido com teste; R-02 e R-03 registrados como sugestões. Testes: 182 passando.
+| T-15   | Concluído | 2026-10-08 | `f406ff0` | Arquivos: `catalogo/modelos.py` (`Proteina`, `Prato`, com `criar`, `desativar`, `reativar`, `alterar_gramagem`; relacionamento `lazy="raise"`; índices únicos por expressão `lower(TRIM(BOTH FROM nome))`), `alembic/versions/0004_proteina_prato.py` (escrita à mão: o autogenerate não detecta índice por expressão), `tests/catalogo/test_proteina_prato.py` (novo). Gramagem recusada pelo `Gramagem` do core (valores.py), não uma validação nova. Índice do modelo usa a forma que o PostgreSQL devolve, senão o `alembic check` acusa diferença falsa. Testes: 188 passando; ruff limpo; `alembic check` sem diferença; migration 0004 sobe e desce. Review (REVIEW-T-15-2026-10-08): Aprovado com ressalvas; R-02 (nome em branco) corrigido na entidade com teste; R-01 (FK composta prato→proteina) registrado como dívida, a decidir junto com a T-16. Testes: 189 passando.
+| T-16   | Concluído | 2026-10-08 | `00955a6` | Arquivos: `catalogo/modelos.py` (`ItemCardapio`, `Formato` PF/MARMITA; `criar`, `alterar_preco`, `desativar`, `reativar`), `alembic/versions/0005_item_cardapio.py` (escrita à mão, com CHECKs de preço e formato), `tests/catalogo/test_item_cardapio.py` (novo). Preço positivo recusado pela entidade, porque `Dinheiro` aceita zero e negativo; o CHECK do banco é a segunda barreira. Preço em `Numeric(10, 2)`, lido como `Decimal`. Índice único em `(prato_id, formato)`, sem filtro de ativo (RN-59). Prato e formato não têm método de alteração. Testes: 193 passando; ruff limpo; `alembic check` sem diferença; migration 0005 sobe e desce. Review (REVIEW-T-16-2026-10-08): Aprovado com ressalvas; R-01 (chave composta por estabelecimento, dívida da T-15) registrado para decisão antes da T-17. Testes: 193 passando.
+| T-17   | Concluído | 2026-10-08 | `fb0e032` | Arquivos: `catalogo/repositorio.py` (listagem com contagem de pratos ativos, busca por nome sem maiúsculas nem espaços, trava `FOR UPDATE` na desativação), `catalogo/servico.py` (`ServicoProteinas`: criar, renomear, desativar, reativar), `catalogo/schemas.py`, `catalogo/router.py` (`/api/proteinas`, só ADMIN pelo router), `tests/catalogo/test_api_proteinas.py` (novo). Fora da lista, justificados: `catalogo/modelos.py` (`renomear`) e `main.py`. Mensagens: nome repetido ativo → 409; nome de desativada → 409 indicando reativar (RN-49); desativar com prato ativo → 409 nomeando o prato (RN-58). Ponto de atenção registrado: o router importa `exige_admin` de `identidade`, dependência transversal; avaliar mover para `core` quando o padrão se repetir. Review (REVIEW-T-17-2026-10-08): Aprovado com ressalvas; R-01 (renomear sem teste) corrigido com três testes; R-02 (concorrência da trava) e R-03 (plural na mensagem de RN-58) registrados para a T-18. Testes: 202 passando; ruff limpo; `alembic check` sem diferença. Commit pendente.
+| T-18   | Concluído | 2026-10-08 | `671f3e9` | Arquivos: `catalogo/repositorio.py` (`RepositorioPratos`: listagem com proteína e itens ativos, busca por nome, itens ativos do prato), `catalogo/servico.py` (`ServicoPratos`: criar com proteína ativa travada, renomear, alterar gramagem, desativar, reativar), `catalogo/schemas.py`, `catalogo/router.py` (`/api/pratos`, só ADMIN pelo router), `tests/catalogo/test_api_pratos.py` (novo). Fora da lista, justificado: `catalogo/modelos.py` (`Prato.renomear`). Desativar com item ativo é recusado nomeando os itens, no formato "Prato - PF" / "Prato - Marmita" (RN-58). Reativar prato exige proteína ativa (RN-58). Gramagem zero recusada pelo schema (gt=0) e pela entidade. Decisão sobre a dívida da chave composta por estabelecimento (R-01 da T-15 e da T-16): aceita e registrada. O ADR-003 adia de propósito o isolamento entre estabelecimentos, e o repositório já filtra toda consulta por `estabelecimento_id`. A chave composta vira tarefa própria antes do segundo estabelecimento. Review (REVIEW-T-18-2026-10-08): Aprovado com ressalvas; R-01 (renomear e nome desativado de prato sem teste) corrigido; R-02 (corrida da desativação de prato, que só existe com itens na T-19) registrado. Testes: 211 passando; ruff limpo; `alembic check` sem diferença. Commit pendente.
+| T-19   | Concluído | 2026-10-08 | `aab74fc` | Arquivos: `catalogo/repositorio.py` (`RepositorioItens`; `RepositorioPratos.buscar_por_id_para_atualizar`), `catalogo/servico.py` (`ServicoItens`; `ServicoPratos.desativar` passa a travar o prato), `catalogo/schemas.py` (`NovoItem`, `AlterarPreco` sem prato nem formato, `ItemListado`, `Preco` como Decimal com 2 casas), `catalogo/router.py` (`/api/itens`, só ADMIN), `tests/catalogo/test_api_itens.py` (novo). Fecha a corrida que a T-18 deixou (R-02): criar item e desativar prato travam a mesma linha do prato. Reativar item exige prato ativo (RN-58). Preço zero recusado pelo schema e pela entidade. Edição recusa campo extra (prato ou formato) com 422. Testes: 219 passando; ruff limpo; `alembic check` sem diferença. Review (REVIEW-T-19-2026-10-08): Aprovado com ressalvas; R-01 (teste de concorrência prometido na T-18 e ausente) escrito neste review; R-02 (o teste é intermitente: 1 falha em 5 sem o lock) registrado. Testes: 220 passando; ruff limpo; `alembic check` sem diferença. Commit pendente.
+| T-20   | Concluído | 2026-10-08 | `6562d55` | Arquivos: `catalogo/modelos.py` (`cardapio_item` como tabela de associação; `CardapioData` com `definir` e `herdar_de`; `itens` com `lazy="raise"`), `alembic/versions/0006_cardapio_data.py` (escrita à mão, com constraint de unicidade e associação), `tests/catalogo/test_cardapio_data.py` (novo). `herdar_de` resolve em memória: descarta item desativado, guarda a data de origem e não entra na sessão (prova de contagem de linhas e de `herdado not in sessao`). `definir` recusa lista vazia (RN-57) e item desativado (RN-12). Quem chama `herdar_de` carrega `anterior.itens` antes (ADR-009). Testes: 225 passando; ruff limpo; `alembic check` sem diferença; migration 0006 sobe e desce. Review (REVIEW-T-20-2026-10-08): Aprovado com ressalvas; R-01 (carga de `itens` antes de `herdar_de`) para a T-21; R-02 (associação sem estabelecimento, dívida registrada). Testes: 225 passando. Commit pendente.
+| T-21   | Concluído | 2026-10-08 | `c781f00` | Arquivos: `catalogo/leitura.py` (novo: `TipoCardapio`, `ItemVendavel`, `CardapioVigente` congelados e `ItemForaDoCardapio(RegraViolada)`), `catalogo/servico_cardapio.py` (novo: `ServicoCardapio`, só orquestra), `catalogo/repositorio.py` (`RepositorioCardapios`: `buscar_proprio`, `mais_recente_anterior` e `itens_vendaveis`, com `selectinload` de `itens` e filtro de item ativo), `tests/catalogo/test_servico_cardapio.py` (novo). Sem migration. R-01 do REVIEW-T-20 aplicado: o cardápio anterior vem do banco com `itens` carregados, e o teste do CA-08 chama `expire_all()` antes para provar a carga. Decisão de execução: o filtro de item ativo também vale no cardápio próprio, não só no herdado, para um item desativado depois de entrar no cardápio não ser vendido (RN-12, RN-19). Herdado cujos itens estão todos desativados sai como `HERDADO` com lista vazia, não como `VAZIO`: o PRD não cobre esse caso. Testes: 230 passando; ruff limpo; `alembic check` sem diferença. Review: Aprovado com ressalvas (REVIEW-T-21-2026-10-08); R-01 (herdado com todos os itens desativados sai como `HERDADO` vazio, não `VAZIO`) é decisão de produto pendente, a tomar antes da T-42; R-02 (teste de `item_vendavel` com item desativado) e R-03 (`estabelecimento_id` no repositório) ficam para a T-22.
+| T-22   | Concluído | 2026-10-08 | `c781f00` | Arquivos: `catalogo/router_cardapio.py` (novo: `GET /api/cardapio/vigente` para qualquer perfil autenticado, com o dia operacional do servidor; `GET /api/cardapio?data=` só ADMIN, com `passada`), `catalogo/schemas.py` (`ItemVigenteListado`, `CardapioListado`, `CardapioDaDataListado`), `tests/catalogo/test_api_cardapio_consulta.py` (novo). Fora da lista, justificado: `app/main.py` (inclui o router, como nas tarefas anteriores do catálogo). R-02 e R-03 do REVIEW-T-21 aplicados na mesma tarefa: teste de item desativado depois de vendável, e propriedade `estabelecimento_id` em `RepositorioCardapios`. Nenhuma rota grava cardápio; a sessão ainda renova `ultimo_uso_em` a cada requisição (RN-36, comportamento já existente). Testes: 237 passando; ruff limpo. Review: Aprovado com ressalvas (REVIEW-T-22-2026-10-08); R-01 (renovação de sessão em `GET` frente ao ADR-006) é decisão de arquitetura pendente, a tomar antes da T-56; R-02 (montagem da resposta do ADMIN por `model_dump`) é sugestão.
+| T-23   | Concluído | 2026-10-08 | `c781f00` | Arquivos: `catalogo/modelos.py` (`CardapioData.definir` recebe `hoje`; novo `substituir_itens`; regras centralizadas em `_validar_definicao`: data passada recusada, RN-50; lista vazia, RN-57; item desativado, RN-12), `catalogo/servico_cardapio.py` (`ServicoCardapio.definir`: busca os itens pedidos, cria ou troca o cardápio da data, traduz a corrida no índice único para `Conflito`, pedido com item inexistente vira `NaoEncontrado`), `catalogo/repositorio.py` (`buscar_itens`, `adicionar`, `persistir`), `catalogo/schemas.py` (`DefinirCardapio`), `catalogo/router_cardapio.py` (`POST /api/cardapio/{data}`, só ADMIN), `tests/catalogo/test_api_cardapio_definicao.py` (novo). Ajustado por consequência: os chamadores de `definir` nos testes da T-20 e da T-21/T-22 recebem `hoje`. Sem migration. Testes: 245 passando; ruff limpo; `alembic check` sem diferença. Review: Aprovado com ressalvas (REVIEW-T-23-2026-10-08); só sugestões: R-01 (tirar `(RN-XX)` das mensagens ao usuário) e R-02 (checar `hoje` antes da busca e restringir o mapeamento de `IntegrityError`).
+| T-24   | Concluído | 2026-10-08 | `c781f00` | Arquivos: `vendas/modelos.py` (`Venda`, com `registrar` como único caminho de criação; CHECKs de quantidade 1 a 20 e de formato; índices únicos de chave de idempotência e de `registrada_em`), `vendas/excecoes.py` (`QuantidadeForaDoLimite`, `VendaJaCancelada`, `MotivoObrigatorio`), `alembic/versions/0007_venda.py` (autogenerate, com CHECKs conferidos), `alembic/env.py` (importa `vendas.modelos`, como exige a convenção), `tests/vendas/test_venda.py` e `tests/vendas/__init__.py` (novos). Decisões de execução: `valor_total` em `Numeric(12,2)`, porque preço máximo × 20 não cabe em `Numeric(10,2)`; `preco_unitario` segue `Numeric(10,2)` como o plano. Sem migration de dado. Chave de idempotência vazia recusada na entidade (RN-18), por correção feita durante a execução, com teste. Testes: 254 passando; ruff limpo; migration 0007 sobe, desce e sobe; `alembic check` sem diferença. Review: Aprovado com ressalvas (REVIEW-T-24-2026-10-08); R-01 (`Formato` importado de `catalogo.modelos` na `vendas`) é sugestão; R-02 (chave vazia) aplicado.
+| T-25   | Concluído | 2026-10-08 | `c781f00` | Arquivos: `vendas/repositorio.py` (`inserir_se_nova` com `INSERT … ON CONFLICT (estabelecimento_id, chave_idempotencia) DO NOTHING … RETURNING id`; sem método de alteração nem de exclusão), `vendas/servico.py` (`ServicoVendas.registrar`: instante e dia do relógio do servidor, item pelo `ServicoCardapio`, snapshot e totais por `Venda.registrar`), `vendas/leitura.py` (novo: `VendaLeitura` e `ResultadoRegistro`, para a API não receber entidade), `tests/vendas/test_registro.py` (novo). Decisão de execução: a chave é consultada **antes** do item. Um reenvio de venda já gravada devolve a original mesmo que o cardápio tenha mudado (RN-18); sem isso, a retentativa de uma venda feita antes da troca de cardápio seria recusada. Teste de simultâneos grava de verdade, em duas sessões com commit, e limpa no fim. Verificação negativa feita depois do review (R-01): sem `ON CONFLICT`, o teste de simultâneos falhou com `IntegrityError`; código restaurado. Testes: 258 passando; ruff limpo; `alembic check` sem diferença. Review: Aprovado com ressalvas (REVIEW-T-25-2026-10-08); só sugestões: R-01 (rodar a verificação negativa do teste de simultâneos) e R-02 (`inserir_se_nova` envia toda coluna, o que atropelaria um `server_default` futuro).

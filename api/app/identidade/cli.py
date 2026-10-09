@@ -15,26 +15,30 @@ import asyncio
 import getpass
 import sys
 from collections.abc import Awaitable, Callable, Sequence
-from typing import Annotated
 
-from pydantic import Field, ValidationError
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import obter_configuracao
 from app.core.db import criar_engine, criar_fabrica_sessoes
 from app.core.estabelecimento import estabelecimento_atual
-from app.core.excecoes import Conflito, ErroDeDominio, NaoEncontrado
+from app.core.excecoes import ErroDeDominio, NaoEncontrado, RegraViolada
 from app.core.relogio import Relogio, RelogioDoServidor
 from app.core.schemas import ModeloEstrito
 from app.identidade.dependencias import politica_da_configuracao
-from app.identidade.modelos import Perfil, Usuario
+from app.identidade.modelos import Perfil, PoliticaDeBloqueio, Usuario
 from app.identidade.repositorio import RepositorioSessoes, RepositorioUsuarios
+from app.identidade.schemas import Login, Nome
 from app.identidade.senha import SenhaNova, gerar_hash
 from app.identidade.servico_sessao import ServicoSessao
+from app.identidade.servico_usuarios import ServicoUsuarios
 
-# Limites de texto da SPEC-UI-001 (lacuna 16), os mesmos do cadastro de Operador.
-Nome = Annotated[str, Field(min_length=1, max_length=60)]
-Login = Annotated[str, Field(min_length=1, max_length=30, pattern=r"^\S+$")]
+
+class IdentidadeAdmin(ModeloEstrito):
+    """Nome e login, validados antes da senha: não se digita a senha para depois recusar."""
+
+    nome: Nome
+    login: Login
 
 
 class NovoAdmin(ModeloEstrito):
@@ -53,20 +57,31 @@ class SenhasDiferentes(Exception):
 
 
 async def criar_admin(sessao: AsyncSession, dados: NovoAdmin) -> Usuario:
+    """Cria ADMIN pelo mesmo `ServicoUsuarios` do cadastro da API (T-13, R-02 da T-09)."""
     estabelecimento_id = await estabelecimento_atual(sessao)
-    usuarios = RepositorioUsuarios(sessao, estabelecimento_id)
-    if await usuarios.buscar_por_login(dados.login) is not None:
-        raise Conflito("Já existe um usuário com esse login.")
-    admin = Usuario.criar(
-        estabelecimento_id=estabelecimento_id,
-        nome=dados.nome,
-        login=dados.login,
-        senha_hash=await gerar_hash(dados.senha),
-        perfil=Perfil.ADMIN,
+    servico = _servico_usuarios(sessao, estabelecimento_id, RelogioDoServidor())
+    criado = await servico.criar(
+        nome=dados.nome, login=dados.login, senha=dados.senha, perfil=Perfil.ADMIN
     )
-    usuarios.adicionar(admin)
-    await sessao.flush()
-    return admin
+    return await sessao.get_one(Usuario, criado.id)
+
+
+def _servico_usuarios(
+    sessao: AsyncSession, estabelecimento_id: int, relogio: Relogio
+) -> ServicoUsuarios:
+    usuarios = RepositorioUsuarios(sessao, estabelecimento_id)
+    sessoes = ServicoSessao(
+        RepositorioSessoes(sessao, estabelecimento_id),
+        usuarios,
+        politica_da_configuracao(obter_configuracao()),
+        relogio,
+    )
+    configuracao = obter_configuracao()
+    politica_bloqueio = PoliticaDeBloqueio(
+        tentativas=configuracao.bloqueio_tentativas,
+        minutos=tuple(configuracao.bloqueio_minutos),
+    )
+    return ServicoUsuarios(usuarios, sessoes, relogio, estabelecimento_id, politica_bloqueio)
 
 
 async def redefinir_senha_admin(
@@ -82,6 +97,9 @@ async def redefinir_senha_admin(
     admin = await usuarios.buscar_por_login(dados.login)
     if admin is None or admin.perfil is not Perfil.ADMIN:
         raise NaoEncontrado("Nenhum ADMIN com esse login.")
+    if not admin.ativo:
+        # Redefinir a senha não reativa a conta; dizer que liberou seria mentira (RN-53).
+        raise RegraViolada("A conta está desativada. Reative-a pela área de ADMIN antes.")
     admin.redefinir_senha(await gerar_hash(dados.senha))
     servico = ServicoSessao(
         RepositorioSessoes(sessao, estabelecimento_id),
@@ -115,6 +133,8 @@ def main(
 ) -> int:
     argumentos = interpretar(argv)
     try:
+        if argumentos.comando == "criar-admin":
+            IdentidadeAdmin(nome=argumentos.nome, login=argumentos.login)
         senha = _ler_senha_confirmada(ler_senha)
         if argumentos.comando == "criar-admin":
             novo = NovoAdmin(nome=argumentos.nome, login=argumentos.login, senha=senha)

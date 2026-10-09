@@ -4,18 +4,18 @@ import asyncio
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Annotated
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.catalogo.router import router_itens, router_pratos, router_proteinas
+from app.catalogo.router_cardapio import router as router_cardapio
 from app.core.config import Configuracao, obter_configuracao
-from app.core.db import criar_engine, criar_fabrica_sessoes, obter_sessao
+from app.core.db import SessaoDaRequisicao, criar_engine, criar_fabrica_sessoes
 from app.core.excecoes import (
     Conflito,
     ErroDeDominio,
@@ -26,6 +26,8 @@ from app.core.excecoes import (
 )
 from app.core.log import configurar_log
 from app.core.seguranca import CABECALHOS_DE_SEGURANCA, instalar_seguranca
+from app.identidade.router import router as router_identidade
+from app.identidade.router import router_conta, router_usuarios
 
 logger = logging.getLogger("app.erros")
 
@@ -127,11 +129,16 @@ def criar_app(configuracao: Configuracao | None = None) -> FastAPI:
     app.add_exception_handler(Exception, _tratar_erro_inesperado)
     instalar_seguranca(app)
     _instalar_documentacao(app)
+    app.include_router(router_identidade)
+    app.include_router(router_usuarios)
+    app.include_router(router_conta)
+    app.include_router(router_proteinas)
+    app.include_router(router_pratos)
+    app.include_router(router_itens)
+    app.include_router(router_cardapio)
 
     @app.get("/health")
-    async def health(
-        request: Request, sessao: Annotated[AsyncSession, Depends(obter_sessao)]
-    ) -> JSONResponse:
+    async def health(request: Request, sessao: SessaoDaRequisicao) -> JSONResponse:
         """Toca o banco com uma consulta trivial, dentro de um tempo máximo (ADR-008)."""
         timeout = request.app.state.configuracao.banco_timeout_segundos
         try:
