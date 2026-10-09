@@ -26,3 +26,27 @@ class ProteinaListada(BaseModel):
     nome: str
     ativo: bool
     pratos_ativos: int
+
+
+class NovoPrato(ModeloEstrito):
+    nome: Nome
+    proteina_id: int
+    gramas_por_porcao: Annotated[int, Field(gt=0, le=10000)]
+
+
+class RenomearPrato(ModeloEstrito):
+    nome: Nome
+
+
+class AlterarGramagem(ModeloEstrito):
+    gramas_por_porcao: Annotated[int, Field(gt=0, le=10000)]
+
+
+class PratoListado(BaseModel):
+    id: int
+    nome: str
+    proteina_id: int
+    proteina_nome: str
+    gramas_por_porcao: int
+    ativo: bool
+    itens_ativos: int

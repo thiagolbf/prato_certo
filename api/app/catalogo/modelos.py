@@ -85,6 +85,9 @@ class Prato(Base):
             ativo=True,
         )
 
+    def renomear(self, nome: str) -> None:
+        self.nome = _nome_valido(nome)
+
     def alterar_gramagem(self, gramas: int) -> None:
         self.gramas_por_porcao = Gramagem(gramas).gramas
 

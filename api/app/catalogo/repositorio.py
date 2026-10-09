@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.catalogo.modelos import Prato, Proteina
+from app.catalogo.modelos import Formato, ItemCardapio, Prato, Proteina
 
 
 class RepositorioProteinas:
@@ -84,6 +84,68 @@ class RepositorioProteinas:
 
     def adicionar(self, proteina: Proteina) -> None:
         self._sessao.add(proteina)
+
+    async def persistir(self) -> None:
+        await self._sessao.flush()
+
+
+class RepositorioPratos:
+    def __init__(self, sessao: AsyncSession, estabelecimento_id: int) -> None:
+        self._sessao = sessao
+        self._estabelecimento_id = estabelecimento_id
+
+    @property
+    def estabelecimento_id(self) -> int:
+        return self._estabelecimento_id
+
+    async def listar(self, incluir_desativados: bool) -> Sequence[tuple[Prato, str, int]]:
+        itens_ativos = (
+            select(func.count(ItemCardapio.id))
+            .where(ItemCardapio.prato_id == Prato.id, ItemCardapio.ativo.is_(True))
+            .scalar_subquery()
+        )
+        consulta = (
+            select(Prato, Proteina.nome, itens_ativos)
+            .join(Proteina, Proteina.id == Prato.proteina_id)
+            .where(Prato.estabelecimento_id == self._estabelecimento_id)
+            .order_by(Prato.nome)
+        )
+        if not incluir_desativados:
+            consulta = consulta.where(Prato.ativo.is_(True))
+        return (await self._sessao.execute(consulta)).all()
+
+    async def buscar_por_id(self, prato_id: int) -> Prato | None:
+        return await self._sessao.scalar(
+            select(Prato).where(
+                Prato.estabelecimento_id == self._estabelecimento_id,
+                Prato.id == prato_id,
+            )
+        )
+
+    async def buscar_por_nome(self, nome: str) -> Prato | None:
+        # Sem diferenciar maiúsculas nem espaços nas pontas (RN-59).
+        return await self._sessao.scalar(
+            select(Prato).where(
+                Prato.estabelecimento_id == self._estabelecimento_id,
+                func.lower(func.trim(Prato.nome)) == func.lower(func.trim(nome)),
+            )
+        )
+
+    async def itens_ativos_do_prato(self, prato_id: int) -> Sequence[Formato]:
+        return (
+            await self._sessao.scalars(
+                select(ItemCardapio.formato)
+                .where(
+                    ItemCardapio.estabelecimento_id == self._estabelecimento_id,
+                    ItemCardapio.prato_id == prato_id,
+                    ItemCardapio.ativo.is_(True),
+                )
+                .order_by(ItemCardapio.formato)
+            )
+        ).all()
+
+    def adicionar(self, prato: Prato) -> None:
+        self._sessao.add(prato)
 
     async def persistir(self) -> None:
         await self._sessao.flush()
