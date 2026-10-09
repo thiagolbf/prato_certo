@@ -13,6 +13,8 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 
+import app.catalogo.modelos  # noqa: F401
+
 # Registro dos modelos na metadata: todo módulo com modelo SQLAlchemy entra aqui.
 # Modelo não importado fica invisível ao --autogenerate, que gera migration vazia sem
 # avisar; `uv run alembic check` acusa modelo e migrations fora de sincronia.
