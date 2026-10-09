@@ -7,19 +7,30 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from app.catalogo.repositorio import RepositorioPratos, RepositorioProteinas
+from app.catalogo.repositorio import RepositorioItens, RepositorioPratos, RepositorioProteinas
 from app.catalogo.schemas import (
     AlterarGramagem,
+    AlterarPreco,
+    ItemListado,
     NovaProteina,
+    NovoItem,
     NovoPrato,
     PratoListado,
     ProteinaListada,
     RenomearPrato,
     RenomearProteina,
 )
-from app.catalogo.servico import PratoLeitura, ProteinaLeitura, ServicoPratos, ServicoProteinas
+from app.catalogo.servico import (
+    ItemLeitura,
+    PratoLeitura,
+    ProteinaLeitura,
+    ServicoItens,
+    ServicoPratos,
+    ServicoProteinas,
+)
 from app.core.db import SessaoDaRequisicao
 from app.core.estabelecimento import estabelecimento_atual
+from app.core.valores import Dinheiro
 from app.identidade.dependencias import exige_admin
 
 router_proteinas = APIRouter(
@@ -163,3 +174,75 @@ async def reativar_prato(
     servico: Annotated[ServicoPratos, Depends(servico_pratos_da_requisicao)],
 ) -> PratoListado:
     return _prato_listado(await servico.reativar(prato_id))
+
+
+# ---------- itens de cardápio ----------
+
+router_itens = APIRouter(
+    prefix="/api/itens", tags=["catálogo"], dependencies=[Depends(exige_admin)]
+)
+
+
+async def servico_itens_da_requisicao(
+    sessao: SessaoDaRequisicao,
+    estabelecimento_id: Annotated[int, Depends(estabelecimento_atual)],
+) -> ServicoItens:
+    return ServicoItens(
+        RepositorioItens(sessao, estabelecimento_id),
+        RepositorioPratos(sessao, estabelecimento_id),
+    )
+
+
+def _item_listado(leitura: ItemLeitura) -> ItemListado:
+    return ItemListado(
+        id=leitura.id,
+        prato_id=leitura.prato_id,
+        prato_nome=leitura.prato_nome,
+        nome=leitura.nome,
+        formato=leitura.formato,
+        gramas_por_porcao=leitura.gramas_por_porcao,
+        preco=leitura.preco,
+        ativo=leitura.ativo,
+    )
+
+
+@router_itens.get("")
+async def listar_itens(
+    servico: Annotated[ServicoItens, Depends(servico_itens_da_requisicao)],
+    incluir_desativados: bool = False,
+) -> list[ItemListado]:
+    return [_item_listado(item) for item in await servico.listar(incluir_desativados)]
+
+
+@router_itens.post("", status_code=201)
+async def cadastrar_item(
+    corpo: NovoItem,
+    servico: Annotated[ServicoItens, Depends(servico_itens_da_requisicao)],
+) -> ItemListado:
+    criado = await servico.criar(corpo.prato_id, corpo.formato, Dinheiro(corpo.preco))
+    return _item_listado(criado)
+
+
+@router_itens.post("/{item_id}/preco")
+async def alterar_preco_item(
+    item_id: int,
+    corpo: AlterarPreco,
+    servico: Annotated[ServicoItens, Depends(servico_itens_da_requisicao)],
+) -> ItemListado:
+    return _item_listado(await servico.alterar_preco(item_id, Dinheiro(corpo.preco)))
+
+
+@router_itens.post("/{item_id}/desativar")
+async def desativar_item(
+    item_id: int,
+    servico: Annotated[ServicoItens, Depends(servico_itens_da_requisicao)],
+) -> ItemListado:
+    return _item_listado(await servico.desativar(item_id))
+
+
+@router_itens.post("/{item_id}/reativar")
+async def reativar_item(
+    item_id: int,
+    servico: Annotated[ServicoItens, Depends(servico_itens_da_requisicao)],
+) -> ItemListado:
+    return _item_listado(await servico.reativar(item_id))

@@ -3,10 +3,12 @@
 Entrada herda de `ModeloEstrito`, que corta espaços nas pontas: "  Frango " vira "Frango".
 """
 
+from decimal import Decimal
 from typing import Annotated
 
 from pydantic import BaseModel, Field
 
+from app.catalogo.modelos import Formato
 from app.core.schemas import ModeloEstrito
 
 # Limite de nome da SPEC-UI (lacuna 16), igual ao de usuários.
@@ -50,3 +52,29 @@ class PratoListado(BaseModel):
     gramas_por_porcao: int
     ativo: bool
     itens_ativos: int
+
+
+# Preço: Decimal com no máximo duas casas e positivo (RN-03, ADR-009). Nunca float.
+Preco = Annotated[Decimal, Field(gt=0, max_digits=10, decimal_places=2)]
+
+
+class NovoItem(ModeloEstrito):
+    prato_id: int
+    formato: Formato
+    preco: Preco
+
+
+class AlterarPreco(ModeloEstrito):
+    # Só o preço: prato e formato não aparecem aqui, e campo extra é recusado (422).
+    preco: Preco
+
+
+class ItemListado(BaseModel):
+    id: int
+    prato_id: int
+    prato_nome: str
+    nome: str
+    formato: Formato
+    gramas_por_porcao: int
+    preco: Decimal
+    ativo: bool

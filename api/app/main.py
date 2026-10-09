@@ -12,7 +12,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.catalogo.router import router_pratos, router_proteinas
+from app.catalogo.router import router_itens, router_pratos, router_proteinas
 from app.core.config import Configuracao, obter_configuracao
 from app.core.db import SessaoDaRequisicao, criar_engine, criar_fabrica_sessoes
 from app.core.excecoes import (
@@ -133,6 +133,7 @@ def criar_app(configuracao: Configuracao | None = None) -> FastAPI:
     app.include_router(router_conta)
     app.include_router(router_proteinas)
     app.include_router(router_pratos)
+    app.include_router(router_itens)
 
     @app.get("/health")
     async def health(request: Request, sessao: SessaoDaRequisicao) -> JSONResponse:

@@ -6,12 +6,14 @@ de dependentes e a desativação acontecem na mesma transação, com a proteína
 
 import logging
 from dataclasses import dataclass
+from decimal import Decimal
 
 from sqlalchemy.exc import IntegrityError
 
-from app.catalogo.modelos import Formato, Prato, Proteina
-from app.catalogo.repositorio import RepositorioPratos, RepositorioProteinas
+from app.catalogo.modelos import Formato, ItemCardapio, Prato, Proteina
+from app.catalogo.repositorio import RepositorioItens, RepositorioPratos, RepositorioProteinas
 from app.core.excecoes import Conflito, NaoEncontrado, RegraViolada
+from app.core.valores import Dinheiro
 
 logger = logging.getLogger("app.catalogo")
 MENSAGEM_NOME_REPETIDO = "Já existe uma proteína com esse nome."
@@ -180,7 +182,10 @@ class ServicoPratos:
         return await self._leitura(prato)
 
     async def desativar(self, prato_id: int) -> PratoLeitura:
-        prato = await self._buscar(prato_id)
+        # Trava o prato: um item criado em paralelo espera esta transação (RN-58).
+        prato = await self._pratos.buscar_por_id_para_atualizar(prato_id)
+        if prato is None:
+            raise NaoEncontrado("Prato não encontrado.")
         itens = await self._pratos.itens_ativos_do_prato(prato.id)
         if itens:
             rotulos = ", ".join(f"{prato.nome} - {ROTULO_FORMATO[formato]}" for formato in itens)
@@ -233,4 +238,119 @@ class ServicoPratos:
             gramas_por_porcao=prato.gramas_por_porcao,
             ativo=prato.ativo,
             itens_ativos=len(itens),
+        )
+
+
+MENSAGEM_ITEM_REPETIDO = "Já existe um item desse prato neste formato."
+MENSAGEM_ITEM_DESATIVADO = (
+    "Já existe um item desativado desse prato neste formato. Reative-o em vez de criar outro."
+)
+
+
+@dataclass(frozen=True)
+class ItemLeitura:
+    id: int
+    prato_id: int
+    prato_nome: str
+    formato: Formato
+    gramas_por_porcao: int
+    preco: Decimal
+    ativo: bool
+
+    @property
+    def nome(self) -> str:
+        return f"{self.prato_nome} - {ROTULO_FORMATO[self.formato]}"
+
+
+class ServicoItens:
+    """Itens de cardápio: prato × formato com preço próprio (RN-03, RN-59)."""
+
+    def __init__(self, itens: RepositorioItens, pratos: RepositorioPratos) -> None:
+        self._itens = itens
+        self._pratos = pratos
+
+    async def listar(self, incluir_desativados: bool) -> list[ItemLeitura]:
+        return [
+            ItemLeitura(
+                id=item.id,
+                prato_id=item.prato_id,
+                prato_nome=prato_nome,
+                formato=item.formato,
+                gramas_por_porcao=gramas,
+                preco=item.preco,
+                ativo=item.ativo,
+            )
+            for item, prato_nome, gramas in await self._itens.listar(incluir_desativados)
+        ]
+
+    async def criar(self, prato_id: int, formato: Formato, preco: Dinheiro) -> ItemLeitura:
+        # Trava o prato: a criação de item e a desativação do prato se serializam (RN-58).
+        prato = await self._pratos.buscar_por_id_para_atualizar(prato_id)
+        if prato is None:
+            raise NaoEncontrado("Prato não encontrado.")
+        if not prato.ativo:
+            raise RegraViolada("O prato precisa estar ativo para ter itens de cardápio.")
+        existente = await self._itens.buscar_por_prato_e_formato(prato.id, formato)
+        if existente is not None:
+            mensagem = MENSAGEM_ITEM_REPETIDO if existente.ativo else MENSAGEM_ITEM_DESATIVADO
+            raise Conflito(mensagem)
+        try:
+            item = ItemCardapio.criar(
+                estabelecimento_id=prato.estabelecimento_id,
+                prato_id=prato.id,
+                formato=formato,
+                preco=preco,
+            )
+        except ValueError as erro:
+            raise RegraViolada(str(erro)) from erro
+        self._itens.adicionar(item)
+        try:
+            await self._itens.persistir()
+        except IntegrityError as erro:
+            # Corrida: outro item do mesmo par entrou entre a checagem e o insert.
+            raise Conflito(MENSAGEM_ITEM_REPETIDO) from erro
+        logger.info("item criado", extra={"item_id": item.id})
+        return await self._leitura(item, prato)
+
+    async def alterar_preco(self, item_id: int, preco: Dinheiro) -> ItemLeitura:
+        """Só o preço muda: prato e formato são fixos depois de criados (RN-05, ADR-004)."""
+        item = await self._buscar(item_id)
+        try:
+            item.alterar_preco(preco)
+        except ValueError as erro:
+            raise RegraViolada(str(erro)) from erro
+        return await self._leitura(item)
+
+    async def desativar(self, item_id: int) -> ItemLeitura:
+        item = await self._buscar(item_id)
+        item.desativar()
+        logger.info("item desativado", extra={"item_id": item.id})
+        return await self._leitura(item)
+
+    async def reativar(self, item_id: int) -> ItemLeitura:
+        item = await self._buscar(item_id)
+        prato = await self._pratos.buscar_por_id(item.prato_id)
+        if prato is None or not prato.ativo:
+            # Item de prato desativado seria vendável sem prato (RN-58).
+            raise RegraViolada("O prato do item está desativado. Reative-o antes.")
+        item.reativar()
+        return await self._leitura(item, prato)
+
+    async def _buscar(self, item_id: int) -> ItemCardapio:
+        item = await self._itens.buscar_por_id(item_id)
+        if item is None:
+            raise NaoEncontrado("Item não encontrado.")
+        return item
+
+    async def _leitura(self, item: ItemCardapio, prato: Prato | None = None) -> ItemLeitura:
+        if prato is None:
+            prato = await self._pratos.buscar_por_id(item.prato_id)
+        return ItemLeitura(
+            id=item.id,
+            prato_id=item.prato_id,
+            prato_nome=prato.nome if prato else "",
+            formato=item.formato,
+            gramas_por_porcao=prato.gramas_por_porcao if prato else 0,
+            preco=item.preco,
+            ativo=item.ativo,
         )

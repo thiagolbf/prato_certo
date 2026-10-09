@@ -144,8 +144,62 @@ class RepositorioPratos:
             )
         ).all()
 
+    async def buscar_por_id_para_atualizar(self, prato_id: int) -> Prato | None:
+        """Trava o prato até o fim da transação; criação de item e desativação se serializam."""
+        return await self._sessao.scalar(
+            select(Prato)
+            .where(
+                Prato.estabelecimento_id == self._estabelecimento_id,
+                Prato.id == prato_id,
+            )
+            .with_for_update()
+        )
+
     def adicionar(self, prato: Prato) -> None:
         self._sessao.add(prato)
+
+    async def persistir(self) -> None:
+        await self._sessao.flush()
+
+
+class RepositorioItens:
+    def __init__(self, sessao: AsyncSession, estabelecimento_id: int) -> None:
+        self._sessao = sessao
+        self._estabelecimento_id = estabelecimento_id
+
+    async def listar(self, incluir_desativados: bool) -> Sequence[tuple[ItemCardapio, str, int]]:
+        consulta = (
+            select(ItemCardapio, Prato.nome, Prato.gramas_por_porcao)
+            .join(Prato, Prato.id == ItemCardapio.prato_id)
+            .where(ItemCardapio.estabelecimento_id == self._estabelecimento_id)
+            .order_by(Prato.nome, ItemCardapio.formato)
+        )
+        if not incluir_desativados:
+            consulta = consulta.where(ItemCardapio.ativo.is_(True))
+        return (await self._sessao.execute(consulta)).all()
+
+    async def buscar_por_id(self, item_id: int) -> ItemCardapio | None:
+        return await self._sessao.scalar(
+            select(ItemCardapio).where(
+                ItemCardapio.estabelecimento_id == self._estabelecimento_id,
+                ItemCardapio.id == item_id,
+            )
+        )
+
+    async def buscar_por_prato_e_formato(
+        self, prato_id: int, formato: Formato
+    ) -> ItemCardapio | None:
+        # Vale também para desativado: o par não se repete (RN-59).
+        return await self._sessao.scalar(
+            select(ItemCardapio).where(
+                ItemCardapio.estabelecimento_id == self._estabelecimento_id,
+                ItemCardapio.prato_id == prato_id,
+                ItemCardapio.formato == formato,
+            )
+        )
+
+    def adicionar(self, item: ItemCardapio) -> None:
+        self._sessao.add(item)
 
     async def persistir(self) -> None:
         await self._sessao.flush()
