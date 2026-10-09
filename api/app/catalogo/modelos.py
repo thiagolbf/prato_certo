@@ -48,6 +48,9 @@ class Proteina(Base):
     def criar(cls, *, estabelecimento_id: int, nome: str) -> Proteina:
         return cls(estabelecimento_id=estabelecimento_id, nome=_nome_valido(nome), ativo=True)
 
+    def renomear(self, nome: str) -> None:
+        self.nome = _nome_valido(nome)
+
     def desativar(self) -> None:
         """Proteínas nunca são apagadas, só desativadas (RN-01)."""
         self.ativo = False
