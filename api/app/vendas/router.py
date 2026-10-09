@@ -4,6 +4,7 @@ Routers são funções; o service vem por `Depends`. O registro é alteração d
 Criação responde 201; reenvio de chave já gravada responde 200 com a venda original (RN-18).
 """
 
+from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response
@@ -15,11 +16,21 @@ from app.core.estabelecimento import estabelecimento_atual
 from app.core.relogio import Relogio, obter_relogio
 from app.core.tempo import FUSO
 from app.identidade.dependencias import exige_admin, usuario_autenticado
+from app.identidade.router import servico_usuarios_da_requisicao
 from app.identidade.servico_sessao import UsuarioAutenticado
-from app.vendas.leitura import VendaLeitura
+from app.identidade.servico_usuarios import ServicoUsuarios
+from app.vendas.leitura import VendaAuditada, VendaLeitura, VendasDaData
 from app.vendas.repositorio import RepositorioVendas
-from app.vendas.schemas import CancelarVenda, NovaVenda, VendaDoDia, VendaRegistrada
+from app.vendas.schemas import (
+    CancelarVenda,
+    NovaVenda,
+    VendaDaDataListada,
+    VendaDoDia,
+    VendaRegistrada,
+    VendasDaDataListadas,
+)
 from app.vendas.servico import ServicoVendas
+from app.vendas.servico_consulta import ServicoConsultaVendas
 
 router = APIRouter(prefix="/api/vendas", tags=["vendas"])
 
@@ -72,6 +83,47 @@ async def cancelar_venda(
 ) -> VendaRegistrada:
     """Só POST e só ADMIN: não há rota GET que cancele (RN-21, RN-42, ADR-006)."""
     return _registrada(await servico.cancelar(venda_id, usuario.id, corpo.motivo))
+
+
+async def servico_consulta_da_requisicao(
+    sessao: SessaoDaRequisicao,
+    estabelecimento_id: Annotated[int, Depends(estabelecimento_atual)],
+    usuarios: Annotated[ServicoUsuarios, Depends(servico_usuarios_da_requisicao)],
+) -> ServicoConsultaVendas:
+    return ServicoConsultaVendas(RepositorioVendas(sessao, estabelecimento_id), usuarios)
+
+
+def _auditada_para_lista(venda: VendaAuditada) -> VendaDaDataListada:
+    return VendaDaDataListada(
+        id=venda.id,
+        horario=venda.registrada_em.astimezone(FUSO),
+        prato_nome=venda.prato_nome,
+        proteina_nome=venda.proteina_nome,
+        formato=venda.formato,
+        quantidade=venda.quantidade,
+        preco_unitario=venda.preco_unitario,
+        valor_total=venda.valor_total,
+        autor=venda.autor_nome,
+        cancelada=venda.cancelada_em is not None,
+        cancelada_por=venda.cancelada_por_nome,
+        cancelada_em=venda.cancelada_em,
+        motivo_cancelamento=venda.motivo_cancelamento,
+    )
+
+
+@router.get("", dependencies=[Depends(exige_admin)])
+async def vendas_da_data(
+    data: date,
+    servico: Annotated[ServicoConsultaVendas, Depends(servico_consulta_da_requisicao)],
+) -> VendasDaDataListadas:
+    """Todas as vendas da data, com canceladas marcadas e totais sem elas (RN-51, RN-28)."""
+    dados: VendasDaData = await servico.da_data(data)
+    return VendasDaDataListadas(
+        data=dados.data,
+        vendas=[_auditada_para_lista(venda) for venda in dados.vendas],
+        total_unidades=dados.total_unidades,
+        total_valor=dados.total_valor,
+    )
 
 
 @router.get("/minhas")

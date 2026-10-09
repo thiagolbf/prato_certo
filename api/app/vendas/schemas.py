@@ -4,7 +4,7 @@ O teto de quantidade não está aqui: é regra de domínio (RN-14), e a recusa v
 a mensagem de negócio, que a UI mostra no estado `.recusado`.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated
 
@@ -34,6 +34,31 @@ class VendaDoDia(BaseModel):
     formato: Formato
     quantidade: int
     cancelada: bool
+
+
+class VendaDaDataListada(BaseModel):
+    """Venda na lista do ADMIN, com preço, valor, autor e, se cancelada, quem cancelou (RN-51)."""
+
+    id: int
+    horario: datetime
+    prato_nome: str
+    proteina_nome: str
+    formato: Formato
+    quantidade: int
+    preco_unitario: Decimal
+    valor_total: Decimal
+    autor: str
+    cancelada: bool
+    cancelada_por: str | None
+    cancelada_em: datetime | None
+    motivo_cancelamento: str | None
+
+
+class VendasDaDataListadas(BaseModel):
+    data: date
+    vendas: list[VendaDaDataListada]
+    total_unidades: int
+    total_valor: Decimal
 
 
 class CancelarVenda(ModeloEstrito):

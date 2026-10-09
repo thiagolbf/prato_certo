@@ -1113,23 +1113,24 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 
 #### T-30 — Expor a lista de vendas da data para o ADMIN
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-13, T-26, T-28
 - **Implementa:** RN-51
 - **Valida:** CA-27, CA-50, CA-53
 - **Decisões base:** ADR-001, ADR-005, ADR-009
 - **Camadas/arquivos afetados:**
-  - `api/app/vendas/repositorio.py`, `api/app/vendas/servico.py`, `api/app/vendas/schemas.py`, `api/app/vendas/router.py` *(editados)*
-  - `api/app/identidade/servico_usuarios.py` *(editado — leitura de nomes por id)*
+  - `api/app/vendas/repositorio.py`, `api/app/vendas/schemas.py`, `api/app/vendas/router.py`, `api/app/vendas/leitura.py` *(editados)*
+  - `api/app/vendas/servico_consulta.py` *(novo — consulta da data, separada de `ServicoVendas`; justificado no review R-01)*
+  - `api/app/identidade/servico_usuarios.py`, `api/app/identidade/repositorio.py` *(editados — `nomes_por_id` e `buscar_por_ids`, em lote; o repositório precisou do método, justificado no review R-01)*
   - `api/tests/vendas/test_api_vendas_da_data.py` *(novo)*
 
 **Descrição:**
 `GET /api/vendas?data=` (ADMIN) devolve todas as vendas da data, de todos os usuários, com item, formato, quantidade, preço unitário, valor, autor e horário; as canceladas vêm marcadas, com quem cancelou, quando e o motivo, e os totais da lista as excluem (RN-28). Os nomes dos autores vêm do serviço de `identidade`, nunca do repositório dele (ADR-001).
 
 **Critério de aceite (testável):**
-- [ ] Em 15/09, com 5 vendas de "João" e 3 de "Maria", uma cancelada, a lista traz as 8 com todos os campos, a cancelada marcada com autor, instante e motivo, e fora dos totais (CA-50)
-- [ ] Depois de desativar "João", as vendas dele continuam atribuídas a ele (CA-27); depois de reativá-lo, ele autentica e as vendas seguem dele (CA-53)
+- [x] Em 15/09, com 5 vendas de "João" e 3 de "Maria", uma cancelada, a lista traz as 8 com todos os campos, a cancelada marcada com autor, instante e motivo, e fora dos totais (CA-50)
+- [x] Depois de desativar "João", as vendas dele continuam atribuídas a ele (CA-27); depois de reativá-lo, ele autentica e as vendas seguem dele (CA-53)
 
 **Testes a escrever:**
 - *Integration:* `test_CA_50_admin_ve_todas_as_vendas_da_data`, `test_CA_27_usuario_desativado_preserva_autoria`, `test_CA_53_operador_reativado_volta_a_autenticar`
@@ -2162,3 +2163,4 @@ Nenhuma questão em aberto.
 | T-27   | Concluído | 2026-10-09 | `86f297d` | Arquivos: `vendas/modelos.py` (`Venda.cancelar`: motivo obrigatório com `strip`, recusa de venda já cancelada, grava instante, autor e motivo sem tocar quantidade ou snapshot; sem checagem de data, RN-22), `vendas/repositorio.py` (`buscar_por_id_para_cancelar` com `FOR UPDATE`, `persistir`), `vendas/servico.py` (`ServicoVendas.cancelar`: só orquestra, `NaoEncontrado` para venda de outro estabelecimento ou inexistente), `tests/vendas/test_cancelamento.py` (novo). Testes: CA-16 e CA-17 unitários; `test_cancelar_venda_de_data_passada`, `test_cancelamento_nao_remove_a_linha`; extras: concorrência com a primeira transação aberta, e inexistente. Review (REVIEW-T-27-2026-10-09): Aprovado com ressalvas. R-01 (Importante) corrigido nesta tarefa: o teste de concorrência original passava sem a trava, e foi reescrito; verificação negativa confirmada (sem `FOR UPDATE`, falha com `DID NOT RAISE`). R-02 (sleep de 0,3 s) e R-03 (checagem de ADMIN na rota, T-28) registrados. Testes: 272 passando; ruff limpo; `alembic check` sem diferença.
 | T-28   | Concluído | 2026-10-09 | `4ff323b` | Arquivos: `vendas/router.py` (`POST /api/vendas/{venda_id}/cancelar` com `Depends(exige_admin)`; só POST, sem rota GET que cancele), `vendas/schemas.py` (`CancelarVenda`: `motivo` com até 200 caracteres, `ModeloEstrito`), `tests/vendas/test_api_cancelamento.py` (novo: CA-15 com 403 e venda ativa; CA-40 com 405 no GET; cancelamento pelo ADMIN com motivo; extras: motivo vazio com mensagem de negócio, motivo acima de 200, venda inexistente com 404). Review (REVIEW-T-28-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (`(RN-26)` na mensagem ao usuário, mesma pendência da T-23 R-01) e R-02 (falta teste de 401 sem sessão) registrados. Testes: 278 passando; ruff limpo; `alembic check` sem diferença. Ponto de validação humana após T-25 (seção 9) segue aberto; o usuário pediu para seguir o loop.
 | T-29   | Concluído | 2026-10-09 | `c3f2262` | Arquivos: `vendas/repositorio.py` (`listar_do_usuario_no_intervalo`: filtra estabelecimento, `registrada_por` e `[início, fim)` do dia operacional, mais recentes primeiro, canceladas inclusive), `vendas/servico.py` (`ServicoVendas.minhas_do_dia`, com `DiaOperacional.corrente`), `vendas/schemas.py` (`VendaDoDia`, sem preço nem valor, RN-40), `vendas/router.py` (`GET /api/vendas/minhas` com `usuario_autenticado`; horário convertido para `FUSO`), `tests/vendas/test_api_minhas_vendas.py` (novo: CA-36 com 12 próprias e 8 de outro Operador, CA-54 com venda cancelada marcada; extras: ordem e fuso, troca de dia operacional). Review (REVIEW-T-29-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (sem limite de linhas) e R-02 (mapeamento inline na rota, fora do padrão `_registrada`) registrados. Testes: 282 passando; ruff limpo; `alembic check` sem diferença.
+| T-30   | Concluído | 2026-10-09 | — | Arquivos: `identidade/repositorio.py` (`buscar_por_ids`, em lote, inclui desativados), `identidade/servico_usuarios.py` (`nomes_por_id`, a porta que `vendas` usa para nomes, ADR-001), `vendas/repositorio.py` (`listar_do_dia`, ordem crescente por horário; `totais_do_dia`, somados no SQL sem canceladas, RN-28), `vendas/leitura.py` (`VendaAuditada`, `VendasDaData`), `vendas/servico_consulta.py` (novo: `ServicoConsultaVendas`, só lê), `vendas/schemas.py` (`VendaDaDataListada`, `VendasDaDataListadas`), `vendas/router.py` (`GET /api/vendas?data=` com `exige_admin`). Testes: `test_api_vendas_da_data.py` com CA-50, CA-27, CA-53 (login real, 401 e 200), e extra: Operador recebe 403. Review (REVIEW-T-30-2026-10-09): Aprovado com ressalvas. R-01 (Importante, escopo de arquivos) corrigido com a lista de `Camadas` atualizada; R-02 (Importante, CA-50 sem conferir item, formato, quantidade, valor e horário) corrigido no teste; R-03 (paginação) e R-04 (ordem crescente, diferente de `minhas`) registrados. Testes: 286 passando; ruff limpo; `alembic check` sem diferença. Commit pendente.
