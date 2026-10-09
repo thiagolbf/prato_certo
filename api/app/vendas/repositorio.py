@@ -28,6 +28,21 @@ class RepositorioVendas:
             )
         )
 
+    async def buscar_por_id_para_cancelar(self, venda_id: int) -> Venda | None:
+        """Trava a linha até o fim da transação: dois cancelamentos simultâneos se encontram
+        em série, e o segundo vê a venda já cancelada (T-27, risco da tarefa)."""
+        return await self._sessao.scalar(
+            select(Venda)
+            .where(
+                Venda.estabelecimento_id == self._estabelecimento_id,
+                Venda.id == venda_id,
+            )
+            .with_for_update()
+        )
+
+    async def persistir(self) -> None:
+        await self._sessao.flush()
+
     async def buscar_por_chave(self, chave: str) -> Venda | None:
         return await self._sessao.scalar(
             select(Venda).where(

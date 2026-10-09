@@ -29,7 +29,7 @@ from app.core.excecoes import RegraViolada
 from app.core.modelo_base import Base
 from app.core.tempo import exigir_instante_com_fuso
 from app.core.valores import Dinheiro, Gramagem
-from app.vendas.excecoes import QuantidadeForaDoLimite
+from app.vendas.excecoes import MotivoObrigatorio, QuantidadeForaDoLimite, VendaJaCancelada
 
 QUANTIDADE_MINIMA = 1
 QUANTIDADE_MAXIMA = 20
@@ -113,6 +113,22 @@ class Venda(Base):
             registrada_por=usuario_id,
             chave_idempotencia=chave,
         )
+
+    def cancelar(self, *, por: int, motivo: str, agora: datetime) -> None:
+        """A única mutação da venda: grava quando, quem e por quê, na linha inteira (RN-23, RN-24).
+
+        Não olha a data da venda: qualquer data pode ser cancelada (RN-22). Não cancela de novo,
+        para que o primeiro cancelamento fique intacto (RN-25, CA-17).
+        """
+        exigir_instante_com_fuso(agora)
+        motivo_limpo = motivo.strip()
+        if not motivo_limpo:
+            raise MotivoObrigatorio("Informe o motivo do cancelamento (RN-26).")
+        if self.cancelada_em is not None:
+            raise VendaJaCancelada("Esta venda já foi cancelada.")
+        self.cancelada_em = agora
+        self.cancelada_por = por
+        self.motivo_cancelamento = motivo_limpo
 
 
 def _exigir_chave(chave: str) -> None:

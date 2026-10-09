@@ -1026,7 +1026,7 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 
 #### T-27 — Implementar o cancelamento lógico da venda
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-24
 - **Implementa:** RN-22, RN-23, RN-24, RN-25, RN-26
@@ -1041,16 +1041,17 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 `Venda.cancelar(por, motivo, agora)` é a **única** mutação da venda: exige motivo não vazio (RN-26), recusa venda já cancelada (RN-25) e grava instante, autor e motivo (RN-23). Atinge a linha inteira, sem mexer na quantidade (RN-24). O serviço carrega a venda com `SELECT … FOR UPDATE` e cancela sem checar data: qualquer data pode ser cancelada (RN-22).
 
 **Critério de aceite (testável):**
-- [ ] Cancelar sem motivo é recusado (CA-16)
-- [ ] Cancelar venda já cancelada é recusado e os dados do primeiro cancelamento ficam intactos (CA-17)
-- [ ] Cancelar uma venda de outra data funciona, e a linha continua no banco com instante, autor e motivo
+- [x] Cancelar sem motivo é recusado (CA-16)
+- [x] Cancelar venda já cancelada é recusado e os dados do primeiro cancelamento ficam intactos (CA-17)
+- [x] Cancelar uma venda de outra data funciona, e a linha continua no banco com instante, autor e motivo
 
 **Testes a escrever:**
 - *Unit:* `test_CA_16_cancelamento_sem_motivo_e_recusado`, `test_CA_17_venda_ja_cancelada_nao_e_cancelada_de_novo`
 - *Integration:* `test_cancelar_venda_de_data_passada`, `test_cancelamento_nao_remove_a_linha`
+- *Integration (extra, incluído no review R-01):* `test_cancelamento_concorrente_espera_a_trava_e_e_recusado`, `test_cancelar_venda_inexistente_e_nao_encontrada`
 
 **Riscos / pontos de atenção:**
-- Dois ADMINs cancelando a mesma venda ao mesmo tempo: o `FOR UPDATE` faz o segundo encontrar a venda já cancelada.
+- Dois ADMINs cancelando a mesma venda ao mesmo tempo: o `FOR UPDATE` faz o segundo encontrar a venda já cancelada. Coberto pelo teste de concorrência, verificado sem a trava (review R-01 da T-27).
 
 ---
 
@@ -2156,3 +2157,4 @@ Nenhuma questão em aberto.
 | T-24   | Concluído | 2026-10-08 | `c781f00` | Arquivos: `vendas/modelos.py` (`Venda`, com `registrar` como único caminho de criação; CHECKs de quantidade 1 a 20 e de formato; índices únicos de chave de idempotência e de `registrada_em`), `vendas/excecoes.py` (`QuantidadeForaDoLimite`, `VendaJaCancelada`, `MotivoObrigatorio`), `alembic/versions/0007_venda.py` (autogenerate, com CHECKs conferidos), `alembic/env.py` (importa `vendas.modelos`, como exige a convenção), `tests/vendas/test_venda.py` e `tests/vendas/__init__.py` (novos). Decisões de execução: `valor_total` em `Numeric(12,2)`, porque preço máximo × 20 não cabe em `Numeric(10,2)`; `preco_unitario` segue `Numeric(10,2)` como o plano. Sem migration de dado. Chave de idempotência vazia recusada na entidade (RN-18), por correção feita durante a execução, com teste. Testes: 254 passando; ruff limpo; migration 0007 sobe, desce e sobe; `alembic check` sem diferença. Review: Aprovado com ressalvas (REVIEW-T-24-2026-10-08); R-01 (`Formato` importado de `catalogo.modelos` na `vendas`) é sugestão; R-02 (chave vazia) aplicado.
 | T-25   | Concluído | 2026-10-08 | `c781f00` | Arquivos: `vendas/repositorio.py` (`inserir_se_nova` com `INSERT … ON CONFLICT (estabelecimento_id, chave_idempotencia) DO NOTHING … RETURNING id`; sem método de alteração nem de exclusão), `vendas/servico.py` (`ServicoVendas.registrar`: instante e dia do relógio do servidor, item pelo `ServicoCardapio`, snapshot e totais por `Venda.registrar`), `vendas/leitura.py` (novo: `VendaLeitura` e `ResultadoRegistro`, para a API não receber entidade), `tests/vendas/test_registro.py` (novo). Decisão de execução: a chave é consultada **antes** do item. Um reenvio de venda já gravada devolve a original mesmo que o cardápio tenha mudado (RN-18); sem isso, a retentativa de uma venda feita antes da troca de cardápio seria recusada. Teste de simultâneos grava de verdade, em duas sessões com commit, e limpa no fim. Verificação negativa feita depois do review (R-01): sem `ON CONFLICT`, o teste de simultâneos falhou com `IntegrityError`; código restaurado. Testes: 258 passando; ruff limpo; `alembic check` sem diferença. Review: Aprovado com ressalvas (REVIEW-T-25-2026-10-08); só sugestões: R-01 (rodar a verificação negativa do teste de simultâneos) e R-02 (`inserir_se_nova` envia toda coluna, o que atropelaria um `server_default` futuro).
 | T-26   | Concluído | 2026-10-09 | `5c289ca` | Arquivos: `vendas/schemas.py` (novo: `NovaVenda` com `ModeloEstrito`, `VendaRegistrada`), `vendas/router.py` (novo: `POST /api/vendas`, só monta o `ServicoVendas` por `Depends`; 201 na criação, 200 no reenvio via `Response`), `main.py` (inclusão do router; justificado no review R-04), `tests/vendas/test_api_registro.py` (novo: CA-01, CA-02, CA-05, CA-06, reenvio, sem sessão → 401, ADMIN também registra). Ajuste de escopo: o router reutiliza `servico_cardapio_da_requisicao` do catálogo para não tocar repositório alheio. Review (REVIEW-T-26-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (asserção da mensagem de CA-05 passou a ser a mensagem inteira) aplicado; R-02 a R-05 registrados (R-05: CA-06 incluído em `Valida:`). Testes: 265 passando; ruff limpo.
+| T-27   | Concluído | 2026-10-09 | — | Arquivos: `vendas/modelos.py` (`Venda.cancelar`: motivo obrigatório com `strip`, recusa de venda já cancelada, grava instante, autor e motivo sem tocar quantidade ou snapshot; sem checagem de data, RN-22), `vendas/repositorio.py` (`buscar_por_id_para_cancelar` com `FOR UPDATE`, `persistir`), `vendas/servico.py` (`ServicoVendas.cancelar`: só orquestra, `NaoEncontrado` para venda de outro estabelecimento ou inexistente), `tests/vendas/test_cancelamento.py` (novo). Testes: CA-16 e CA-17 unitários; `test_cancelar_venda_de_data_passada`, `test_cancelamento_nao_remove_a_linha`; extras: concorrência com a primeira transação aberta, e inexistente. Review (REVIEW-T-27-2026-10-09): Aprovado com ressalvas. R-01 (Importante) corrigido nesta tarefa: o teste de concorrência original passava sem a trava, e foi reescrito; verificação negativa confirmada (sem `FOR UPDATE`, falha com `DID NOT RAISE`). R-02 (sleep de 0,3 s) e R-03 (checagem de ADMIN na rota, T-28) registrados. Testes: 272 passando; ruff limpo; `alembic check` sem diferença. Commit pendente.
