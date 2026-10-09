@@ -665,7 +665,7 @@ Rotas de ADMIN: `GET /api/usuarios` lista nome, login, perfil, situação e, par
 
 #### T-15 — Criar as entidades Proteina e Prato com nomes únicos
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-03, T-04
 - **Implementa:** RN-01, RN-02, RN-59
@@ -675,14 +675,16 @@ Rotas de ADMIN: `GET /api/usuarios` lista nome, login, perfil, situação e, par
   - `api/app/catalogo/modelos.py` *(novo — `Proteina`, `Prato`)*
   - `api/alembic/versions/0004_proteina_prato.py` *(novo)*
   - `api/tests/catalogo/test_proteina_prato.py` *(novo)*
+  - `api/alembic/env.py` *(editado — importa `app.catalogo.modelos`, exigido pelo CLAUDE.md para o autogenerate enxergar o modelo; fora da lista, como em T-08)*
+  - `api/tests/catalogo/__init__.py` *(novo, vazio, como em `tests/identidade`)*
 
 **Descrição:**
 `proteina` (nome, ativo) e `prato` (nome, `proteina_id`, `gramas_por_porcao`, ativo), ambos com `estabelecimento_id`. Índices únicos em `(estabelecimento_id, lower(trim(nome)))` nas duas tabelas (RN-01, RN-59). A gramagem é um inteiro positivo, fixo por prato (RN-02). Relacionamentos com `lazy="raise"`. Métodos `desativar()`, `reativar()` e `alterar_gramagem()` nas entidades.
 
 **Critério de aceite (testável):**
-- [ ] "Frango" e " frango " na mesma tabela violam o índice único; o mesmo nome em outro estabelecimento é aceito
-- [ ] Gramagem zero ou negativa é recusada pela entidade
-- [ ] Acessar a proteína de um prato não carregada explicitamente levanta erro legível, em vez de `MissingGreenlet`
+- [x] "Frango" e " frango " na mesma tabela violam o índice único; o mesmo nome em outro estabelecimento é aceito
+- [x] Gramagem zero ou negativa é recusada pela entidade
+- [x] Acessar a proteína de um prato não carregada explicitamente levanta erro legível, em vez de `MissingGreenlet`
 
 **Testes a escrever:**
 - *Unit:* `test_gramagem_precisa_ser_positiva`, `test_desativar_e_reativar_prato`
@@ -2136,3 +2138,4 @@ Nenhuma questão em aberto.
 | T-12   | Concluído | 2026-10-08 | `4592d72` | Arquivos: `identidade/servico_autenticacao.py` (editado), `identidade/repositorio.py` (editado: `buscar_por_login_para_atualizar`, com `FOR UPDATE`), `identidade/router.py` (editado: `politica_de_bloqueio` a partir da configuração, relógio injetado, recusa em 401 sem exceção), `tests/identidade/test_bloqueio.py` (novo). Decisão RN-37 do usuário em 2026-10-08: a progressão dos bloqueios não recomeça com login bem-sucedido (registrada no PRD). Ordem do login: busca com lock, confere a senha sempre (para o tempo não revelar bloqueio), recusa conta bloqueada ou desativada sem contar falha, conta falha de senha, zera falhas no acerto. A recusa é `None` no service e 401 na rota, não exceção: uma exceção desfaria a falha registrada. Round 1 (REVIEW-T-12-2026-10-08): Bloqueado — o teste do CA-38 não provava o reinício (sem commit, sem engine novo) e não havia teste de concorrência para o `FOR UPDATE`. Corrigidos: CA-38 grava com commit, troca o engine e confere o bloqueio no banco; `test_falhas_concorrentes_nao_se_perdem` falha sem o lock (3 de 3) e passa com ele. Round 2 (REVIEW-T-12-2026-10-08-round2): Aprovado com ressalvas. Pendente: confirmar a regra de conta desativada (não conta falha). Testes: 163 passando; ruff limpo; `alembic check` sem diferença.
 | T-13   | Concluído | 2026-10-08 | `ecf45bf` | Arquivos: `identidade/servico_usuarios.py` e `tests/identidade/test_usuarios.py` (novos); `identidade/schemas.py` (Nome e Login com mensagens em português, `NovoUsuario` sem campo de perfil, `UsuarioListado`), `identidade/router.py` (router de usuários com `exige_admin`), `identidade/cli.py` (`criar-admin` usa o `ServicoUsuarios`; nome e login validados antes da senha, R-03 da T-09), `tests/identidade/test_cli.py`, `identidade/repositorio.py` e `main.py` (fora da lista, justificado acima). Decisões tomadas na execução: `bloqueado_ate` na lista só enquanto a conta está bloqueada agora; desativar encerra as sessões; corrida no cadastro vira 409 pelo `IntegrityError` (R-05 da T-09); ADMIN não desativa a própria conta (`Usuario.exigir_desativavel_por`, RN-34); `redefinir-senha` recusa conta desativada (RN-53). Logs de criação, desativação e reativação com ids. Review round 1 (REVIEW-T-13-2026-10-08): Aprovado com ressalvas; round 2 (REVIEW-T-13-2026-10-08-round2): Aprovado. Testes: 175 passando; ruff limpo; `alembic check` sem diferença.
 | T-14   | Concluído | 2026-10-08 | `3cdbe5a` | Arquivos: `identidade/servico_usuarios.py` (`redefinir_senha` e `trocar_senha_propria`), `identidade/servico_sessao.py` (`encerrar_outras_do_usuario`), `identidade/schemas.py`, `identidade/router.py` (`POST /api/usuarios/{id}/redefinir-senha` e `POST /api/conta/senha`, só ADMIN), `identidade/cli.py`, `main.py`, `tests/identidade/test_senhas.py` (novo), `test_usuarios.py` (construtor). Decisões tomadas na execução (dentro da delegação do usuário, registradas na RN-53 do PRD): a troca encerra as outras sessões do ADMIN e mantém a atual; a senha atual errada conta como falha para o bloqueio (RN-37), e a recusa sai como 422 sem exceção, para a falha ser gravada; a redefinição não atinge outro ADMIN (sai pelo comando técnico). Testes: 181 passando; ruff limpo; `alembic check` sem diferença. Review (REVIEW-T-14-2026-10-08): Aprovado com ressalvas; R-01 (teste da contagem da senha atual) corrigido com teste; R-02 e R-03 registrados como sugestões. Testes: 182 passando.
+| T-15   | Concluído | 2026-10-08 | `f406ff0` | Arquivos: `catalogo/modelos.py` (`Proteina`, `Prato`, com `criar`, `desativar`, `reativar`, `alterar_gramagem`; relacionamento `lazy="raise"`; índices únicos por expressão `lower(TRIM(BOTH FROM nome))`), `alembic/versions/0004_proteina_prato.py` (escrita à mão: o autogenerate não detecta índice por expressão), `tests/catalogo/test_proteina_prato.py` (novo). Gramagem recusada pelo `Gramagem` do core (valores.py), não uma validação nova. Índice do modelo usa a forma que o PostgreSQL devolve, senão o `alembic check` acusa diferença falsa. Testes: 188 passando; ruff limpo; `alembic check` sem diferença; migration 0004 sobe e desce. Review (REVIEW-T-15-2026-10-08): Aprovado com ressalvas; R-02 (nome em branco) corrigido na entidade com teste; R-01 (FK composta prato→proteina) registrado como dívida, a decidir junto com a T-16. Testes: 189 passando.
