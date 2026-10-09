@@ -1057,7 +1057,7 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 
 #### T-28 — Expor o cancelamento de venda só para ADMIN e só por POST
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Baixa
 - **Depende de:** T-11, T-27
 - **Implementa:** RN-21, RN-42
@@ -1071,11 +1071,12 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 `POST /api/vendas/{id}/cancelar` com `motivo` (até 200 caracteres), protegido por `exige_admin` (RN-21). Não existe rota `GET` que cancele.
 
 **Critério de aceite (testável):**
-- [ ] O Operador recebe 403 e a venda continua ativa (CA-15)
-- [ ] Um `GET` no caminho de cancelamento é recusado e a venda continua ativa (CA-40)
+- [x] O Operador recebe 403 e a venda continua ativa (CA-15)
+- [x] Um `GET` no caminho de cancelamento é recusado e a venda continua ativa (CA-40)
 
 **Testes a escrever:**
 - *Integration:* `test_CA_15_operador_nao_pode_cancelar`, `test_CA_40_cancelamento_por_get_e_recusado`, `test_admin_cancela_com_motivo`
+- *Integration (extra):* `test_motivo_vazio_e_recusado_com_mensagem_de_negocio`, `test_motivo_acima_de_200_caracteres_e_recusado`, `test_venda_inexistente_devolve_404`
 
 **Riscos / pontos de atenção:**
 - CA-14 e CA-18 (unidades saem do fechamento) fecham na T-33, quando o fechamento existe.
@@ -2158,3 +2159,4 @@ Nenhuma questão em aberto.
 | T-25   | Concluído | 2026-10-08 | `c781f00` | Arquivos: `vendas/repositorio.py` (`inserir_se_nova` com `INSERT … ON CONFLICT (estabelecimento_id, chave_idempotencia) DO NOTHING … RETURNING id`; sem método de alteração nem de exclusão), `vendas/servico.py` (`ServicoVendas.registrar`: instante e dia do relógio do servidor, item pelo `ServicoCardapio`, snapshot e totais por `Venda.registrar`), `vendas/leitura.py` (novo: `VendaLeitura` e `ResultadoRegistro`, para a API não receber entidade), `tests/vendas/test_registro.py` (novo). Decisão de execução: a chave é consultada **antes** do item. Um reenvio de venda já gravada devolve a original mesmo que o cardápio tenha mudado (RN-18); sem isso, a retentativa de uma venda feita antes da troca de cardápio seria recusada. Teste de simultâneos grava de verdade, em duas sessões com commit, e limpa no fim. Verificação negativa feita depois do review (R-01): sem `ON CONFLICT`, o teste de simultâneos falhou com `IntegrityError`; código restaurado. Testes: 258 passando; ruff limpo; `alembic check` sem diferença. Review: Aprovado com ressalvas (REVIEW-T-25-2026-10-08); só sugestões: R-01 (rodar a verificação negativa do teste de simultâneos) e R-02 (`inserir_se_nova` envia toda coluna, o que atropelaria um `server_default` futuro).
 | T-26   | Concluído | 2026-10-09 | `5c289ca` | Arquivos: `vendas/schemas.py` (novo: `NovaVenda` com `ModeloEstrito`, `VendaRegistrada`), `vendas/router.py` (novo: `POST /api/vendas`, só monta o `ServicoVendas` por `Depends`; 201 na criação, 200 no reenvio via `Response`), `main.py` (inclusão do router; justificado no review R-04), `tests/vendas/test_api_registro.py` (novo: CA-01, CA-02, CA-05, CA-06, reenvio, sem sessão → 401, ADMIN também registra). Ajuste de escopo: o router reutiliza `servico_cardapio_da_requisicao` do catálogo para não tocar repositório alheio. Review (REVIEW-T-26-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (asserção da mensagem de CA-05 passou a ser a mensagem inteira) aplicado; R-02 a R-05 registrados (R-05: CA-06 incluído em `Valida:`). Testes: 265 passando; ruff limpo.
 | T-27   | Concluído | 2026-10-09 | `86f297d` | Arquivos: `vendas/modelos.py` (`Venda.cancelar`: motivo obrigatório com `strip`, recusa de venda já cancelada, grava instante, autor e motivo sem tocar quantidade ou snapshot; sem checagem de data, RN-22), `vendas/repositorio.py` (`buscar_por_id_para_cancelar` com `FOR UPDATE`, `persistir`), `vendas/servico.py` (`ServicoVendas.cancelar`: só orquestra, `NaoEncontrado` para venda de outro estabelecimento ou inexistente), `tests/vendas/test_cancelamento.py` (novo). Testes: CA-16 e CA-17 unitários; `test_cancelar_venda_de_data_passada`, `test_cancelamento_nao_remove_a_linha`; extras: concorrência com a primeira transação aberta, e inexistente. Review (REVIEW-T-27-2026-10-09): Aprovado com ressalvas. R-01 (Importante) corrigido nesta tarefa: o teste de concorrência original passava sem a trava, e foi reescrito; verificação negativa confirmada (sem `FOR UPDATE`, falha com `DID NOT RAISE`). R-02 (sleep de 0,3 s) e R-03 (checagem de ADMIN na rota, T-28) registrados. Testes: 272 passando; ruff limpo; `alembic check` sem diferença.
+| T-28   | Concluído | 2026-10-09 | — | Arquivos: `vendas/router.py` (`POST /api/vendas/{venda_id}/cancelar` com `Depends(exige_admin)`; só POST, sem rota GET que cancele), `vendas/schemas.py` (`CancelarVenda`: `motivo` com até 200 caracteres, `ModeloEstrito`), `tests/vendas/test_api_cancelamento.py` (novo: CA-15 com 403 e venda ativa; CA-40 com 405 no GET; cancelamento pelo ADMIN com motivo; extras: motivo vazio com mensagem de negócio, motivo acima de 200, venda inexistente com 404). Review (REVIEW-T-28-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (`(RN-26)` na mensagem ao usuário, mesma pendência da T-23 R-01) e R-02 (falta teste de 401 sem sessão) registrados. Testes: 278 passando; ruff limpo; `alembic check` sem diferença. Ponto de validação humana após T-25 (seção 9) segue aberto; o usuário pediu para seguir o loop. Commit pendente.

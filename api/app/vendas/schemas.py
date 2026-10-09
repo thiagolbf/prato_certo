@@ -23,6 +23,11 @@ class NovaVenda(ModeloEstrito):
     chave_idempotencia: ChaveIdempotencia
 
 
+class CancelarVenda(ModeloEstrito):
+    # Motivo vazio é recusado pela entidade (RN-26), com a mensagem de negócio.
+    motivo: Annotated[str, Field(max_length=200)]
+
+
 class VendaRegistrada(BaseModel):
     id: int
     prato_nome: str
