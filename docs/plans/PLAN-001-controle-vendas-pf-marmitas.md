@@ -1150,7 +1150,7 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 
 #### T-31 — Agregar no SQL as unidades e a proteína do fechamento do dia
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Alta
 - **Depende de:** T-24
 - **Implementa:** RN-27, RN-28, RN-29, RN-30
@@ -1158,16 +1158,17 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 - **Decisões base:** ADR-004, ADR-005, ADR-007, ADR-009
 - **Camadas/arquivos afetados:**
   - `api/app/relatorios/consultas.py` *(novo)*
-  - `api/app/relatorios/schemas.py` *(novo)*
+  - `api/app/relatorios/schemas.py` *(novo — formas de leitura em dataclass, não contrato HTTP; ver review R-01)*
   - `api/tests/relatorios/test_fechamento_unidades.py` *(novo)*
+  - `api/tests/relatorios/__init__.py` *(novo, vazio — pacote de testes como nos demais módulos)*
 
 **Descrição:**
 Funções de consulta, sem entidade e sem service (ADR-009): recebem sessão, `estabelecimento_id` e o intervalo UTC do `DiaOperacional`, e devolvem unidades por item com PF e marmita distinguidos, unidades por prato somando os formatos, total de unidades e proteína consumida por tipo (soma de gramagem do snapshot × quantidade). Todas com `GROUP BY` no banco, filtro `cancelada_em IS NULL` (RN-28) e filtro de estabelecimento.
 
 **Critério de aceite (testável):**
-- [ ] Venda às 23:59 de 22/09 entra no fechamento de 22/09; venda às 00:01 de 23/09 não entra (CA-19, CA-20)
-- [ ] Com 10 × Frango PF, 4 × Frango Marmita e 6 × Bife PF, o fechamento dá Frango 2100 g, Carne 1080 g e 20 unidades (CA-21); 10 em PF, 4 em Marmita e 14 no prato "Frango grelhado" (CA-22)
-- [ ] Nenhuma soma é feita em Python sobre linhas de venda (verificável no review)
+- [x] Venda às 23:59 de 22/09 entra no fechamento de 22/09; venda às 00:01 de 23/09 não entra (CA-19, CA-20)
+- [x] Com 10 × Frango PF, 4 × Frango Marmita e 6 × Bife PF, o fechamento dá Frango 2100 g, Carne 1080 g e 20 unidades (CA-21); 10 em PF, 4 em Marmita e 14 no prato "Frango grelhado" (CA-22)
+- [x] Nenhuma soma é feita em Python sobre linhas de venda (verificável no review)
 
 **Testes a escrever:**
 - *Integration:* `test_CA_19_venda_as_2359_pertence_ao_dia_corrente`, `test_CA_20_venda_as_0001_pertence_ao_dia_seguinte`, `test_CA_21_fechamento_agrega_proteina_por_tipo`, `test_CA_22_fechamento_distingue_pf_de_marmita`, `test_venda_cancelada_nao_entra_nas_unidades`
@@ -2164,3 +2165,4 @@ Nenhuma questão em aberto.
 | T-28   | Concluído | 2026-10-09 | `4ff323b` | Arquivos: `vendas/router.py` (`POST /api/vendas/{venda_id}/cancelar` com `Depends(exige_admin)`; só POST, sem rota GET que cancele), `vendas/schemas.py` (`CancelarVenda`: `motivo` com até 200 caracteres, `ModeloEstrito`), `tests/vendas/test_api_cancelamento.py` (novo: CA-15 com 403 e venda ativa; CA-40 com 405 no GET; cancelamento pelo ADMIN com motivo; extras: motivo vazio com mensagem de negócio, motivo acima de 200, venda inexistente com 404). Review (REVIEW-T-28-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (`(RN-26)` na mensagem ao usuário, mesma pendência da T-23 R-01) e R-02 (falta teste de 401 sem sessão) registrados. Testes: 278 passando; ruff limpo; `alembic check` sem diferença. Ponto de validação humana após T-25 (seção 9) segue aberto; o usuário pediu para seguir o loop.
 | T-29   | Concluído | 2026-10-09 | `c3f2262` | Arquivos: `vendas/repositorio.py` (`listar_do_usuario_no_intervalo`: filtra estabelecimento, `registrada_por` e `[início, fim)` do dia operacional, mais recentes primeiro, canceladas inclusive), `vendas/servico.py` (`ServicoVendas.minhas_do_dia`, com `DiaOperacional.corrente`), `vendas/schemas.py` (`VendaDoDia`, sem preço nem valor, RN-40), `vendas/router.py` (`GET /api/vendas/minhas` com `usuario_autenticado`; horário convertido para `FUSO`), `tests/vendas/test_api_minhas_vendas.py` (novo: CA-36 com 12 próprias e 8 de outro Operador, CA-54 com venda cancelada marcada; extras: ordem e fuso, troca de dia operacional). Review (REVIEW-T-29-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (sem limite de linhas) e R-02 (mapeamento inline na rota, fora do padrão `_registrada`) registrados. Testes: 282 passando; ruff limpo; `alembic check` sem diferença.
 | T-30   | Concluído | 2026-10-09 | `d02952c` | Arquivos: `identidade/repositorio.py` (`buscar_por_ids`, em lote, inclui desativados), `identidade/servico_usuarios.py` (`nomes_por_id`, a porta que `vendas` usa para nomes, ADR-001), `vendas/repositorio.py` (`listar_do_dia`, ordem crescente por horário; `totais_do_dia`, somados no SQL sem canceladas, RN-28), `vendas/leitura.py` (`VendaAuditada`, `VendasDaData`), `vendas/servico_consulta.py` (novo: `ServicoConsultaVendas`, só lê), `vendas/schemas.py` (`VendaDaDataListada`, `VendasDaDataListadas`), `vendas/router.py` (`GET /api/vendas?data=` com `exige_admin`). Testes: `test_api_vendas_da_data.py` com CA-50, CA-27, CA-53 (login real, 401 e 200), e extra: Operador recebe 403. Review (REVIEW-T-30-2026-10-09): Aprovado com ressalvas. R-01 (Importante, escopo de arquivos) corrigido com a lista de `Camadas` atualizada; R-02 (Importante, CA-50 sem conferir item, formato, quantidade, valor e horário) corrigido no teste; R-03 (paginação) e R-04 (ordem crescente, diferente de `minhas`) registrados. Testes: 286 passando; ruff limpo; `alembic check` sem diferença.
+| T-31   | Concluído | 2026-10-09 | — | Arquivos: `relatorios/consultas.py` (novo: `unidades_por_item` agrupa por item de cardápio, prato e formato; `unidades_por_prato` soma os formatos; `total_unidades` e `proteina_por_tipo` somam no SQL; todas com filtro de estabelecimento, intervalo UTC do `DiaOperacional` e `cancelada_em IS NULL`), `relatorios/schemas.py` (novo: `UnidadesPorItem`, `UnidadesPorPrato`, `ProteinaConsumida` como dataclasses de leitura, não contrato HTTP; ver review R-01), `tests/relatorios/test_fechamento_unidades.py` (novo: CA-19, CA-20, CA-21, CA-22 e cancelada fora dos totais, contra o banco real), `tests/relatorios/__init__.py` (vazio). Review (REVIEW-T-31-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (nome `schemas.py` para formas de leitura, decidir na T-33) e R-02 (anotação de tipo do helper) registrados. Ponto de validação humana (revisar o SQL depois da T-34, seção 9) segue. Testes: 291 passando; ruff limpo; `alembic check` sem diferença. Commit pendente.
