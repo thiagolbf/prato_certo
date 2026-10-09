@@ -22,7 +22,7 @@ from app.relatorios.consultas import (
     unidades_por_item,
     unidades_por_prato,
 )
-from app.relatorios.schemas import ProteinaConsumida
+from app.relatorios.leitura import ProteinaConsumida
 from app.vendas.modelos import Venda
 
 DIA = date(2026, 9, 22)

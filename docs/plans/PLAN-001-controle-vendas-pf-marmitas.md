@@ -1210,7 +1210,7 @@ Faturamento por formato e total: soma de preço do snapshot × quantidade das ve
 
 #### T-33 — Expor o fechamento do dia
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Baixa
 - **Depende de:** T-11, T-32
 - **Implementa:** RN-32, RN-33
@@ -1218,18 +1218,23 @@ Faturamento por formato e total: soma de preço do snapshot × quantidade das ve
 - **Decisões base:** ADR-005, ADR-007
 - **Camadas/arquivos afetados:**
   - `api/app/relatorios/router.py` *(novo)*
+  - `api/app/relatorios/leitura.py` *(novo — formas de leitura, separadas do contrato HTTP; decisão adiada pelo review R-01 da T-31)*
+  - `api/app/relatorios/schemas.py` *(editado — passa a ter só o contrato HTTP do fechamento)*
+  - `api/app/relatorios/consultas.py`, `api/tests/relatorios/test_fechamento_unidades.py` *(editados — só o import, para `leitura.py`)*
+  - `api/app/main.py` *(editado — inclusão do router; justificado no review R-01 da T-33)*
   - `api/tests/relatorios/test_api_fechamento_dia.py` *(novo)*
 
 **Descrição:**
 `GET /api/fechamento/dia?data=` (ADMIN) reúne as consultas das T-31 e T-32 para a data (padrão: dia operacional corrente), informando se ela é o dia corrente (parcial) ou passada. O resultado reflete sempre o estado atual dos dados (RN-32).
 
 **Critério de aceite (testável):**
-- [ ] O ADMIN consulta o fechamento de 15/09 e recebe os totais daquela data sem as canceladas (CA-23)
-- [ ] Cancelar hoje uma venda de 2 unidades tira as 2 do fechamento (CA-14); cancelar uma venda de 2 unidades de 15/09 leva 80 unidades a 78 (CA-18)
-- [ ] Cancelar uma venda de 3 e registrar outra de 2 deixa o fechamento com 2, e as duas linhas continuam no histórico (CA-31)
+- [x] O ADMIN consulta o fechamento de 15/09 e recebe os totais daquela data sem as canceladas (CA-23)
+- [x] Cancelar hoje uma venda de 2 unidades tira as 2 do fechamento (CA-14); cancelar uma venda de 2 unidades de 15/09 leva 80 unidades a 78 (CA-18)
+- [x] Cancelar uma venda de 3 e registrar outra de 2 deixa o fechamento com 2, e as duas linhas continuam no histórico (CA-31)
 
 **Testes a escrever:**
 - *Integration:* `test_CA_23_admin_consulta_fechamento_de_data_passada`, `test_CA_14_venda_cancelada_sai_do_fechamento`, `test_CA_18_cancelamento_de_data_passada_altera_aquela_data`, `test_CA_31_corrigir_quantidade_exige_cancelar_e_registrar`
+- *Integration (fecha R-01 e R-02 da T-32):* o nome de quem cancelou ("Admin" em CA-18) sai no JSON, resolvido pelo serviço de identidade
 
 **Riscos / pontos de atenção:**
 - Nenhum.
@@ -2168,4 +2173,5 @@ Nenhuma questão em aberto.
 | T-29   | Concluído | 2026-10-09 | `c3f2262` | Arquivos: `vendas/repositorio.py` (`listar_do_usuario_no_intervalo`: filtra estabelecimento, `registrada_por` e `[início, fim)` do dia operacional, mais recentes primeiro, canceladas inclusive), `vendas/servico.py` (`ServicoVendas.minhas_do_dia`, com `DiaOperacional.corrente`), `vendas/schemas.py` (`VendaDoDia`, sem preço nem valor, RN-40), `vendas/router.py` (`GET /api/vendas/minhas` com `usuario_autenticado`; horário convertido para `FUSO`), `tests/vendas/test_api_minhas_vendas.py` (novo: CA-36 com 12 próprias e 8 de outro Operador, CA-54 com venda cancelada marcada; extras: ordem e fuso, troca de dia operacional). Review (REVIEW-T-29-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (sem limite de linhas) e R-02 (mapeamento inline na rota, fora do padrão `_registrada`) registrados. Testes: 282 passando; ruff limpo; `alembic check` sem diferença.
 | T-30   | Concluído | 2026-10-09 | `d02952c` | Arquivos: `identidade/repositorio.py` (`buscar_por_ids`, em lote, inclui desativados), `identidade/servico_usuarios.py` (`nomes_por_id`, a porta que `vendas` usa para nomes, ADR-001), `vendas/repositorio.py` (`listar_do_dia`, ordem crescente por horário; `totais_do_dia`, somados no SQL sem canceladas, RN-28), `vendas/leitura.py` (`VendaAuditada`, `VendasDaData`), `vendas/servico_consulta.py` (novo: `ServicoConsultaVendas`, só lê), `vendas/schemas.py` (`VendaDaDataListada`, `VendasDaDataListadas`), `vendas/router.py` (`GET /api/vendas?data=` com `exige_admin`). Testes: `test_api_vendas_da_data.py` com CA-50, CA-27, CA-53 (login real, 401 e 200), e extra: Operador recebe 403. Review (REVIEW-T-30-2026-10-09): Aprovado com ressalvas. R-01 (Importante, escopo de arquivos) corrigido com a lista de `Camadas` atualizada; R-02 (Importante, CA-50 sem conferir item, formato, quantidade, valor e horário) corrigido no teste; R-03 (paginação) e R-04 (ordem crescente, diferente de `minhas`) registrados. Testes: 286 passando; ruff limpo; `alembic check` sem diferença.
 | T-32   | Concluído | 2026-10-09 | `74b0a4b` | Arquivos: `relatorios/consultas.py` (`faturamento_por_formato`: `SUM(valor_total)` por formato; `faturamento_total`; `cancelamentos_posteriores`: `cancelada_em >= fim` do dia, então o mesmo dia não entra; todas sem canceladas, exceto a lista de posteriores, que é só delas), `relatorios/schemas.py` (`FaturamentoPorFormato`, `CancelamentoPosterior` com `Dinheiro`), `tests/relatorios/test_fechamento_faturamento.py` (novo: CA-37, CA-67, mesmo dia). Review (REVIEW-T-32-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (nome de quem cancelou sai na rota, T-33) e R-02 (teste de CA-67 confere o id, não o nome) registrados. Testes: 294 passando; ruff limpo; `alembic check` sem diferença.
+| T-33   | Concluído | 2026-10-09 | — | Arquivos: `relatorios/router.py` (novo: `GET /api/fechamento/dia?data=` com `exige_admin`; sem `data`, usa o dia operacional corrente; `parcial` quando a data é o dia corrente; nomes de quem cancelou pelo `ServicoUsuarios.nomes_por_id`, em lote), `relatorios/leitura.py` (novo: formas de leitura, separadas do contrato HTTP, decisão adiada pelo review R-01 da T-31), `relatorios/schemas.py` (passa a ter só o contrato HTTP `FechamentoDiaListado`; valores como texto decimal), `relatorios/consultas.py` e `tests/relatorios/test_fechamento_unidades.py` (import), `app/main.py` (inclusão do router), `tests/relatorios/test_api_fechamento_dia.py` (novo: CA-23, CA-18 com o nome "Admin" no JSON, CA-14, CA-31). Review (REVIEW-T-33-2026-10-09): Aprovado com ressalvas; R-01 (Importante, escopo de arquivos) corrigido atualizando a lista de `Camadas`; R-02 (Sugestão, mapeamento inline na rota) registrado. Ajuste de teste: CA-18 distribui as 78 unidades em lançamentos de até 20 (RN-14). Ponto de validação humana da T-34 (SQL contra o PRD) segue. Testes: 298 passando; ruff limpo; `alembic check` sem diferença. Commit pendente.
 | T-31   | Concluído | 2026-10-09 | `a1f3379` | Arquivos: `relatorios/consultas.py` (novo: `unidades_por_item` agrupa por item de cardápio, prato e formato; `unidades_por_prato` soma os formatos; `total_unidades` e `proteina_por_tipo` somam no SQL; todas com filtro de estabelecimento, intervalo UTC do `DiaOperacional` e `cancelada_em IS NULL`), `relatorios/schemas.py` (novo: `UnidadesPorItem`, `UnidadesPorPrato`, `ProteinaConsumida` como dataclasses de leitura, não contrato HTTP; ver review R-01), `tests/relatorios/test_fechamento_unidades.py` (novo: CA-19, CA-20, CA-21, CA-22 e cancelada fora dos totais, contra o banco real), `tests/relatorios/__init__.py` (vazio). Review (REVIEW-T-31-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (nome `schemas.py` para formas de leitura, decidir na T-33) e R-02 (anotação de tipo do helper) registrados. Ponto de validação humana (revisar o SQL depois da T-34, seção 9) segue. Testes: 291 passando; ruff limpo; `alembic check` sem diferença.

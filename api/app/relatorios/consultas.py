@@ -12,7 +12,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.valores import Dinheiro
-from app.relatorios.schemas import (
+from app.relatorios.leitura import (
     CancelamentoPosterior,
     FaturamentoPorFormato,
     ProteinaConsumida,

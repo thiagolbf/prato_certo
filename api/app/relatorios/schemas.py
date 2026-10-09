@@ -1,61 +1,57 @@
-"""Formas dos resultados agregados do fechamento (RN-29, RN-30).
+"""Contrato HTTP do fechamento do dia (ADR-009, RN-29 a RN-31, RN-61).
 
-São objetos de leitura imutáveis, não entidades nem contrato HTTP: as consultas do módulo
-devolvem essas linhas, e a rota (T-33) as traduz para o schema de resposta.
+Só o formato da resposta. As formas de leitura das consultas ficam em `leitura.py`. Valores
+monetários saem como texto decimal, nunca como float (`CLAUDE.md`).
 """
 
-from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
+
+from pydantic import BaseModel
 
 from app.catalogo.modelos import Formato
-from app.core.valores import Dinheiro
 
 
-@dataclass(frozen=True)
-class UnidadesPorItem:
-    """Unidades de um item do cardápio, com PF e marmita separados (RN-29)."""
-
+class UnidadesPorItemListado(BaseModel):
     item_id: int
     prato_nome: str
     formato: Formato
     unidades: int
 
 
-@dataclass(frozen=True)
-class UnidadesPorPrato:
-    """Unidades de um prato, somando os formatos (RN-29)."""
-
+class UnidadesPorPratoListado(BaseModel):
     prato_nome: str
     unidades: int
 
 
-@dataclass(frozen=True)
-class ProteinaConsumida:
-    """Gramas consumidas de uma proteína: gramagem do snapshot × quantidade (RN-30)."""
-
+class ProteinaListada(BaseModel):
     proteina_nome: str
     gramas: int
 
 
-@dataclass(frozen=True)
-class FaturamentoPorFormato:
-    """Faturamento de um formato, sem as canceladas (RN-31)."""
-
+class FaturamentoPorFormatoListado(BaseModel):
     formato: Formato
-    valor: Dinheiro
+    valor: Decimal
 
 
-@dataclass(frozen=True)
-class CancelamentoPosterior:
-    """Venda de um dia cancelada depois dele: quem cancelou, quando e por quê (RN-61).
-
-    Traz o id de quem cancelou; o nome é resolvido pela rota, no serviço de identidade (ADR-001).
-    """
-
+class CancelamentoPosteriorListado(BaseModel):
     venda_id: int
     prato_nome: str
     quantidade: int
-    valor_total: Dinheiro
+    valor_total: Decimal
     cancelada_em: datetime
-    cancelada_por_id: int
+    cancelada_por: str
     motivo_cancelamento: str
+
+
+class FechamentoDiaListado(BaseModel):
+    data: date
+    # Verdadeiro quando a data é o dia operacional corrente: os números ainda estão mudando.
+    parcial: bool
+    total_unidades: int
+    unidades_por_item: list[UnidadesPorItemListado]
+    unidades_por_prato: list[UnidadesPorPratoListado]
+    proteina_por_tipo: list[ProteinaListada]
+    faturamento_por_formato: list[FaturamentoPorFormatoListado]
+    faturamento_total: Decimal
+    cancelamentos_posteriores: list[CancelamentoPosteriorListado]
