@@ -1336,22 +1336,23 @@ Configurar em todas as rotas da Web: HSTS, `X-Content-Type-Options: nosniff`, `X
 
 #### T-37 — Limitar o ritmo de login por origem na borda
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-02, T-11
 - **Implementa:** RN-37 (camada 2)
 - **Valida:** CA-34
 - **Decisões base:** ADR-006, ADR-008
 - **Camadas/arquivos afetados:**
-  - `web/src/middleware.ts` *(novo)*
+  - `web/src/proxy.ts` *(novo — o Next 16 chama a convenção de `proxy`, não `middleware`; ver review R-01 da T-37)*
+  - `web/src/proxy.test.ts` *(novo, justificado no review R-01 da T-37)*
   - `web/src/lib/limite-ritmo.ts`, `web/src/lib/limite-ritmo.test.ts` *(novos)*
 
 **Descrição:**
 Middleware do Next.js que aplica, só em `POST /api/auth/login`, um limite de 10 requisições por minuto por IP de origem, respondendo 429 sem repassar à API e sem bloquear conta nenhuma. A contagem é efêmera, em janela deslizante, e vive na borda — nunca no processo da API (ADR-006). As demais rotas, inclusive o registro de venda, não passam pelo limite.
 
 **Critério de aceite (testável):**
-- [ ] A 11ª tentativa no mesmo minuto, da mesma origem, recebe 429; nenhuma conta muda de estado por causa disso (CA-34)
-- [ ] `POST /api/vendas` da mesma origem continua respondendo normalmente durante o limite (CA-34)
+- [x] A 11ª tentativa no mesmo minuto, da mesma origem, recebe 429; nenhuma conta muda de estado por causa disso (CA-34)
+- [x] `POST /api/vendas` da mesma origem continua respondendo normalmente durante o limite (CA-34)
 
 **Testes a escrever:**
 - *Unit:* `CA-34 — disparo acima do ritmo é contido sem bloquear ninguém`, `CA-34 — outras rotas não passam pelo limite`, `a janela libera depois de um minuto`
@@ -2179,4 +2180,5 @@ Nenhuma questão em aberto.
 | T-34   | Concluído | 2026-10-09 | `c5b7546` | Arquivos: `relatorios/consultas.py` (`quebra_por_dia`: agrupa por dia operacional com `date(timezone(NOME_FUSO, registrada_em))` no SQL, sem canceladas), `relatorios/leitura.py` (`QuebraDoDia`), `relatorios/schemas.py` (`QuebraDiaListada`, `FechamentoMesListado`), `relatorios/router.py` (`GET /api/fechamento/mes?mes=AAAA-MM`, só ADMIN, padrão o mês corrente, `parcial` quando o mês é o corrente; `_totais` e `_campos_dos_totais` compartilhados com o dia, fechando R-02 da T-33), `tests/relatorios/test_fechamento_mes.py` (novo: CA-57 com cada número do cenário; virada do fuso às 23h30 e 00h30). Review (REVIEW-T-34-2026-10-09): Aprovado com ressalvas; R-01 (Importante, `leitura.py` fora da lista) corrigido no plano; R-02 (teste de mês inválido) e R-03 (anotação de tipo) registrados. **Ponto de validação humana da seção 9 segue aberto: conferir o SQL das agregações contra o PRD (CA-21, CA-22, CA-37, CA-57) antes da T-35.** Testes: 300 passando; ruff limpo; `alembic check` sem diferença.
 | T-35   | Concluído | 2026-10-09 | `345944b` | Arquivos: `web/src/app/globals.css` (novo: tokens do `:root` do protótipo v2 e da seção 2, transição de 160 ms e `prefers-reduced-motion`), `web/src/app/layout.tsx` (Nunito Sans 400/600/700/800 com `next/font/google`, `lang="pt-BR"`), `web/src/lib/formato.ts` (formatadores da seção 9: moeda a partir de texto decimal, `dd/mm`, mês por extenso, gramas com kg a partir de 1.000 g), `web/src/lib/formato.test.ts` (novo). Review (REVIEW-T-35-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (formato `2.100 g (2,1 kg)` é interpretação de "kg ao lado", confirmar com a SPEC) e R-02 (`npm run build` não rodado: depende de rede para a fonte) registrados. Testes da web: 8 passando; typecheck e lint limpos.
 | T-36   | Bloqueado | 2026-10-09 | `188a51d` | Arquivos: `web/next.config.ts` (`headers()` com `cabecalhosDeSeguranca(emDesenvolvimento)`: HSTS, `nosniff`, `DENY`, CSP com `default-src 'self'`, `frame-ancestors 'none'`, sem domínio externo; `unsafe-eval` só em desenvolvimento), `web/src/seguranca.test.ts` (novo: 4 casos). Verificado: `npm run build` passa; `npm start` responde com os quatro cabeçalhos na página e em caminho inexistente (curl). Review (REVIEW-T-36-2026-10-09): **Bloqueado** pelo critério 2, que exige checar o console do navegador e não foi feito; R-01 (Importante) registrado. R-02 (`unsafe-inline` em produção) é sugestão. Para destravar: abrir a página em `npm start` no navegador, conferir o console sem violação de CSP, e voltar a tarefa para `Concluído`.
+| T-37   | Concluído | 2026-10-09 | — | Arquivos: `web/src/proxy.ts` (novo: limite de 10 por minuto só em `POST /api/auth/login`, 429 sem consultar a API; a convenção do Next 16 é `proxy`, não `middleware`), `web/src/lib/limite-ritmo.ts` (`LimiteDeRitmo`, janela deslizante por origem), `web/src/lib/limite-ritmo.test.ts` e `web/src/proxy.test.ts` (novos: CA-34 com 11ª tentativa recusada, outras rotas livres, janela de um minuto). Review (REVIEW-T-37-2026-10-09): Aprovado com ressalvas; R-01 (Importante, caminho `proxy.ts` e teste fora da lista) corrigido no plano; R-02 (mapa de origens sem poda) e R-03 (`X-Forwarded-For` depende da Vercel, a confirmar na T-61) registrados. Testes da web: 16 passando; typecheck e lint limpos. Commit pendente.
 | T-31   | Concluído | 2026-10-09 | `a1f3379` | Arquivos: `relatorios/consultas.py` (novo: `unidades_por_item` agrupa por item de cardápio, prato e formato; `unidades_por_prato` soma os formatos; `total_unidades` e `proteina_por_tipo` somam no SQL; todas com filtro de estabelecimento, intervalo UTC do `DiaOperacional` e `cancelada_em IS NULL`), `relatorios/schemas.py` (novo: `UnidadesPorItem`, `UnidadesPorPrato`, `ProteinaConsumida` como dataclasses de leitura, não contrato HTTP; ver review R-01), `tests/relatorios/test_fechamento_unidades.py` (novo: CA-19, CA-20, CA-21, CA-22 e cancelada fora dos totais, contra o banco real), `tests/relatorios/__init__.py` (vazio). Review (REVIEW-T-31-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (nome `schemas.py` para formas de leitura, decidir na T-33) e R-02 (anotação de tipo do helper) registrados. Ponto de validação humana (revisar o SQL depois da T-34, seção 9) segue. Testes: 291 passando; ruff limpo; `alembic check` sem diferença.
