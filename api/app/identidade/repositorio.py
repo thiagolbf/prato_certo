@@ -3,7 +3,7 @@
 Recebem o `estabelecimento_id` no construtor e filtram toda consulta por ele (ADR-003, RN-41).
 """
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -53,6 +53,20 @@ class RepositorioUsuarios:
                 select(Usuario)
                 .where(Usuario.estabelecimento_id == self._estabelecimento_id)
                 .order_by(Usuario.nome, Usuario.id)
+            )
+        ).all()
+
+    async def buscar_por_ids(self, usuario_ids: Collection[int]) -> Sequence[Usuario]:
+        """Vários usuários numa consulta, inclusive desativados: a lista do ADMIN mostra autores
+        que já saíram (RN-34, CA-27)."""
+        if not usuario_ids:
+            return []
+        return (
+            await self._sessao.scalars(
+                select(Usuario).where(
+                    Usuario.estabelecimento_id == self._estabelecimento_id,
+                    Usuario.id.in_(usuario_ids),
+                )
             )
         ).all()
 

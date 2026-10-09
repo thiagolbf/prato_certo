@@ -5,6 +5,7 @@ ADMIN pelo mesmo método, para a regra de login único valer nos dois caminhos.
 """
 
 import logging
+from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -130,6 +131,12 @@ class ServicoUsuarios:
         await self._sessoes.encerrar_outras_do_usuario(usuario.id, token_atual)
         logger.info("senha trocada", extra={"usuario_id": usuario.id})
         return True
+
+    async def nomes_por_id(self, usuario_ids: Collection[int]) -> dict[int, str]:
+        """Nomes de vários usuários numa só consulta. É a porta que `vendas` usa para mostrar
+        autores, em vez de tocar no repositório de identidade (ADR-001)."""
+        usuarios = await self._usuarios.buscar_por_ids(set(usuario_ids))
+        return {usuario.id: usuario.nome for usuario in usuarios}
 
     async def _buscar(self, usuario_id: int) -> Usuario:
         usuario = await self._usuarios.buscar_por_id(usuario_id)

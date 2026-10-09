@@ -996,26 +996,28 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 
 #### T-26 — Expor o registro de venda em POST /api/vendas
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Baixa
 - **Depende de:** T-11, T-25
 - **Implementa:** —
-- **Valida:** CA-01 (lado API), CA-02, CA-05
+- **Valida:** CA-01 (lado API), CA-02, CA-05, CA-06 (lado API; incluído após o review R-05)
 - **Decisões base:** ADR-004, ADR-006
 - **Camadas/arquivos afetados:**
   - `api/app/vendas/schemas.py`, `api/app/vendas/router.py` *(novos)*
+  - `api/app/main.py` *(inclusão do router; justificado após o review R-04)*
   - `api/tests/vendas/test_api_registro.py` *(novo)*
 
 **Descrição:**
 `POST /api/vendas` (ADMIN e Operador) recebe `item_id`, `quantidade` e `chave_idempotencia`; devolve 201 com a venda criada ou 200 com a original quando a chave já existia. Quantidade fora de 1–20 e item fora do cardápio devolvem 422 com mensagem de negócio, que a UI-02 mostra no estado `.recusado`.
 
 **Critério de aceite (testável):**
-- [ ] Uma unidade de "Frango grelhado - PF" é registrada com preço 18,00, gramagem 150 e o usuário que registrou (CA-01)
-- [ ] Quantidade 3 da marmita de R$ 22,00 grava R$ 66,00 e 450 g (CA-02)
-- [ ] Quantidade 21 é recusada com a mensagem do limite por lançamento (CA-05)
+- [x] Uma unidade de "Frango grelhado - PF" é registrada com preço 18,00, gramagem 150 e o usuário que registrou (CA-01)
+- [x] Quantidade 3 da marmita de R$ 22,00 grava R$ 66,00 e 450 g (CA-02)
+- [x] Quantidade 21 é recusada com a mensagem do limite por lançamento (CA-05)
 
 **Testes a escrever:**
 - *Integration:* `test_CA_01_registrar_uma_unidade`, `test_CA_02_registrar_mais_de_uma_unidade`, `test_CA_05_quantidade_acima_do_teto_e_recusada`, `test_reenvio_devolve_200_com_a_original`
+- *Integration (extra, incluído no review):* `test_CA_06_item_fora_do_cardapio_de_hoje_e_recusado`, `test_sem_sessao_o_registro_e_recusado`, `test_admin_tambem_registra_venda`
 
 **Riscos / pontos de atenção:**
 - A parte de interface do CA-01 (confirmar sem esperar o servidor) fecha na T-43.
@@ -1024,7 +1026,7 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 
 #### T-27 — Implementar o cancelamento lógico da venda
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-24
 - **Implementa:** RN-22, RN-23, RN-24, RN-25, RN-26
@@ -1039,22 +1041,23 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 `Venda.cancelar(por, motivo, agora)` é a **única** mutação da venda: exige motivo não vazio (RN-26), recusa venda já cancelada (RN-25) e grava instante, autor e motivo (RN-23). Atinge a linha inteira, sem mexer na quantidade (RN-24). O serviço carrega a venda com `SELECT … FOR UPDATE` e cancela sem checar data: qualquer data pode ser cancelada (RN-22).
 
 **Critério de aceite (testável):**
-- [ ] Cancelar sem motivo é recusado (CA-16)
-- [ ] Cancelar venda já cancelada é recusado e os dados do primeiro cancelamento ficam intactos (CA-17)
-- [ ] Cancelar uma venda de outra data funciona, e a linha continua no banco com instante, autor e motivo
+- [x] Cancelar sem motivo é recusado (CA-16)
+- [x] Cancelar venda já cancelada é recusado e os dados do primeiro cancelamento ficam intactos (CA-17)
+- [x] Cancelar uma venda de outra data funciona, e a linha continua no banco com instante, autor e motivo
 
 **Testes a escrever:**
 - *Unit:* `test_CA_16_cancelamento_sem_motivo_e_recusado`, `test_CA_17_venda_ja_cancelada_nao_e_cancelada_de_novo`
 - *Integration:* `test_cancelar_venda_de_data_passada`, `test_cancelamento_nao_remove_a_linha`
+- *Integration (extra, incluído no review R-01):* `test_cancelamento_concorrente_espera_a_trava_e_e_recusado`, `test_cancelar_venda_inexistente_e_nao_encontrada`
 
 **Riscos / pontos de atenção:**
-- Dois ADMINs cancelando a mesma venda ao mesmo tempo: o `FOR UPDATE` faz o segundo encontrar a venda já cancelada.
+- Dois ADMINs cancelando a mesma venda ao mesmo tempo: o `FOR UPDATE` faz o segundo encontrar a venda já cancelada. Coberto pelo teste de concorrência, verificado sem a trava (review R-01 da T-27).
 
 ---
 
 #### T-28 — Expor o cancelamento de venda só para ADMIN e só por POST
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Baixa
 - **Depende de:** T-11, T-27
 - **Implementa:** RN-21, RN-42
@@ -1068,11 +1071,12 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 `POST /api/vendas/{id}/cancelar` com `motivo` (até 200 caracteres), protegido por `exige_admin` (RN-21). Não existe rota `GET` que cancele.
 
 **Critério de aceite (testável):**
-- [ ] O Operador recebe 403 e a venda continua ativa (CA-15)
-- [ ] Um `GET` no caminho de cancelamento é recusado e a venda continua ativa (CA-40)
+- [x] O Operador recebe 403 e a venda continua ativa (CA-15)
+- [x] Um `GET` no caminho de cancelamento é recusado e a venda continua ativa (CA-40)
 
 **Testes a escrever:**
 - *Integration:* `test_CA_15_operador_nao_pode_cancelar`, `test_CA_40_cancelamento_por_get_e_recusado`, `test_admin_cancela_com_motivo`
+- *Integration (extra):* `test_motivo_vazio_e_recusado_com_mensagem_de_negocio`, `test_motivo_acima_de_200_caracteres_e_recusado`, `test_venda_inexistente_devolve_404`
 
 **Riscos / pontos de atenção:**
 - CA-14 e CA-18 (unidades saem do fechamento) fecham na T-33, quando o fechamento existe.
@@ -1081,7 +1085,7 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 
 #### T-29 — Expor a lista das próprias vendas do dia
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Baixa
 - **Depende de:** T-26, T-28
 - **Implementa:** RN-40
@@ -1095,11 +1099,12 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 `GET /api/vendas/minhas` (ADMIN e Operador) devolve as vendas do usuário autenticado no dia operacional corrente, da mais recente para a mais antiga, com horário no fuso do dia operacional, item, formato, quantidade e marca de cancelada. O schema de resposta **não tem** campo de preço nem de valor — a restrição é do contrato HTTP, não da entidade (RN-40).
 
 **Critério de aceite (testável):**
-- [ ] Com 12 vendas minhas e 8 de outro Operador hoje, recebo só as minhas 12, sem preço nem valor (CA-36)
-- [ ] Das minhas 3 vendas, a que o ADMIN cancelou aparece marcada como cancelada (CA-54)
+- [x] Com 12 vendas minhas e 8 de outro Operador hoje, recebo só as minhas 12, sem preço nem valor (CA-36)
+- [x] Das minhas 3 vendas, a que o ADMIN cancelou aparece marcada como cancelada (CA-54)
 
 **Testes a escrever:**
 - *Integration:* `test_CA_36_operador_ve_so_as_proprias_vendas_sem_valores`, `test_CA_54_operador_ve_a_venda_cancelada_marcada`
+- *Integration (extra):* `test_lista_vem_da_mais_recente_e_no_horario_de_sao_paulo`, `test_venda_de_outro_dia_operacional_nao_aparece`
 
 **Riscos / pontos de atenção:**
 - Conferir que nenhum campo monetário escapa por serialização automática da entidade.
@@ -1108,23 +1113,24 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 
 #### T-30 — Expor a lista de vendas da data para o ADMIN
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-13, T-26, T-28
 - **Implementa:** RN-51
 - **Valida:** CA-27, CA-50, CA-53
 - **Decisões base:** ADR-001, ADR-005, ADR-009
 - **Camadas/arquivos afetados:**
-  - `api/app/vendas/repositorio.py`, `api/app/vendas/servico.py`, `api/app/vendas/schemas.py`, `api/app/vendas/router.py` *(editados)*
-  - `api/app/identidade/servico_usuarios.py` *(editado — leitura de nomes por id)*
+  - `api/app/vendas/repositorio.py`, `api/app/vendas/schemas.py`, `api/app/vendas/router.py`, `api/app/vendas/leitura.py` *(editados)*
+  - `api/app/vendas/servico_consulta.py` *(novo — consulta da data, separada de `ServicoVendas`; justificado no review R-01)*
+  - `api/app/identidade/servico_usuarios.py`, `api/app/identidade/repositorio.py` *(editados — `nomes_por_id` e `buscar_por_ids`, em lote; o repositório precisou do método, justificado no review R-01)*
   - `api/tests/vendas/test_api_vendas_da_data.py` *(novo)*
 
 **Descrição:**
 `GET /api/vendas?data=` (ADMIN) devolve todas as vendas da data, de todos os usuários, com item, formato, quantidade, preço unitário, valor, autor e horário; as canceladas vêm marcadas, com quem cancelou, quando e o motivo, e os totais da lista as excluem (RN-28). Os nomes dos autores vêm do serviço de `identidade`, nunca do repositório dele (ADR-001).
 
 **Critério de aceite (testável):**
-- [ ] Em 15/09, com 5 vendas de "João" e 3 de "Maria", uma cancelada, a lista traz as 8 com todos os campos, a cancelada marcada com autor, instante e motivo, e fora dos totais (CA-50)
-- [ ] Depois de desativar "João", as vendas dele continuam atribuídas a ele (CA-27); depois de reativá-lo, ele autentica e as vendas seguem dele (CA-53)
+- [x] Em 15/09, com 5 vendas de "João" e 3 de "Maria", uma cancelada, a lista traz as 8 com todos os campos, a cancelada marcada com autor, instante e motivo, e fora dos totais (CA-50)
+- [x] Depois de desativar "João", as vendas dele continuam atribuídas a ele (CA-27); depois de reativá-lo, ele autentica e as vendas seguem dele (CA-53)
 
 **Testes a escrever:**
 - *Integration:* `test_CA_50_admin_ve_todas_as_vendas_da_data`, `test_CA_27_usuario_desativado_preserva_autoria`, `test_CA_53_operador_reativado_volta_a_autenticar`
@@ -1144,7 +1150,7 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 
 #### T-31 — Agregar no SQL as unidades e a proteína do fechamento do dia
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Alta
 - **Depende de:** T-24
 - **Implementa:** RN-27, RN-28, RN-29, RN-30
@@ -1152,16 +1158,17 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 - **Decisões base:** ADR-004, ADR-005, ADR-007, ADR-009
 - **Camadas/arquivos afetados:**
   - `api/app/relatorios/consultas.py` *(novo)*
-  - `api/app/relatorios/schemas.py` *(novo)*
+  - `api/app/relatorios/schemas.py` *(novo — formas de leitura em dataclass, não contrato HTTP; ver review R-01)*
   - `api/tests/relatorios/test_fechamento_unidades.py` *(novo)*
+  - `api/tests/relatorios/__init__.py` *(novo, vazio — pacote de testes como nos demais módulos)*
 
 **Descrição:**
 Funções de consulta, sem entidade e sem service (ADR-009): recebem sessão, `estabelecimento_id` e o intervalo UTC do `DiaOperacional`, e devolvem unidades por item com PF e marmita distinguidos, unidades por prato somando os formatos, total de unidades e proteína consumida por tipo (soma de gramagem do snapshot × quantidade). Todas com `GROUP BY` no banco, filtro `cancelada_em IS NULL` (RN-28) e filtro de estabelecimento.
 
 **Critério de aceite (testável):**
-- [ ] Venda às 23:59 de 22/09 entra no fechamento de 22/09; venda às 00:01 de 23/09 não entra (CA-19, CA-20)
-- [ ] Com 10 × Frango PF, 4 × Frango Marmita e 6 × Bife PF, o fechamento dá Frango 2100 g, Carne 1080 g e 20 unidades (CA-21); 10 em PF, 4 em Marmita e 14 no prato "Frango grelhado" (CA-22)
-- [ ] Nenhuma soma é feita em Python sobre linhas de venda (verificável no review)
+- [x] Venda às 23:59 de 22/09 entra no fechamento de 22/09; venda às 00:01 de 23/09 não entra (CA-19, CA-20)
+- [x] Com 10 × Frango PF, 4 × Frango Marmita e 6 × Bife PF, o fechamento dá Frango 2100 g, Carne 1080 g e 20 unidades (CA-21); 10 em PF, 4 em Marmita e 14 no prato "Frango grelhado" (CA-22)
+- [x] Nenhuma soma é feita em Python sobre linhas de venda (verificável no review)
 
 **Testes a escrever:**
 - *Integration:* `test_CA_19_venda_as_2359_pertence_ao_dia_corrente`, `test_CA_20_venda_as_0001_pertence_ao_dia_seguinte`, `test_CA_21_fechamento_agrega_proteina_por_tipo`, `test_CA_22_fechamento_distingue_pf_de_marmita`, `test_venda_cancelada_nao_entra_nas_unidades`
@@ -1174,7 +1181,7 @@ Funções de consulta, sem entidade e sem service (ADR-009): recebem sessão, `e
 
 #### T-32 — Agregar o faturamento por formato e os cancelamentos posteriores
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-27, T-31
 - **Implementa:** RN-31, RN-61
@@ -1184,12 +1191,14 @@ Funções de consulta, sem entidade e sem service (ADR-009): recebem sessão, `e
   - `api/app/relatorios/consultas.py`, `api/app/relatorios/schemas.py` *(editados)*
   - `api/tests/relatorios/test_fechamento_faturamento.py` *(novo)*
 
+**Nota (review R-01/R-02):** o nome de quem cancelou ("Carla") sai na rota, na T-33; a consulta devolve o id.
+
 **Descrição:**
 Faturamento por formato e total: soma de preço do snapshot × quantidade das vendas não canceladas, em `Numeric`, entregue como `Dinheiro` (RN-31). Cancelamentos posteriores: vendas registradas no dia e canceladas **depois** do fim daquele dia operacional, com quem cancelou, quando e o motivo (RN-61).
 
 **Critério de aceite (testável):**
-- [ ] 10 × PF a R$ 18,00 e 4 × Marmita a R$ 22,00 dão PF R$ 180,00, Marmita R$ 88,00 e total R$ 268,00 (CA-37)
-- [ ] Uma venda de 15/09 cancelada em 20/09 por "Carla" com o motivo "lançado em dobro" aparece nos cancelamentos posteriores de 15/09 e fora dos totais (CA-67)
+- [x] 10 × PF a R$ 18,00 e 4 × Marmita a R$ 22,00 dão PF R$ 180,00, Marmita R$ 88,00 e total R$ 268,00 (CA-37)
+- [x] Uma venda de 15/09 cancelada em 20/09 por "Carla" com o motivo "lançado em dobro" aparece nos cancelamentos posteriores de 15/09 e fora dos totais (CA-67; o nome "Carla" é resolvido na T-33)
 
 **Testes a escrever:**
 - *Integration:* `test_CA_37_fechamento_separa_faturamento_por_formato`, `test_CA_67_fechamento_informa_cancelamento_posterior`, `test_cancelamento_no_mesmo_dia_nao_e_posterior`
@@ -1201,7 +1210,7 @@ Faturamento por formato e total: soma de preço do snapshot × quantidade das ve
 
 #### T-33 — Expor o fechamento do dia
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Baixa
 - **Depende de:** T-11, T-32
 - **Implementa:** RN-32, RN-33
@@ -1209,18 +1218,23 @@ Faturamento por formato e total: soma de preço do snapshot × quantidade das ve
 - **Decisões base:** ADR-005, ADR-007
 - **Camadas/arquivos afetados:**
   - `api/app/relatorios/router.py` *(novo)*
+  - `api/app/relatorios/leitura.py` *(novo — formas de leitura, separadas do contrato HTTP; decisão adiada pelo review R-01 da T-31)*
+  - `api/app/relatorios/schemas.py` *(editado — passa a ter só o contrato HTTP do fechamento)*
+  - `api/app/relatorios/consultas.py`, `api/tests/relatorios/test_fechamento_unidades.py` *(editados — só o import, para `leitura.py`)*
+  - `api/app/main.py` *(editado — inclusão do router; justificado no review R-01 da T-33)*
   - `api/tests/relatorios/test_api_fechamento_dia.py` *(novo)*
 
 **Descrição:**
 `GET /api/fechamento/dia?data=` (ADMIN) reúne as consultas das T-31 e T-32 para a data (padrão: dia operacional corrente), informando se ela é o dia corrente (parcial) ou passada. O resultado reflete sempre o estado atual dos dados (RN-32).
 
 **Critério de aceite (testável):**
-- [ ] O ADMIN consulta o fechamento de 15/09 e recebe os totais daquela data sem as canceladas (CA-23)
-- [ ] Cancelar hoje uma venda de 2 unidades tira as 2 do fechamento (CA-14); cancelar uma venda de 2 unidades de 15/09 leva 80 unidades a 78 (CA-18)
-- [ ] Cancelar uma venda de 3 e registrar outra de 2 deixa o fechamento com 2, e as duas linhas continuam no histórico (CA-31)
+- [x] O ADMIN consulta o fechamento de 15/09 e recebe os totais daquela data sem as canceladas (CA-23)
+- [x] Cancelar hoje uma venda de 2 unidades tira as 2 do fechamento (CA-14); cancelar uma venda de 2 unidades de 15/09 leva 80 unidades a 78 (CA-18)
+- [x] Cancelar uma venda de 3 e registrar outra de 2 deixa o fechamento com 2, e as duas linhas continuam no histórico (CA-31)
 
 **Testes a escrever:**
 - *Integration:* `test_CA_23_admin_consulta_fechamento_de_data_passada`, `test_CA_14_venda_cancelada_sai_do_fechamento`, `test_CA_18_cancelamento_de_data_passada_altera_aquela_data`, `test_CA_31_corrigir_quantidade_exige_cancelar_e_registrar`
+- *Integration (fecha R-01 e R-02 da T-32):* o nome de quem cancelou ("Admin" em CA-18) sai no JSON, resolvido pelo serviço de identidade
 
 **Riscos / pontos de atenção:**
 - Nenhum.
@@ -1229,7 +1243,7 @@ Faturamento por formato e total: soma de preço do snapshot × quantidade das ve
 
 #### T-34 — Agregar e expor o fechamento do mês com quebra por dia
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-33
 - **Implementa:** RN-55
@@ -1237,17 +1251,19 @@ Faturamento por formato e total: soma de preço do snapshot × quantidade das ve
 - **Decisões base:** ADR-005, ADR-007
 - **Camadas/arquivos afetados:**
   - `api/app/relatorios/consultas.py`, `api/app/relatorios/schemas.py`, `api/app/relatorios/router.py` *(editados)*
+  - `api/app/relatorios/leitura.py` *(editado — forma `QuebraDoDia`; justificado no review R-01 da T-34)*
   - `api/tests/relatorios/test_fechamento_mes.py` *(novo)*
 
 **Descrição:**
 `GET /api/fechamento/mes?mes=AAAA-MM` (ADMIN) devolve os mesmos totais do dia sobre o intervalo UTC do `MesOperacional`, mais a quebra por dia com venda: unidades e faturamento de cada dia operacional. O agrupamento por dia converte o instante para o fuso **no SQL** (`registrada_em AT TIME ZONE` com a constante do fuso passada como parâmetro), para não somar em Python. O mês corrente vem marcado como parcial.
 
 **Critério de aceite (testável):**
-- [ ] Com os dados do CA-57, agosto dá 20 unidades; Frango 2100 g e Carne 1080 g; PF R$ 300,00, Marmita R$ 88,00, total R$ 388,00; quebra 05/08 = 10, 18/08 = 4, 31/08 = 6; e as vendas de 01/09 ficam fora (CA-57)
-- [ ] A constante do fuso continua única: a consulta recebe o fuso de `core/tempo.py`, sem repetir o texto
+- [x] Com os dados do CA-57, agosto dá 20 unidades; Frango 2100 g e Carne 1080 g; PF R$ 300,00, Marmita R$ 88,00, total R$ 388,00; quebra 05/08 = 10, 18/08 = 4, 31/08 = 6; e as vendas de 01/09 ficam fora (CA-57)
+- [x] A constante do fuso continua única: a consulta usa `NOME_FUSO` de `core/tempo.py`, sem repetir o texto
 
 **Testes a escrever:**
 - *Integration:* `test_CA_57_fechamento_do_mes_soma_os_dias_sem_as_canceladas`, `test_quebra_por_dia_respeita_o_fuso_na_virada`
+- *Pendente (review R-02 da T-34):* teste de mês inválido (`2026-13`, `2026-00`, `abril`) com 422
 
 **Riscos / pontos de atenção:**
 - Uma venda às 23:30 do último dia do mês em São Paulo já é dia seguinte em UTC; o teste da virada do mês cobre isso.
@@ -1264,7 +1280,7 @@ Faturamento por formato e total: soma de preço do snapshot × quantidade das ve
 
 #### T-35 — Transformar os tokens da v2 em estilos globais
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Baixa
 - **Depende de:** T-02
 - **Implementa:** —
@@ -1293,7 +1309,7 @@ Copiar para `globals.css` as variáveis do `:root` de `prototipo-001-visual-v2.h
 
 #### T-36 — Aplicar cabeçalhos de segurança e CSP no Next.js
 
-- **Status:** Pendente
+- **Status:** Bloqueado
 - **Complexidade:** Baixa
 - **Depende de:** T-02
 - **Implementa:** RN-43
@@ -1307,8 +1323,8 @@ Copiar para `globals.css` as variáveis do `:root` de `prototipo-001-visual-v2.h
 Configurar em todas as rotas da Web: HSTS, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` e uma CSP restritiva (`default-src 'self'`, `frame-ancestors 'none'`, sem domínio externo, já que a fonte é servida localmente pelo `next/font`). Ajustar o necessário para os scripts do Next.js funcionarem sem abrir `unsafe-eval` em produção.
 
 **Critério de aceite (testável):**
-- [ ] Qualquer página da Web responde com os quatro cabeçalhos (CA-41)
-- [ ] O app funciona em `npm run build && npm start` sem erro de CSP no console
+- [x] Qualquer página da Web responde com os quatro cabeçalhos (CA-41)
+- [ ] O app funciona em `npm run build && npm start` sem erro de CSP no console (pendente: verificar no navegador, review R-01)
 
 **Testes a escrever:**
 - *Unit:* `CA-41 — a configuração de headers cobre todas as rotas com os quatro cabeçalhos`
@@ -1320,22 +1336,23 @@ Configurar em todas as rotas da Web: HSTS, `X-Content-Type-Options: nosniff`, `X
 
 #### T-37 — Limitar o ritmo de login por origem na borda
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-02, T-11
 - **Implementa:** RN-37 (camada 2)
 - **Valida:** CA-34
 - **Decisões base:** ADR-006, ADR-008
 - **Camadas/arquivos afetados:**
-  - `web/src/middleware.ts` *(novo)*
+  - `web/src/proxy.ts` *(novo — o Next 16 chama a convenção de `proxy`, não `middleware`; ver review R-01 da T-37)*
+  - `web/src/proxy.test.ts` *(novo, justificado no review R-01 da T-37)*
   - `web/src/lib/limite-ritmo.ts`, `web/src/lib/limite-ritmo.test.ts` *(novos)*
 
 **Descrição:**
 Middleware do Next.js que aplica, só em `POST /api/auth/login`, um limite de 10 requisições por minuto por IP de origem, respondendo 429 sem repassar à API e sem bloquear conta nenhuma. A contagem é efêmera, em janela deslizante, e vive na borda — nunca no processo da API (ADR-006). As demais rotas, inclusive o registro de venda, não passam pelo limite.
 
 **Critério de aceite (testável):**
-- [ ] A 11ª tentativa no mesmo minuto, da mesma origem, recebe 429; nenhuma conta muda de estado por causa disso (CA-34)
-- [ ] `POST /api/vendas` da mesma origem continua respondendo normalmente durante o limite (CA-34)
+- [x] A 11ª tentativa no mesmo minuto, da mesma origem, recebe 429; nenhuma conta muda de estado por causa disso (CA-34)
+- [x] `POST /api/vendas` da mesma origem continua respondendo normalmente durante o limite (CA-34)
 
 **Testes a escrever:**
 - *Unit:* `CA-34 — disparo acima do ritmo é contido sem bloquear ninguém`, `CA-34 — outras rotas não passam pelo limite`, `a janela libera depois de um minuto`
@@ -2144,12 +2161,24 @@ Nenhuma questão em aberto.
 | T-14   | Concluído | 2026-10-08 | `3cdbe5a` | Arquivos: `identidade/servico_usuarios.py` (`redefinir_senha` e `trocar_senha_propria`), `identidade/servico_sessao.py` (`encerrar_outras_do_usuario`), `identidade/schemas.py`, `identidade/router.py` (`POST /api/usuarios/{id}/redefinir-senha` e `POST /api/conta/senha`, só ADMIN), `identidade/cli.py`, `main.py`, `tests/identidade/test_senhas.py` (novo), `test_usuarios.py` (construtor). Decisões tomadas na execução (dentro da delegação do usuário, registradas na RN-53 do PRD): a troca encerra as outras sessões do ADMIN e mantém a atual; a senha atual errada conta como falha para o bloqueio (RN-37), e a recusa sai como 422 sem exceção, para a falha ser gravada; a redefinição não atinge outro ADMIN (sai pelo comando técnico). Testes: 181 passando; ruff limpo; `alembic check` sem diferença. Review (REVIEW-T-14-2026-10-08): Aprovado com ressalvas; R-01 (teste da contagem da senha atual) corrigido com teste; R-02 e R-03 registrados como sugestões. Testes: 182 passando.
 | T-15   | Concluído | 2026-10-08 | `f406ff0` | Arquivos: `catalogo/modelos.py` (`Proteina`, `Prato`, com `criar`, `desativar`, `reativar`, `alterar_gramagem`; relacionamento `lazy="raise"`; índices únicos por expressão `lower(TRIM(BOTH FROM nome))`), `alembic/versions/0004_proteina_prato.py` (escrita à mão: o autogenerate não detecta índice por expressão), `tests/catalogo/test_proteina_prato.py` (novo). Gramagem recusada pelo `Gramagem` do core (valores.py), não uma validação nova. Índice do modelo usa a forma que o PostgreSQL devolve, senão o `alembic check` acusa diferença falsa. Testes: 188 passando; ruff limpo; `alembic check` sem diferença; migration 0004 sobe e desce. Review (REVIEW-T-15-2026-10-08): Aprovado com ressalvas; R-02 (nome em branco) corrigido na entidade com teste; R-01 (FK composta prato→proteina) registrado como dívida, a decidir junto com a T-16. Testes: 189 passando.
 | T-16   | Concluído | 2026-10-08 | `00955a6` | Arquivos: `catalogo/modelos.py` (`ItemCardapio`, `Formato` PF/MARMITA; `criar`, `alterar_preco`, `desativar`, `reativar`), `alembic/versions/0005_item_cardapio.py` (escrita à mão, com CHECKs de preço e formato), `tests/catalogo/test_item_cardapio.py` (novo). Preço positivo recusado pela entidade, porque `Dinheiro` aceita zero e negativo; o CHECK do banco é a segunda barreira. Preço em `Numeric(10, 2)`, lido como `Decimal`. Índice único em `(prato_id, formato)`, sem filtro de ativo (RN-59). Prato e formato não têm método de alteração. Testes: 193 passando; ruff limpo; `alembic check` sem diferença; migration 0005 sobe e desce. Review (REVIEW-T-16-2026-10-08): Aprovado com ressalvas; R-01 (chave composta por estabelecimento, dívida da T-15) registrado para decisão antes da T-17. Testes: 193 passando.
-| T-17   | Concluído | 2026-10-08 | `fb0e032` | Arquivos: `catalogo/repositorio.py` (listagem com contagem de pratos ativos, busca por nome sem maiúsculas nem espaços, trava `FOR UPDATE` na desativação), `catalogo/servico.py` (`ServicoProteinas`: criar, renomear, desativar, reativar), `catalogo/schemas.py`, `catalogo/router.py` (`/api/proteinas`, só ADMIN pelo router), `tests/catalogo/test_api_proteinas.py` (novo). Fora da lista, justificados: `catalogo/modelos.py` (`renomear`) e `main.py`. Mensagens: nome repetido ativo → 409; nome de desativada → 409 indicando reativar (RN-49); desativar com prato ativo → 409 nomeando o prato (RN-58). Ponto de atenção registrado: o router importa `exige_admin` de `identidade`, dependência transversal; avaliar mover para `core` quando o padrão se repetir. Review (REVIEW-T-17-2026-10-08): Aprovado com ressalvas; R-01 (renomear sem teste) corrigido com três testes; R-02 (concorrência da trava) e R-03 (plural na mensagem de RN-58) registrados para a T-18. Testes: 202 passando; ruff limpo; `alembic check` sem diferença. Commit pendente.
-| T-18   | Concluído | 2026-10-08 | `671f3e9` | Arquivos: `catalogo/repositorio.py` (`RepositorioPratos`: listagem com proteína e itens ativos, busca por nome, itens ativos do prato), `catalogo/servico.py` (`ServicoPratos`: criar com proteína ativa travada, renomear, alterar gramagem, desativar, reativar), `catalogo/schemas.py`, `catalogo/router.py` (`/api/pratos`, só ADMIN pelo router), `tests/catalogo/test_api_pratos.py` (novo). Fora da lista, justificado: `catalogo/modelos.py` (`Prato.renomear`). Desativar com item ativo é recusado nomeando os itens, no formato "Prato - PF" / "Prato - Marmita" (RN-58). Reativar prato exige proteína ativa (RN-58). Gramagem zero recusada pelo schema (gt=0) e pela entidade. Decisão sobre a dívida da chave composta por estabelecimento (R-01 da T-15 e da T-16): aceita e registrada. O ADR-003 adia de propósito o isolamento entre estabelecimentos, e o repositório já filtra toda consulta por `estabelecimento_id`. A chave composta vira tarefa própria antes do segundo estabelecimento. Review (REVIEW-T-18-2026-10-08): Aprovado com ressalvas; R-01 (renomear e nome desativado de prato sem teste) corrigido; R-02 (corrida da desativação de prato, que só existe com itens na T-19) registrado. Testes: 211 passando; ruff limpo; `alembic check` sem diferença. Commit pendente.
-| T-19   | Concluído | 2026-10-08 | `aab74fc` | Arquivos: `catalogo/repositorio.py` (`RepositorioItens`; `RepositorioPratos.buscar_por_id_para_atualizar`), `catalogo/servico.py` (`ServicoItens`; `ServicoPratos.desativar` passa a travar o prato), `catalogo/schemas.py` (`NovoItem`, `AlterarPreco` sem prato nem formato, `ItemListado`, `Preco` como Decimal com 2 casas), `catalogo/router.py` (`/api/itens`, só ADMIN), `tests/catalogo/test_api_itens.py` (novo). Fecha a corrida que a T-18 deixou (R-02): criar item e desativar prato travam a mesma linha do prato. Reativar item exige prato ativo (RN-58). Preço zero recusado pelo schema e pela entidade. Edição recusa campo extra (prato ou formato) com 422. Testes: 219 passando; ruff limpo; `alembic check` sem diferença. Review (REVIEW-T-19-2026-10-08): Aprovado com ressalvas; R-01 (teste de concorrência prometido na T-18 e ausente) escrito neste review; R-02 (o teste é intermitente: 1 falha em 5 sem o lock) registrado. Testes: 220 passando; ruff limpo; `alembic check` sem diferença. Commit pendente.
+| T-17   | Concluído | 2026-10-08 | `fb0e032` | Arquivos: `catalogo/repositorio.py` (listagem com contagem de pratos ativos, busca por nome sem maiúsculas nem espaços, trava `FOR UPDATE` na desativação), `catalogo/servico.py` (`ServicoProteinas`: criar, renomear, desativar, reativar), `catalogo/schemas.py`, `catalogo/router.py` (`/api/proteinas`, só ADMIN pelo router), `tests/catalogo/test_api_proteinas.py` (novo). Fora da lista, justificados: `catalogo/modelos.py` (`renomear`) e `main.py`. Mensagens: nome repetido ativo → 409; nome de desativada → 409 indicando reativar (RN-49); desativar com prato ativo → 409 nomeando o prato (RN-58). Ponto de atenção registrado: o router importa `exige_admin` de `identidade`, dependência transversal; avaliar mover para `core` quando o padrão se repetir. Review (REVIEW-T-17-2026-10-08): Aprovado com ressalvas; R-01 (renomear sem teste) corrigido com três testes; R-02 (concorrência da trava) e R-03 (plural na mensagem de RN-58) registrados para a T-18. Testes: 202 passando; ruff limpo; `alembic check` sem diferença.
+| T-18   | Concluído | 2026-10-08 | `671f3e9` | Arquivos: `catalogo/repositorio.py` (`RepositorioPratos`: listagem com proteína e itens ativos, busca por nome, itens ativos do prato), `catalogo/servico.py` (`ServicoPratos`: criar com proteína ativa travada, renomear, alterar gramagem, desativar, reativar), `catalogo/schemas.py`, `catalogo/router.py` (`/api/pratos`, só ADMIN pelo router), `tests/catalogo/test_api_pratos.py` (novo). Fora da lista, justificado: `catalogo/modelos.py` (`Prato.renomear`). Desativar com item ativo é recusado nomeando os itens, no formato "Prato - PF" / "Prato - Marmita" (RN-58). Reativar prato exige proteína ativa (RN-58). Gramagem zero recusada pelo schema (gt=0) e pela entidade. Decisão sobre a dívida da chave composta por estabelecimento (R-01 da T-15 e da T-16): aceita e registrada. O ADR-003 adia de propósito o isolamento entre estabelecimentos, e o repositório já filtra toda consulta por `estabelecimento_id`. A chave composta vira tarefa própria antes do segundo estabelecimento. Review (REVIEW-T-18-2026-10-08): Aprovado com ressalvas; R-01 (renomear e nome desativado de prato sem teste) corrigido; R-02 (corrida da desativação de prato, que só existe com itens na T-19) registrado. Testes: 211 passando; ruff limpo; `alembic check` sem diferença.
+| T-19   | Concluído | 2026-10-08 | `aab74fc` | Arquivos: `catalogo/repositorio.py` (`RepositorioItens`; `RepositorioPratos.buscar_por_id_para_atualizar`), `catalogo/servico.py` (`ServicoItens`; `ServicoPratos.desativar` passa a travar o prato), `catalogo/schemas.py` (`NovoItem`, `AlterarPreco` sem prato nem formato, `ItemListado`, `Preco` como Decimal com 2 casas), `catalogo/router.py` (`/api/itens`, só ADMIN), `tests/catalogo/test_api_itens.py` (novo). Fecha a corrida que a T-18 deixou (R-02): criar item e desativar prato travam a mesma linha do prato. Reativar item exige prato ativo (RN-58). Preço zero recusado pelo schema e pela entidade. Edição recusa campo extra (prato ou formato) com 422. Testes: 219 passando; ruff limpo; `alembic check` sem diferença. Review (REVIEW-T-19-2026-10-08): Aprovado com ressalvas; R-01 (teste de concorrência prometido na T-18 e ausente) escrito neste review; R-02 (o teste é intermitente: 1 falha em 5 sem o lock) registrado. Testes: 220 passando; ruff limpo; `alembic check` sem diferença.
 | T-20   | Concluído | 2026-10-08 | `6562d55` | Arquivos: `catalogo/modelos.py` (`cardapio_item` como tabela de associação; `CardapioData` com `definir` e `herdar_de`; `itens` com `lazy="raise"`), `alembic/versions/0006_cardapio_data.py` (escrita à mão, com constraint de unicidade e associação), `tests/catalogo/test_cardapio_data.py` (novo). `herdar_de` resolve em memória: descarta item desativado, guarda a data de origem e não entra na sessão (prova de contagem de linhas e de `herdado not in sessao`). `definir` recusa lista vazia (RN-57) e item desativado (RN-12). Quem chama `herdar_de` carrega `anterior.itens` antes (ADR-009). Testes: 225 passando; ruff limpo; `alembic check` sem diferença; migration 0006 sobe e desce. Review (REVIEW-T-20-2026-10-08): Aprovado com ressalvas; R-01 (carga de `itens` antes de `herdar_de`) para a T-21; R-02 (associação sem estabelecimento, dívida registrada). Testes: 225 passando. Commit pendente.
 | T-21   | Concluído | 2026-10-08 | `c781f00` | Arquivos: `catalogo/leitura.py` (novo: `TipoCardapio`, `ItemVendavel`, `CardapioVigente` congelados e `ItemForaDoCardapio(RegraViolada)`), `catalogo/servico_cardapio.py` (novo: `ServicoCardapio`, só orquestra), `catalogo/repositorio.py` (`RepositorioCardapios`: `buscar_proprio`, `mais_recente_anterior` e `itens_vendaveis`, com `selectinload` de `itens` e filtro de item ativo), `tests/catalogo/test_servico_cardapio.py` (novo). Sem migration. R-01 do REVIEW-T-20 aplicado: o cardápio anterior vem do banco com `itens` carregados, e o teste do CA-08 chama `expire_all()` antes para provar a carga. Decisão de execução: o filtro de item ativo também vale no cardápio próprio, não só no herdado, para um item desativado depois de entrar no cardápio não ser vendido (RN-12, RN-19). Herdado cujos itens estão todos desativados sai como `HERDADO` com lista vazia, não como `VAZIO`: o PRD não cobre esse caso. Testes: 230 passando; ruff limpo; `alembic check` sem diferença. Review: Aprovado com ressalvas (REVIEW-T-21-2026-10-08); R-01 (herdado com todos os itens desativados sai como `HERDADO` vazio, não `VAZIO`) é decisão de produto pendente, a tomar antes da T-42; R-02 (teste de `item_vendavel` com item desativado) e R-03 (`estabelecimento_id` no repositório) ficam para a T-22.
 | T-22   | Concluído | 2026-10-08 | `c781f00` | Arquivos: `catalogo/router_cardapio.py` (novo: `GET /api/cardapio/vigente` para qualquer perfil autenticado, com o dia operacional do servidor; `GET /api/cardapio?data=` só ADMIN, com `passada`), `catalogo/schemas.py` (`ItemVigenteListado`, `CardapioListado`, `CardapioDaDataListado`), `tests/catalogo/test_api_cardapio_consulta.py` (novo). Fora da lista, justificado: `app/main.py` (inclui o router, como nas tarefas anteriores do catálogo). R-02 e R-03 do REVIEW-T-21 aplicados na mesma tarefa: teste de item desativado depois de vendável, e propriedade `estabelecimento_id` em `RepositorioCardapios`. Nenhuma rota grava cardápio; a sessão ainda renova `ultimo_uso_em` a cada requisição (RN-36, comportamento já existente). Testes: 237 passando; ruff limpo. Review: Aprovado com ressalvas (REVIEW-T-22-2026-10-08); R-01 (renovação de sessão em `GET` frente ao ADR-006) é decisão de arquitetura pendente, a tomar antes da T-56; R-02 (montagem da resposta do ADMIN por `model_dump`) é sugestão.
 | T-23   | Concluído | 2026-10-08 | `c781f00` | Arquivos: `catalogo/modelos.py` (`CardapioData.definir` recebe `hoje`; novo `substituir_itens`; regras centralizadas em `_validar_definicao`: data passada recusada, RN-50; lista vazia, RN-57; item desativado, RN-12), `catalogo/servico_cardapio.py` (`ServicoCardapio.definir`: busca os itens pedidos, cria ou troca o cardápio da data, traduz a corrida no índice único para `Conflito`, pedido com item inexistente vira `NaoEncontrado`), `catalogo/repositorio.py` (`buscar_itens`, `adicionar`, `persistir`), `catalogo/schemas.py` (`DefinirCardapio`), `catalogo/router_cardapio.py` (`POST /api/cardapio/{data}`, só ADMIN), `tests/catalogo/test_api_cardapio_definicao.py` (novo). Ajustado por consequência: os chamadores de `definir` nos testes da T-20 e da T-21/T-22 recebem `hoje`. Sem migration. Testes: 245 passando; ruff limpo; `alembic check` sem diferença. Review: Aprovado com ressalvas (REVIEW-T-23-2026-10-08); só sugestões: R-01 (tirar `(RN-XX)` das mensagens ao usuário) e R-02 (checar `hoje` antes da busca e restringir o mapeamento de `IntegrityError`).
 | T-24   | Concluído | 2026-10-08 | `c781f00` | Arquivos: `vendas/modelos.py` (`Venda`, com `registrar` como único caminho de criação; CHECKs de quantidade 1 a 20 e de formato; índices únicos de chave de idempotência e de `registrada_em`), `vendas/excecoes.py` (`QuantidadeForaDoLimite`, `VendaJaCancelada`, `MotivoObrigatorio`), `alembic/versions/0007_venda.py` (autogenerate, com CHECKs conferidos), `alembic/env.py` (importa `vendas.modelos`, como exige a convenção), `tests/vendas/test_venda.py` e `tests/vendas/__init__.py` (novos). Decisões de execução: `valor_total` em `Numeric(12,2)`, porque preço máximo × 20 não cabe em `Numeric(10,2)`; `preco_unitario` segue `Numeric(10,2)` como o plano. Sem migration de dado. Chave de idempotência vazia recusada na entidade (RN-18), por correção feita durante a execução, com teste. Testes: 254 passando; ruff limpo; migration 0007 sobe, desce e sobe; `alembic check` sem diferença. Review: Aprovado com ressalvas (REVIEW-T-24-2026-10-08); R-01 (`Formato` importado de `catalogo.modelos` na `vendas`) é sugestão; R-02 (chave vazia) aplicado.
 | T-25   | Concluído | 2026-10-08 | `c781f00` | Arquivos: `vendas/repositorio.py` (`inserir_se_nova` com `INSERT … ON CONFLICT (estabelecimento_id, chave_idempotencia) DO NOTHING … RETURNING id`; sem método de alteração nem de exclusão), `vendas/servico.py` (`ServicoVendas.registrar`: instante e dia do relógio do servidor, item pelo `ServicoCardapio`, snapshot e totais por `Venda.registrar`), `vendas/leitura.py` (novo: `VendaLeitura` e `ResultadoRegistro`, para a API não receber entidade), `tests/vendas/test_registro.py` (novo). Decisão de execução: a chave é consultada **antes** do item. Um reenvio de venda já gravada devolve a original mesmo que o cardápio tenha mudado (RN-18); sem isso, a retentativa de uma venda feita antes da troca de cardápio seria recusada. Teste de simultâneos grava de verdade, em duas sessões com commit, e limpa no fim. Verificação negativa feita depois do review (R-01): sem `ON CONFLICT`, o teste de simultâneos falhou com `IntegrityError`; código restaurado. Testes: 258 passando; ruff limpo; `alembic check` sem diferença. Review: Aprovado com ressalvas (REVIEW-T-25-2026-10-08); só sugestões: R-01 (rodar a verificação negativa do teste de simultâneos) e R-02 (`inserir_se_nova` envia toda coluna, o que atropelaria um `server_default` futuro).
+| T-26   | Concluído | 2026-10-09 | `5c289ca` | Arquivos: `vendas/schemas.py` (novo: `NovaVenda` com `ModeloEstrito`, `VendaRegistrada`), `vendas/router.py` (novo: `POST /api/vendas`, só monta o `ServicoVendas` por `Depends`; 201 na criação, 200 no reenvio via `Response`), `main.py` (inclusão do router; justificado no review R-04), `tests/vendas/test_api_registro.py` (novo: CA-01, CA-02, CA-05, CA-06, reenvio, sem sessão → 401, ADMIN também registra). Ajuste de escopo: o router reutiliza `servico_cardapio_da_requisicao` do catálogo para não tocar repositório alheio. Review (REVIEW-T-26-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (asserção da mensagem de CA-05 passou a ser a mensagem inteira) aplicado; R-02 a R-05 registrados (R-05: CA-06 incluído em `Valida:`). Testes: 265 passando; ruff limpo.
+| T-27   | Concluído | 2026-10-09 | `86f297d` | Arquivos: `vendas/modelos.py` (`Venda.cancelar`: motivo obrigatório com `strip`, recusa de venda já cancelada, grava instante, autor e motivo sem tocar quantidade ou snapshot; sem checagem de data, RN-22), `vendas/repositorio.py` (`buscar_por_id_para_cancelar` com `FOR UPDATE`, `persistir`), `vendas/servico.py` (`ServicoVendas.cancelar`: só orquestra, `NaoEncontrado` para venda de outro estabelecimento ou inexistente), `tests/vendas/test_cancelamento.py` (novo). Testes: CA-16 e CA-17 unitários; `test_cancelar_venda_de_data_passada`, `test_cancelamento_nao_remove_a_linha`; extras: concorrência com a primeira transação aberta, e inexistente. Review (REVIEW-T-27-2026-10-09): Aprovado com ressalvas. R-01 (Importante) corrigido nesta tarefa: o teste de concorrência original passava sem a trava, e foi reescrito; verificação negativa confirmada (sem `FOR UPDATE`, falha com `DID NOT RAISE`). R-02 (sleep de 0,3 s) e R-03 (checagem de ADMIN na rota, T-28) registrados. Testes: 272 passando; ruff limpo; `alembic check` sem diferença.
+| T-28   | Concluído | 2026-10-09 | `4ff323b` | Arquivos: `vendas/router.py` (`POST /api/vendas/{venda_id}/cancelar` com `Depends(exige_admin)`; só POST, sem rota GET que cancele), `vendas/schemas.py` (`CancelarVenda`: `motivo` com até 200 caracteres, `ModeloEstrito`), `tests/vendas/test_api_cancelamento.py` (novo: CA-15 com 403 e venda ativa; CA-40 com 405 no GET; cancelamento pelo ADMIN com motivo; extras: motivo vazio com mensagem de negócio, motivo acima de 200, venda inexistente com 404). Review (REVIEW-T-28-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (`(RN-26)` na mensagem ao usuário, mesma pendência da T-23 R-01) e R-02 (falta teste de 401 sem sessão) registrados. Testes: 278 passando; ruff limpo; `alembic check` sem diferença. Ponto de validação humana após T-25 (seção 9) segue aberto; o usuário pediu para seguir o loop.
+| T-29   | Concluído | 2026-10-09 | `c3f2262` | Arquivos: `vendas/repositorio.py` (`listar_do_usuario_no_intervalo`: filtra estabelecimento, `registrada_por` e `[início, fim)` do dia operacional, mais recentes primeiro, canceladas inclusive), `vendas/servico.py` (`ServicoVendas.minhas_do_dia`, com `DiaOperacional.corrente`), `vendas/schemas.py` (`VendaDoDia`, sem preço nem valor, RN-40), `vendas/router.py` (`GET /api/vendas/minhas` com `usuario_autenticado`; horário convertido para `FUSO`), `tests/vendas/test_api_minhas_vendas.py` (novo: CA-36 com 12 próprias e 8 de outro Operador, CA-54 com venda cancelada marcada; extras: ordem e fuso, troca de dia operacional). Review (REVIEW-T-29-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (sem limite de linhas) e R-02 (mapeamento inline na rota, fora do padrão `_registrada`) registrados. Testes: 282 passando; ruff limpo; `alembic check` sem diferença.
+| T-30   | Concluído | 2026-10-09 | `d02952c` | Arquivos: `identidade/repositorio.py` (`buscar_por_ids`, em lote, inclui desativados), `identidade/servico_usuarios.py` (`nomes_por_id`, a porta que `vendas` usa para nomes, ADR-001), `vendas/repositorio.py` (`listar_do_dia`, ordem crescente por horário; `totais_do_dia`, somados no SQL sem canceladas, RN-28), `vendas/leitura.py` (`VendaAuditada`, `VendasDaData`), `vendas/servico_consulta.py` (novo: `ServicoConsultaVendas`, só lê), `vendas/schemas.py` (`VendaDaDataListada`, `VendasDaDataListadas`), `vendas/router.py` (`GET /api/vendas?data=` com `exige_admin`). Testes: `test_api_vendas_da_data.py` com CA-50, CA-27, CA-53 (login real, 401 e 200), e extra: Operador recebe 403. Review (REVIEW-T-30-2026-10-09): Aprovado com ressalvas. R-01 (Importante, escopo de arquivos) corrigido com a lista de `Camadas` atualizada; R-02 (Importante, CA-50 sem conferir item, formato, quantidade, valor e horário) corrigido no teste; R-03 (paginação) e R-04 (ordem crescente, diferente de `minhas`) registrados. Testes: 286 passando; ruff limpo; `alembic check` sem diferença.
+| T-32   | Concluído | 2026-10-09 | `74b0a4b` | Arquivos: `relatorios/consultas.py` (`faturamento_por_formato`: `SUM(valor_total)` por formato; `faturamento_total`; `cancelamentos_posteriores`: `cancelada_em >= fim` do dia, então o mesmo dia não entra; todas sem canceladas, exceto a lista de posteriores, que é só delas), `relatorios/schemas.py` (`FaturamentoPorFormato`, `CancelamentoPosterior` com `Dinheiro`), `tests/relatorios/test_fechamento_faturamento.py` (novo: CA-37, CA-67, mesmo dia). Review (REVIEW-T-32-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (nome de quem cancelou sai na rota, T-33) e R-02 (teste de CA-67 confere o id, não o nome) registrados. Testes: 294 passando; ruff limpo; `alembic check` sem diferença.
+| T-33   | Concluído | 2026-10-09 | `1776e54` | Arquivos: `relatorios/router.py` (novo: `GET /api/fechamento/dia?data=` com `exige_admin`; sem `data`, usa o dia operacional corrente; `parcial` quando a data é o dia corrente; nomes de quem cancelou pelo `ServicoUsuarios.nomes_por_id`, em lote), `relatorios/leitura.py` (novo: formas de leitura, separadas do contrato HTTP, decisão adiada pelo review R-01 da T-31), `relatorios/schemas.py` (passa a ter só o contrato HTTP `FechamentoDiaListado`; valores como texto decimal), `relatorios/consultas.py` e `tests/relatorios/test_fechamento_unidades.py` (import), `app/main.py` (inclusão do router), `tests/relatorios/test_api_fechamento_dia.py` (novo: CA-23, CA-18 com o nome "Admin" no JSON, CA-14, CA-31). Review (REVIEW-T-33-2026-10-09): Aprovado com ressalvas; R-01 (Importante, escopo de arquivos) corrigido atualizando a lista de `Camadas`; R-02 (Sugestão, mapeamento inline na rota) registrado. Ajuste de teste: CA-18 distribui as 78 unidades em lançamentos de até 20 (RN-14). Ponto de validação humana da T-34 (SQL contra o PRD) segue. Testes: 298 passando; ruff limpo; `alembic check` sem diferença.
+| T-34   | Concluído | 2026-10-09 | `c5b7546` | Arquivos: `relatorios/consultas.py` (`quebra_por_dia`: agrupa por dia operacional com `date(timezone(NOME_FUSO, registrada_em))` no SQL, sem canceladas), `relatorios/leitura.py` (`QuebraDoDia`), `relatorios/schemas.py` (`QuebraDiaListada`, `FechamentoMesListado`), `relatorios/router.py` (`GET /api/fechamento/mes?mes=AAAA-MM`, só ADMIN, padrão o mês corrente, `parcial` quando o mês é o corrente; `_totais` e `_campos_dos_totais` compartilhados com o dia, fechando R-02 da T-33), `tests/relatorios/test_fechamento_mes.py` (novo: CA-57 com cada número do cenário; virada do fuso às 23h30 e 00h30). Review (REVIEW-T-34-2026-10-09): Aprovado com ressalvas; R-01 (Importante, `leitura.py` fora da lista) corrigido no plano; R-02 (teste de mês inválido) e R-03 (anotação de tipo) registrados. **Ponto de validação humana da seção 9 segue aberto: conferir o SQL das agregações contra o PRD (CA-21, CA-22, CA-37, CA-57) antes da T-35.** Testes: 300 passando; ruff limpo; `alembic check` sem diferença.
+| T-35   | Concluído | 2026-10-09 | `345944b` | Arquivos: `web/src/app/globals.css` (novo: tokens do `:root` do protótipo v2 e da seção 2, transição de 160 ms e `prefers-reduced-motion`), `web/src/app/layout.tsx` (Nunito Sans 400/600/700/800 com `next/font/google`, `lang="pt-BR"`), `web/src/lib/formato.ts` (formatadores da seção 9: moeda a partir de texto decimal, `dd/mm`, mês por extenso, gramas com kg a partir de 1.000 g), `web/src/lib/formato.test.ts` (novo). Review (REVIEW-T-35-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (formato `2.100 g (2,1 kg)` é interpretação de "kg ao lado", confirmar com a SPEC) e R-02 (`npm run build` não rodado: depende de rede para a fonte) registrados. Testes da web: 8 passando; typecheck e lint limpos.
+| T-36   | Bloqueado | 2026-10-09 | `188a51d` | Arquivos: `web/next.config.ts` (`headers()` com `cabecalhosDeSeguranca(emDesenvolvimento)`: HSTS, `nosniff`, `DENY`, CSP com `default-src 'self'`, `frame-ancestors 'none'`, sem domínio externo; `unsafe-eval` só em desenvolvimento), `web/src/seguranca.test.ts` (novo: 4 casos). Verificado: `npm run build` passa; `npm start` responde com os quatro cabeçalhos na página e em caminho inexistente (curl). Review (REVIEW-T-36-2026-10-09): **Bloqueado** pelo critério 2, que exige checar o console do navegador e não foi feito; R-01 (Importante) registrado. R-02 (`unsafe-inline` em produção) é sugestão. Para destravar: abrir a página em `npm start` no navegador, conferir o console sem violação de CSP, e voltar a tarefa para `Concluído`.
+| T-37   | Concluído | 2026-10-09 | `55c031c` | Arquivos: `web/src/proxy.ts` (novo: limite de 10 por minuto só em `POST /api/auth/login`, 429 sem consultar a API; a convenção do Next 16 é `proxy`, não `middleware`), `web/src/lib/limite-ritmo.ts` (`LimiteDeRitmo`, janela deslizante por origem), `web/src/lib/limite-ritmo.test.ts` e `web/src/proxy.test.ts` (novos: CA-34 com 11ª tentativa recusada, outras rotas livres, janela de um minuto). Review (REVIEW-T-37-2026-10-09): Aprovado com ressalvas; R-01 (Importante, caminho `proxy.ts` e teste fora da lista) corrigido no plano; R-02 (mapa de origens sem poda) e R-03 (`X-Forwarded-For` depende da Vercel, a confirmar na T-61) registrados. Testes da web: 16 passando; typecheck e lint limpos.
+| T-31   | Concluído | 2026-10-09 | `a1f3379` | Arquivos: `relatorios/consultas.py` (novo: `unidades_por_item` agrupa por item de cardápio, prato e formato; `unidades_por_prato` soma os formatos; `total_unidades` e `proteina_por_tipo` somam no SQL; todas com filtro de estabelecimento, intervalo UTC do `DiaOperacional` e `cancelada_em IS NULL`), `relatorios/schemas.py` (novo: `UnidadesPorItem`, `UnidadesPorPrato`, `ProteinaConsumida` como dataclasses de leitura, não contrato HTTP; ver review R-01), `tests/relatorios/test_fechamento_unidades.py` (novo: CA-19, CA-20, CA-21, CA-22 e cancelada fora dos totais, contra o banco real), `tests/relatorios/__init__.py` (vazio). Review (REVIEW-T-31-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (nome `schemas.py` para formas de leitura, decidir na T-33) e R-02 (anotação de tipo do helper) registrados. Ponto de validação humana (revisar o SQL depois da T-34, seção 9) segue. Testes: 291 passando; ruff limpo; `alembic check` sem diferença.

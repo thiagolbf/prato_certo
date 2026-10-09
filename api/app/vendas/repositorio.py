@@ -4,7 +4,10 @@ Recebe o `estabelecimento_id` no construtor e filtra toda consulta por ele. Não
 atualização de valor nem de exclusão: a venda é append-only (ADR-004).
 """
 
-from sqlalchemy import select
+from datetime import datetime
+from decimal import Decimal
+
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as insert_postgres
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,6 +30,68 @@ class RepositorioVendas:
                 Venda.id == venda_id,
             )
         )
+
+    async def buscar_por_id_para_cancelar(self, venda_id: int) -> Venda | None:
+        """Trava a linha até o fim da transação: dois cancelamentos simultâneos se encontram
+        em série, e o segundo vê a venda já cancelada (T-27, risco da tarefa)."""
+        return await self._sessao.scalar(
+            select(Venda)
+            .where(
+                Venda.estabelecimento_id == self._estabelecimento_id,
+                Venda.id == venda_id,
+            )
+            .with_for_update()
+        )
+
+    async def listar_do_usuario_no_intervalo(
+        self, usuario_id: int, inicio: datetime, fim: datetime
+    ) -> list[Venda]:
+        """Vendas de um usuário em `[inicio, fim)`, canceladas inclusive, mais recentes primeiro."""
+        resultado = await self._sessao.scalars(
+            select(Venda)
+            .where(
+                Venda.estabelecimento_id == self._estabelecimento_id,
+                Venda.registrada_por == usuario_id,
+                Venda.registrada_em >= inicio,
+                Venda.registrada_em < fim,
+            )
+            .order_by(Venda.registrada_em.desc(), Venda.id.desc())
+        )
+        return list(resultado)
+
+    async def listar_do_dia(self, inicio: datetime, fim: datetime) -> list[Venda]:
+        """Todas as vendas de todos os usuários em `[inicio, fim)`, canceladas inclusive,
+        na ordem em que aconteceram (RN-51)."""
+        resultado = await self._sessao.scalars(
+            select(Venda)
+            .where(
+                Venda.estabelecimento_id == self._estabelecimento_id,
+                Venda.registrada_em >= inicio,
+                Venda.registrada_em < fim,
+            )
+            .order_by(Venda.registrada_em, Venda.id)
+        )
+        return list(resultado)
+
+    async def totais_do_dia(self, inicio: datetime, fim: datetime) -> tuple[int, Decimal]:
+        """Unidades e valor do dia, sem as canceladas (RN-28), somados no SQL (ADR-007)."""
+        unidades, valor = (
+            await self._sessao.execute(
+                select(
+                    func.coalesce(func.sum(Venda.quantidade), 0),
+                    func.coalesce(func.sum(Venda.valor_total), 0),
+                ).where(
+                    Venda.estabelecimento_id == self._estabelecimento_id,
+                    Venda.registrada_em >= inicio,
+                    Venda.registrada_em < fim,
+                    Venda.cancelada_em.is_(None),
+                )
+            )
+        ).one()
+        return int(unidades), Decimal(valor)
+
+    async def persistir(self) -> None:
+        await self._sessao.flush()
 
     async def buscar_por_chave(self, chave: str) -> Venda | None:
         return await self._sessao.scalar(

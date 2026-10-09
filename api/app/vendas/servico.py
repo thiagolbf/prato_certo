@@ -5,6 +5,7 @@ regra de quantidade, snapshot e totais fica em `Venda.registrar`.
 """
 
 from app.catalogo.servico_cardapio import ServicoCardapio
+from app.core.excecoes import NaoEncontrado
 from app.core.relogio import Relogio
 from app.core.tempo import DiaOperacional
 from app.vendas.leitura import ResultadoRegistro, VendaLeitura
@@ -69,3 +70,19 @@ class ServicoVendas:
 
         gravada = await self._repositorio.buscar_por_id(id_gravado)
         return ResultadoRegistro(venda=_leitura(gravada), criada=True)
+
+    async def minhas_do_dia(self, usuario_id: int) -> list[VendaLeitura]:
+        """Vendas registradas pelo usuário no dia operacional corrente (RN-27, ADR-005)."""
+        inicio, fim = DiaOperacional.corrente(self._relogio).intervalo_utc()
+        vendas = await self._repositorio.listar_do_usuario_no_intervalo(usuario_id, inicio, fim)
+        return [_leitura(venda) for venda in vendas]
+
+    async def cancelar(self, venda_id: int, por: int, motivo: str) -> VendaLeitura:
+        """Cancela logicamente, sem olhar a data da venda (RN-22). A trava `FOR UPDATE` faz o
+        segundo cancelamento simultâneo ver a venda já cancelada e recusar (RN-25)."""
+        venda = await self._repositorio.buscar_por_id_para_cancelar(venda_id)
+        if venda is None:
+            raise NaoEncontrado("Venda não encontrada.")
+        venda.cancelar(por=por, motivo=motivo, agora=self._relogio.agora())
+        await self._repositorio.persistir()
+        return _leitura(venda)
