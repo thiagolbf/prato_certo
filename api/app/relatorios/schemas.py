@@ -44,6 +44,25 @@ class CancelamentoPosteriorListado(BaseModel):
     motivo_cancelamento: str
 
 
+class QuebraDiaListada(BaseModel):
+    dia: date
+    unidades: int
+    faturamento: Decimal
+
+
+class FechamentoMesListado(BaseModel):
+    mes: str
+    # Verdadeiro quando o mês é o corrente: os números ainda estão mudando.
+    parcial: bool
+    total_unidades: int
+    unidades_por_item: list[UnidadesPorItemListado]
+    unidades_por_prato: list[UnidadesPorPratoListado]
+    proteina_por_tipo: list[ProteinaListada]
+    faturamento_por_formato: list[FaturamentoPorFormatoListado]
+    faturamento_total: Decimal
+    quebra_por_dia: list[QuebraDiaListada]
+
+
 class FechamentoDiaListado(BaseModel):
     data: date
     # Verdadeiro quando a data é o dia operacional corrente: os números ainda estão mudando.

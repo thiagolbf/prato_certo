@@ -8,14 +8,16 @@ consulta exclui as canceladas (RN-28).
 
 from datetime import datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import Date, Text, cast, func, literal, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.tempo import NOME_FUSO
 from app.core.valores import Dinheiro
 from app.relatorios.leitura import (
     CancelamentoPosterior,
     FaturamentoPorFormato,
     ProteinaConsumida,
+    QuebraDoDia,
     UnidadesPorItem,
     UnidadesPorPrato,
 )
@@ -126,6 +128,29 @@ async def faturamento_total(
         )
     )
     return Dinheiro(total)
+
+
+async def quebra_por_dia(
+    sessao: AsyncSession, estabelecimento_id: int, inicio: datetime, fim: datetime
+) -> list[QuebraDoDia]:
+    """Unidades e faturamento por dia operacional do período (RN-55).
+
+    O dia sai do instante convertido para o fuso do negócio no próprio banco, com o nome do
+    fuso vindo de `core/tempo.py` (ADR-005). Nada disso é feito em Python.
+    """
+    dia = cast(func.timezone(literal(NOME_FUSO, Text), Venda.registrada_em), Date).label("dia")
+    unidades = func.sum(Venda.quantidade).label("unidades")
+    valor = func.sum(Venda.valor_total).label("valor")
+    linhas = await sessao.execute(
+        select(dia, unidades, valor)
+        .where(*_nao_canceladas_no_periodo(estabelecimento_id, inicio, fim))
+        .group_by(dia)
+        .order_by(dia)
+    )
+    return [
+        QuebraDoDia(dia=linha.dia, unidades=int(linha.unidades), faturamento=Dinheiro(linha.valor))
+        for linha in linhas
+    ]
 
 
 async def cancelamentos_posteriores(

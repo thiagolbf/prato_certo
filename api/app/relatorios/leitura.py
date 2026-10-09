@@ -5,7 +5,7 @@ linhas, e a rota as traduz para o schema de resposta em `schemas.py`.
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 
 from app.catalogo.modelos import Formato
 from app.core.valores import Dinheiro
@@ -59,3 +59,12 @@ class CancelamentoPosterior:
     cancelada_em: datetime
     cancelada_por_id: int
     motivo_cancelamento: str
+
+
+@dataclass(frozen=True)
+class QuebraDoDia:
+    """Unidades e faturamento de um dia operacional dentro de um mês (RN-55)."""
+
+    dia: date
+    unidades: int
+    faturamento: Dinheiro
