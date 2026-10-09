@@ -13,6 +13,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.catalogo.router import router_itens, router_pratos, router_proteinas
+from app.catalogo.router_cardapio import router as router_cardapio
 from app.core.config import Configuracao, obter_configuracao
 from app.core.db import SessaoDaRequisicao, criar_engine, criar_fabrica_sessoes
 from app.core.excecoes import (
@@ -134,6 +135,7 @@ def criar_app(configuracao: Configuracao | None = None) -> FastAPI:
     app.include_router(router_proteinas)
     app.include_router(router_pratos)
     app.include_router(router_itens)
+    app.include_router(router_cardapio)
 
     @app.get("/health")
     async def health(request: Request, sessao: SessaoDaRequisicao) -> JSONResponse:

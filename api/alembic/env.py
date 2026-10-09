@@ -20,6 +20,7 @@ import app.catalogo.modelos  # noqa: F401
 # avisar; `uv run alembic check` acusa modelo e migrations fora de sincronia.
 import app.core.estabelecimento  # noqa: F401
 import app.identidade.modelos  # noqa: F401
+import app.vendas.modelos  # noqa: F401
 from app.core.config import obter_configuracao
 from app.core.modelo_base import Base
 

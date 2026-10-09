@@ -29,12 +29,12 @@ def _item(prato_id: int = 1, formato: Formato = Formato.PF, ativo: bool = True) 
 
 
 def _cardapio_de(data: date, *itens: ItemCardapio) -> CardapioData:
-    return CardapioData.definir(estabelecimento_id=1, data=data, itens=list(itens))
+    return CardapioData.definir(estabelecimento_id=1, data=data, itens=list(itens), hoje=data)
 
 
 def test_cardapio_vazio_e_recusado() -> None:
     with pytest.raises(RegraViolada):
-        CardapioData.definir(estabelecimento_id=1, data=HOJE, itens=[])
+        CardapioData.definir(estabelecimento_id=1, data=HOJE, itens=[], hoje=HOJE)
 
 
 def test_item_desativado_nao_entra_em_cardapio_novo() -> None:
@@ -83,7 +83,9 @@ async def test_herdar_nao_grava_nada_no_banco(sessao: AsyncSession) -> None:
     )
     sessao.add(item)
     await sessao.flush()
-    anterior = CardapioData.definir(estabelecimento_id=estabelecimento_id, data=ONTEM, itens=[item])
+    anterior = CardapioData.definir(
+        estabelecimento_id=estabelecimento_id, data=ONTEM, itens=[item], hoje=ONTEM
+    )
     sessao.add(anterior)
     await sessao.flush()
 

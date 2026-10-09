@@ -189,6 +189,17 @@ cardapio_item = Table(
 )
 
 
+def _validar_definicao(data: date, itens: list[ItemCardapio], hoje: date) -> None:
+    """Regras de quem monta o cardápio: data corrente ou futura, ao menos um item, nenhum
+    desativado (RN-50, RN-57, RN-12)."""
+    if data < hoje:
+        raise RegraViolada("Cardápio de data passada é somente leitura (RN-50).")
+    if not itens:
+        raise RegraViolada("O cardápio precisa de ao menos um item (RN-57).")
+    if any(not item.ativo for item in itens):
+        raise RegraViolada("Item desativado não entra em cardápio novo (RN-12).")
+
+
 class CardapioData(Base):
     """Cardápio próprio de uma data (RN-07). O herdado é só memória, nunca gravado."""
 
@@ -207,13 +218,15 @@ class CardapioData(Base):
 
     @classmethod
     def definir(
-        cls, *, estabelecimento_id: int, data: date, itens: list[ItemCardapio]
+        cls, *, estabelecimento_id: int, data: date, itens: list[ItemCardapio], hoje: date
     ) -> CardapioData:
-        if not itens:
-            raise RegraViolada("O cardápio precisa de ao menos um item (RN-57).")
-        if any(not item.ativo for item in itens):
-            raise RegraViolada("Item desativado não entra em cardápio novo (RN-12).")
+        _validar_definicao(data, itens, hoje)
         return cls(estabelecimento_id=estabelecimento_id, data=data, itens=list(itens))
+
+    def substituir_itens(self, itens: list[ItemCardapio], *, hoje: date) -> None:
+        """Troca os itens da data; vendas já registradas guardam o próprio snapshot (RN-10)."""
+        _validar_definicao(self.data, itens, hoje)
+        self.itens = list(itens)
 
     @classmethod
     def herdar_de(cls, anterior: CardapioData, data: date) -> CardapioData:

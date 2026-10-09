@@ -3,11 +3,13 @@
 Entrada herda de `ModeloEstrito`, que corta espaços nas pontas: "  Frango " vira "Frango".
 """
 
+from datetime import date
 from decimal import Decimal
 from typing import Annotated
 
 from pydantic import BaseModel, Field
 
+from app.catalogo.leitura import TipoCardapio
 from app.catalogo.modelos import Formato
 from app.core.schemas import ModeloEstrito
 
@@ -78,3 +80,32 @@ class ItemListado(BaseModel):
     gramas_por_porcao: int
     preco: Decimal
     ativo: bool
+
+
+class ItemVigenteListado(BaseModel):
+    """Item do cardápio que o Operador pode tocar: com o preço que aparece na tela (RN-40)."""
+
+    item_id: int
+    nome_prato: str
+    nome_proteina: str
+    formato: Formato
+    gramas_por_porcao: int
+    preco: Decimal
+
+
+class CardapioListado(BaseModel):
+    data: date
+    tipo: TipoCardapio
+    # Data do cardápio de onde o herdado veio; `None` para próprio e vazio (RN-09).
+    data_origem: date | None
+    itens: list[ItemVigenteListado]
+
+
+class CardapioDaDataListado(CardapioListado):
+    # Data passada: o cardápio é só de leitura (RN-50).
+    passada: bool
+
+
+class DefinirCardapio(ModeloEstrito):
+    # Lista vazia chega até a entidade, que a recusa (RN-57): a regra fica num lugar só.
+    itens: list[int]

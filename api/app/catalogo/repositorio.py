@@ -1,14 +1,17 @@
-"""Repositório do catálogo: acesso às tabelas `proteina` e `prato` (ADR-003, RN-41).
+"""Repositório do catálogo: acesso às tabelas `proteina`, `prato`, `item_cardapio` e
+`cardapio_data` (ADR-003, RN-41).
 
 Recebe o `estabelecimento_id` no construtor e filtra toda consulta por ele.
 """
 
 from collections.abc import Sequence
+from datetime import date
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from app.catalogo.modelos import Formato, ItemCardapio, Prato, Proteina
+from app.catalogo.modelos import CardapioData, Formato, ItemCardapio, Prato, Proteina
 
 
 class RepositorioProteinas:
@@ -203,3 +206,77 @@ class RepositorioItens:
 
     async def persistir(self) -> None:
         await self._sessao.flush()
+
+
+class RepositorioCardapios:
+    def __init__(self, sessao: AsyncSession, estabelecimento_id: int) -> None:
+        self._sessao = sessao
+        self._estabelecimento_id = estabelecimento_id
+
+    @property
+    def estabelecimento_id(self) -> int:
+        return self._estabelecimento_id
+
+    async def buscar_proprio(self, data: date) -> CardapioData | None:
+        """Cardápio gravado para a data, com os itens carregados (ADR-009)."""
+        return await self._sessao.scalar(
+            select(CardapioData)
+            .where(
+                CardapioData.estabelecimento_id == self._estabelecimento_id,
+                CardapioData.data == data,
+            )
+            .options(selectinload(CardapioData.itens))
+        )
+
+    async def mais_recente_anterior(self, data: date) -> CardapioData | None:
+        """Cardápio gravado mais recente de data anterior a `data`, com os itens carregados.
+
+        Data futura nunca entra aqui: um cardápio de amanhã não é herdado hoje (RN-50).
+        """
+        return await self._sessao.scalar(
+            select(CardapioData)
+            .where(
+                CardapioData.estabelecimento_id == self._estabelecimento_id,
+                CardapioData.data < data,
+            )
+            .order_by(CardapioData.data.desc())
+            .limit(1)
+            .options(selectinload(CardapioData.itens))
+        )
+
+    async def buscar_itens(self, item_ids: Sequence[int]) -> Sequence[ItemCardapio]:
+        """Itens pedidos do estabelecimento; ativos ou não, a entidade decide (RN-12)."""
+        return (
+            await self._sessao.scalars(
+                select(ItemCardapio).where(
+                    ItemCardapio.estabelecimento_id == self._estabelecimento_id,
+                    ItemCardapio.id.in_(item_ids),
+                )
+            )
+        ).all()
+
+    def adicionar(self, cardapio: CardapioData) -> None:
+        self._sessao.add(cardapio)
+
+    async def persistir(self) -> None:
+        await self._sessao.flush()
+
+    async def itens_vendaveis(
+        self, item_ids: Sequence[int]
+    ) -> Sequence[tuple[ItemCardapio, str, str, int]]:
+        """Itens ativos com nome do prato, da proteína e gramagem, numa consulta (RN-12, RN-19)."""
+        if not item_ids:
+            return []
+        return (
+            await self._sessao.execute(
+                select(ItemCardapio, Prato.nome, Proteina.nome, Prato.gramas_por_porcao)
+                .join(Prato, Prato.id == ItemCardapio.prato_id)
+                .join(Proteina, Proteina.id == Prato.proteina_id)
+                .where(
+                    ItemCardapio.estabelecimento_id == self._estabelecimento_id,
+                    ItemCardapio.id.in_(item_ids),
+                    ItemCardapio.ativo.is_(True),
+                )
+                .order_by(Prato.nome, ItemCardapio.formato)
+            )
+        ).all()
