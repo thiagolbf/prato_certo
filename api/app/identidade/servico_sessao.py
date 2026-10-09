@@ -86,6 +86,14 @@ class ServicoSessao:
         if sessao is not None:
             sessao.encerrar(self._relogio.agora())
 
+    async def encerrar_outras_do_usuario(self, usuario_id: int, token_atual: str) -> None:
+        """Encerra as sessões do usuário, menos a do token atual (RN-53, troca de senha)."""
+        agora = self._relogio.agora()
+        atual = hash_do_token(token_atual)
+        for sessao in await self._sessoes.abertas_do_usuario(usuario_id):
+            if sessao.token_hash != atual:
+                sessao.encerrar(agora)
+
     async def encerrar_todas_do_usuario(self, usuario_id: int) -> None:
         """Encerra todas as sessões abertas do usuário (RN-53: recuperação do ADMIN)."""
         agora = self._relogio.agora()

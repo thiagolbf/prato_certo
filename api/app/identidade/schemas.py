@@ -44,6 +44,16 @@ class NovoUsuario(ModeloEstrito):
     senha: SenhaNova
 
 
+class RedefinirSenhaEntrada(ModeloEstrito):
+    senha: SenhaNova
+
+
+class TrocarSenhaEntrada(ModeloEstrito):
+    # A senha atual chega como digitada; a nova segue os limites da RN-60.
+    senha_atual: TextoLiteral
+    senha_nova: SenhaNova
+
+
 class UsuarioListado(BaseModel):
     id: int
     nome: str

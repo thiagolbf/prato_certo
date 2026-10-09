@@ -215,7 +215,7 @@ async def test_corrida_no_cadastro_vira_conflito(sessao: AsyncSession) -> None:
     sessoes = ServicoSessao(
         RepositorioSessoes(sessao, estabelecimento_id), usuarios, POLITICA_SESSAO, relogio
     )
-    servico = ServicoUsuarios(usuarios, sessoes, relogio, estabelecimento_id)
+    servico = ServicoUsuarios(usuarios, sessoes, relogio, estabelecimento_id, POLITICA_BLOQUEIO)
 
     with pytest.raises(Conflito):
         async with sessao.begin_nested():

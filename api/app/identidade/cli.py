@@ -26,7 +26,7 @@ from app.core.excecoes import ErroDeDominio, NaoEncontrado, RegraViolada
 from app.core.relogio import Relogio, RelogioDoServidor
 from app.core.schemas import ModeloEstrito
 from app.identidade.dependencias import politica_da_configuracao
-from app.identidade.modelos import Perfil, Usuario
+from app.identidade.modelos import Perfil, PoliticaDeBloqueio, Usuario
 from app.identidade.repositorio import RepositorioSessoes, RepositorioUsuarios
 from app.identidade.schemas import Login, Nome
 from app.identidade.senha import SenhaNova, gerar_hash
@@ -76,7 +76,12 @@ def _servico_usuarios(
         politica_da_configuracao(obter_configuracao()),
         relogio,
     )
-    return ServicoUsuarios(usuarios, sessoes, relogio, estabelecimento_id)
+    configuracao = obter_configuracao()
+    politica_bloqueio = PoliticaDeBloqueio(
+        tentativas=configuracao.bloqueio_tentativas,
+        minutos=tuple(configuracao.bloqueio_minutos),
+    )
+    return ServicoUsuarios(usuarios, sessoes, relogio, estabelecimento_id, politica_bloqueio)
 
 
 async def redefinir_senha_admin(

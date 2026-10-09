@@ -25,7 +25,7 @@ from app.core.excecoes import (
 from app.core.log import configurar_log
 from app.core.seguranca import CABECALHOS_DE_SEGURANCA, instalar_seguranca
 from app.identidade.router import router as router_identidade
-from app.identidade.router import router_usuarios
+from app.identidade.router import router_conta, router_usuarios
 
 logger = logging.getLogger("app.erros")
 
@@ -129,6 +129,7 @@ def criar_app(configuracao: Configuracao | None = None) -> FastAPI:
     _instalar_documentacao(app)
     app.include_router(router_identidade)
     app.include_router(router_usuarios)
+    app.include_router(router_conta)
 
     @app.get("/health")
     async def health(request: Request, sessao: SessaoDaRequisicao) -> JSONResponse:
