@@ -1,0 +1,80 @@
+/* Tokens da seção 2 da SPEC-UI, copiados do :root de prototipo-001-visual-v2.html.
+   Tema claro único (SPEC-UI 2). Nenhum componente usa cor literal: tudo sai daqui. */
+:root {
+  --desk: #E4D0BE;
+  --canvas: #F3E3D3;
+  --paper: #FFFFFF;
+  --ink: #2E2622;
+  --muted: #66574D;
+  --line: #E6D2C3;
+  --strong: #86766A;
+  --soft: #F8DCCD;
+  --press: #F1CCB9;
+  --pri: #A5452F;
+  --pri-press: #8A3824;
+  --pri-ring: rgba(165, 69, 47, .22);
+  --on-pri-sub: #F6DCD2;
+  --tabs-bg: #EBD2C0;
+  --on-pri: #FFFFFF;
+  --bezel: #2B2420;
+  --bezel-ink: #EFE4DA;
+  --err: #A3302A;  --errbg: #FBEAE7;  --errline: #E7B7B0;
+  --ok: #2E6A3A;   --okbg: #E7F1E5;   --okline: #B5D3B3;
+  --warn: #7A5200; --warnbg: #FBF0D6; --warnline: #E6CE92;
+  --info: #2E5570; --infobg: #E6EEF3; --infoline: #B4CAD8;
+  --skel-a: #EAD3C1; --skel-b: #F6E8DC;
+  --scrim: rgba(46, 38, 34, .45);
+  --shadow: 0 1px 2px rgba(46, 38, 34, .06), 0 2px 8px rgba(46, 38, 34, .05);
+  --shadow-up: 0 12px 32px rgba(46, 38, 34, .16);
+  --r-sm: 10px;
+  --r: 12px;
+  --r-md: 14px;
+  --r-lg: 18px;
+  --r-xl: 24px;
+  --t: 160ms ease-out;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--desk);
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--pri);
+  outline-offset: 2px;
+}
+
+/* Movimento: só transições de cor de 160 ms, desligadas quando o usuário pede (SPEC-UI 2). */
+button,
+a,
+input,
+select,
+textarea {
+  transition: background-color var(--t), border-color var(--t), color var(--t);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
