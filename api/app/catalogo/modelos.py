@@ -6,14 +6,19 @@ Nome único por estabelecimento, sem diferenciar maiúsculas nem espaços nas po
 
 from __future__ import annotations
 
+from decimal import Decimal
+from enum import StrEnum
+
 from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
+    Enum,
     ForeignKey,
     Identity,
     Index,
     Integer,
+    Numeric,
     Text,
     text,
 )
@@ -21,7 +26,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.excecoes import RegraViolada
 from app.core.modelo_base import Base
-from app.core.valores import Gramagem
+from app.core.valores import Dinheiro, Gramagem
 
 
 def _nome_valido(nome: str) -> str:
@@ -87,6 +92,59 @@ class Prato(Base):
         self.ativo = True
 
 
+class Formato(StrEnum):
+    PF = "PF"
+    MARMITA = "MARMITA"
+
+
+class ItemCardapio(Base):
+    """Par prato × formato, com preço próprio (RN-03). É o item que o Operador toca na tela."""
+
+    __tablename__ = "item_cardapio"
+    __table_args__ = (
+        CheckConstraint("preco > 0", name="preco_positivo"),
+        CheckConstraint("formato IN ('PF', 'MARMITA')", name="formato_valido"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    estabelecimento_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("estabelecimento.id"))
+    prato_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("prato.id"))
+    formato: Mapped[Formato] = mapped_column(
+        Enum(Formato, name="formato", native_enum=False, create_constraint=False, length=8)
+    )
+    # Numeric, nunca float (ADR-009): o Dinheiro entra e sai como Decimal.
+    preco: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    ativo: Mapped[bool] = mapped_column(Boolean)
+
+    @classmethod
+    def criar(
+        cls, *, estabelecimento_id: int, prato_id: int, formato: Formato, preco: Dinheiro
+    ) -> ItemCardapio:
+        _exigir_preco_positivo(preco)
+        return cls(
+            estabelecimento_id=estabelecimento_id,
+            prato_id=prato_id,
+            formato=formato,
+            preco=preco.valor,
+            ativo=True,
+        )
+
+    def alterar_preco(self, preco: Dinheiro) -> None:
+        _exigir_preco_positivo(preco)
+        self.preco = preco.valor
+
+    def desativar(self) -> None:
+        self.ativo = False
+
+    def reativar(self) -> None:
+        self.ativo = True
+
+
+def _exigir_preco_positivo(preco: Dinheiro) -> None:
+    if preco <= Dinheiro.zero():
+        raise ValueError(f"preço precisa ser positivo, recebido {preco}")
+
+
 # Nome único por estabelecimento, sem maiúsculas nem espaços nas pontas (RN-59). Índice por
 # expressão: fica depois da classe porque referencia a coluna.
 Index(
@@ -99,5 +157,13 @@ Index(
     "uq_prato_estabelecimento_id_nome",
     Prato.estabelecimento_id,
     text("lower(TRIM(BOTH FROM nome))"),
+    unique=True,
+)
+
+# Um item por prato e formato, desativado ou não (RN-59).
+Index(
+    "uq_item_cardapio_prato_id_formato",
+    ItemCardapio.prato_id,
+    ItemCardapio.formato,
     unique=True,
 )
