@@ -996,26 +996,28 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 
 #### T-26 — Expor o registro de venda em POST /api/vendas
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Baixa
 - **Depende de:** T-11, T-25
 - **Implementa:** —
-- **Valida:** CA-01 (lado API), CA-02, CA-05
+- **Valida:** CA-01 (lado API), CA-02, CA-05, CA-06 (lado API; incluído após o review R-05)
 - **Decisões base:** ADR-004, ADR-006
 - **Camadas/arquivos afetados:**
   - `api/app/vendas/schemas.py`, `api/app/vendas/router.py` *(novos)*
+  - `api/app/main.py` *(inclusão do router; justificado após o review R-04)*
   - `api/tests/vendas/test_api_registro.py` *(novo)*
 
 **Descrição:**
 `POST /api/vendas` (ADMIN e Operador) recebe `item_id`, `quantidade` e `chave_idempotencia`; devolve 201 com a venda criada ou 200 com a original quando a chave já existia. Quantidade fora de 1–20 e item fora do cardápio devolvem 422 com mensagem de negócio, que a UI-02 mostra no estado `.recusado`.
 
 **Critério de aceite (testável):**
-- [ ] Uma unidade de "Frango grelhado - PF" é registrada com preço 18,00, gramagem 150 e o usuário que registrou (CA-01)
-- [ ] Quantidade 3 da marmita de R$ 22,00 grava R$ 66,00 e 450 g (CA-02)
-- [ ] Quantidade 21 é recusada com a mensagem do limite por lançamento (CA-05)
+- [x] Uma unidade de "Frango grelhado - PF" é registrada com preço 18,00, gramagem 150 e o usuário que registrou (CA-01)
+- [x] Quantidade 3 da marmita de R$ 22,00 grava R$ 66,00 e 450 g (CA-02)
+- [x] Quantidade 21 é recusada com a mensagem do limite por lançamento (CA-05)
 
 **Testes a escrever:**
 - *Integration:* `test_CA_01_registrar_uma_unidade`, `test_CA_02_registrar_mais_de_uma_unidade`, `test_CA_05_quantidade_acima_do_teto_e_recusada`, `test_reenvio_devolve_200_com_a_original`
+- *Integration (extra, incluído no review):* `test_CA_06_item_fora_do_cardapio_de_hoje_e_recusado`, `test_sem_sessao_o_registro_e_recusado`, `test_admin_tambem_registra_venda`
 
 **Riscos / pontos de atenção:**
 - A parte de interface do CA-01 (confirmar sem esperar o servidor) fecha na T-43.
@@ -2153,3 +2155,4 @@ Nenhuma questão em aberto.
 | T-23   | Concluído | 2026-10-08 | `c781f00` | Arquivos: `catalogo/modelos.py` (`CardapioData.definir` recebe `hoje`; novo `substituir_itens`; regras centralizadas em `_validar_definicao`: data passada recusada, RN-50; lista vazia, RN-57; item desativado, RN-12), `catalogo/servico_cardapio.py` (`ServicoCardapio.definir`: busca os itens pedidos, cria ou troca o cardápio da data, traduz a corrida no índice único para `Conflito`, pedido com item inexistente vira `NaoEncontrado`), `catalogo/repositorio.py` (`buscar_itens`, `adicionar`, `persistir`), `catalogo/schemas.py` (`DefinirCardapio`), `catalogo/router_cardapio.py` (`POST /api/cardapio/{data}`, só ADMIN), `tests/catalogo/test_api_cardapio_definicao.py` (novo). Ajustado por consequência: os chamadores de `definir` nos testes da T-20 e da T-21/T-22 recebem `hoje`. Sem migration. Testes: 245 passando; ruff limpo; `alembic check` sem diferença. Review: Aprovado com ressalvas (REVIEW-T-23-2026-10-08); só sugestões: R-01 (tirar `(RN-XX)` das mensagens ao usuário) e R-02 (checar `hoje` antes da busca e restringir o mapeamento de `IntegrityError`).
 | T-24   | Concluído | 2026-10-08 | `c781f00` | Arquivos: `vendas/modelos.py` (`Venda`, com `registrar` como único caminho de criação; CHECKs de quantidade 1 a 20 e de formato; índices únicos de chave de idempotência e de `registrada_em`), `vendas/excecoes.py` (`QuantidadeForaDoLimite`, `VendaJaCancelada`, `MotivoObrigatorio`), `alembic/versions/0007_venda.py` (autogenerate, com CHECKs conferidos), `alembic/env.py` (importa `vendas.modelos`, como exige a convenção), `tests/vendas/test_venda.py` e `tests/vendas/__init__.py` (novos). Decisões de execução: `valor_total` em `Numeric(12,2)`, porque preço máximo × 20 não cabe em `Numeric(10,2)`; `preco_unitario` segue `Numeric(10,2)` como o plano. Sem migration de dado. Chave de idempotência vazia recusada na entidade (RN-18), por correção feita durante a execução, com teste. Testes: 254 passando; ruff limpo; migration 0007 sobe, desce e sobe; `alembic check` sem diferença. Review: Aprovado com ressalvas (REVIEW-T-24-2026-10-08); R-01 (`Formato` importado de `catalogo.modelos` na `vendas`) é sugestão; R-02 (chave vazia) aplicado.
 | T-25   | Concluído | 2026-10-08 | `c781f00` | Arquivos: `vendas/repositorio.py` (`inserir_se_nova` com `INSERT … ON CONFLICT (estabelecimento_id, chave_idempotencia) DO NOTHING … RETURNING id`; sem método de alteração nem de exclusão), `vendas/servico.py` (`ServicoVendas.registrar`: instante e dia do relógio do servidor, item pelo `ServicoCardapio`, snapshot e totais por `Venda.registrar`), `vendas/leitura.py` (novo: `VendaLeitura` e `ResultadoRegistro`, para a API não receber entidade), `tests/vendas/test_registro.py` (novo). Decisão de execução: a chave é consultada **antes** do item. Um reenvio de venda já gravada devolve a original mesmo que o cardápio tenha mudado (RN-18); sem isso, a retentativa de uma venda feita antes da troca de cardápio seria recusada. Teste de simultâneos grava de verdade, em duas sessões com commit, e limpa no fim. Verificação negativa feita depois do review (R-01): sem `ON CONFLICT`, o teste de simultâneos falhou com `IntegrityError`; código restaurado. Testes: 258 passando; ruff limpo; `alembic check` sem diferença. Review: Aprovado com ressalvas (REVIEW-T-25-2026-10-08); só sugestões: R-01 (rodar a verificação negativa do teste de simultâneos) e R-02 (`inserir_se_nova` envia toda coluna, o que atropelaria um `server_default` futuro).
+| T-26   | Concluído | 2026-10-09 | — | Arquivos: `vendas/schemas.py` (novo: `NovaVenda` com `ModeloEstrito`, `VendaRegistrada`), `vendas/router.py` (novo: `POST /api/vendas`, só monta o `ServicoVendas` por `Depends`; 201 na criação, 200 no reenvio via `Response`), `main.py` (inclusão do router; justificado no review R-04), `tests/vendas/test_api_registro.py` (novo: CA-01, CA-02, CA-05, CA-06, reenvio, sem sessão → 401, ADMIN também registra). Ajuste de escopo: o router reutiliza `servico_cardapio_da_requisicao` do catálogo para não tocar repositório alheio. Review (REVIEW-T-26-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (asserção da mensagem de CA-05 passou a ser a mensagem inteira) aplicado; R-02 a R-05 registrados (R-05: CA-06 incluído em `Valida:`). Testes: 265 passando; ruff limpo. Commit pendente.

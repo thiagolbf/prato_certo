@@ -28,6 +28,7 @@ from app.core.log import configurar_log
 from app.core.seguranca import CABECALHOS_DE_SEGURANCA, instalar_seguranca
 from app.identidade.router import router as router_identidade
 from app.identidade.router import router_conta, router_usuarios
+from app.vendas.router import router as router_vendas
 
 logger = logging.getLogger("app.erros")
 
@@ -136,6 +137,7 @@ def criar_app(configuracao: Configuracao | None = None) -> FastAPI:
     app.include_router(router_pratos)
     app.include_router(router_itens)
     app.include_router(router_cardapio)
+    app.include_router(router_vendas)
 
     @app.get("/health")
     async def health(request: Request, sessao: SessaoDaRequisicao) -> JSONResponse:
