@@ -697,7 +697,7 @@ Rotas de ADMIN: `GET /api/usuarios` lista nome, login, perfil, situação e, par
 
 #### T-16 — Criar a entidade ItemCardapio com formato e preço próprio
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Baixa
 - **Depende de:** T-15
 - **Implementa:** RN-03, RN-59
@@ -707,13 +707,14 @@ Rotas de ADMIN: `GET /api/usuarios` lista nome, login, perfil, situação e, par
   - `api/app/catalogo/modelos.py` *(editado — `ItemCardapio`, `Formato`)*
   - `api/alembic/versions/0005_item_cardapio.py` *(novo)*
   - `api/tests/catalogo/test_item_cardapio.py` *(novo)*
+  - `api/app/catalogo/modelos.py` *(editado com `ItemCardapio` e `Formato`, conforme previsto)*
 
 **Descrição:**
 `item_cardapio` com `estabelecimento_id`, `prato_id`, `formato` (`PF` / `MARMITA`), `preco` em `Numeric(10, 2)` e ativo. Índice único em `(prato_id, formato)`, valendo também para desativados (RN-59). O preço entra e sai como `Dinheiro`. Métodos `alterar_preco()`, `desativar()` e `reativar()`; prato e formato não mudam depois de criados.
 
 **Critério de aceite (testável):**
-- [ ] Um segundo item do mesmo prato no mesmo formato viola o índice único
-- [ ] Preço zero ou negativo é recusado; o preço é persistido e lido como `Decimal`
+- [x] Um segundo item do mesmo prato no mesmo formato viola o índice único
+- [x] Preço zero ou negativo é recusado; o preço é persistido e lido como `Decimal`
 
 **Testes a escrever:**
 - *Unit:* `test_preco_precisa_ser_positivo`, `test_alterar_preco`
@@ -2139,3 +2140,4 @@ Nenhuma questão em aberto.
 | T-13   | Concluído | 2026-10-08 | `ecf45bf` | Arquivos: `identidade/servico_usuarios.py` e `tests/identidade/test_usuarios.py` (novos); `identidade/schemas.py` (Nome e Login com mensagens em português, `NovoUsuario` sem campo de perfil, `UsuarioListado`), `identidade/router.py` (router de usuários com `exige_admin`), `identidade/cli.py` (`criar-admin` usa o `ServicoUsuarios`; nome e login validados antes da senha, R-03 da T-09), `tests/identidade/test_cli.py`, `identidade/repositorio.py` e `main.py` (fora da lista, justificado acima). Decisões tomadas na execução: `bloqueado_ate` na lista só enquanto a conta está bloqueada agora; desativar encerra as sessões; corrida no cadastro vira 409 pelo `IntegrityError` (R-05 da T-09); ADMIN não desativa a própria conta (`Usuario.exigir_desativavel_por`, RN-34); `redefinir-senha` recusa conta desativada (RN-53). Logs de criação, desativação e reativação com ids. Review round 1 (REVIEW-T-13-2026-10-08): Aprovado com ressalvas; round 2 (REVIEW-T-13-2026-10-08-round2): Aprovado. Testes: 175 passando; ruff limpo; `alembic check` sem diferença.
 | T-14   | Concluído | 2026-10-08 | `3cdbe5a` | Arquivos: `identidade/servico_usuarios.py` (`redefinir_senha` e `trocar_senha_propria`), `identidade/servico_sessao.py` (`encerrar_outras_do_usuario`), `identidade/schemas.py`, `identidade/router.py` (`POST /api/usuarios/{id}/redefinir-senha` e `POST /api/conta/senha`, só ADMIN), `identidade/cli.py`, `main.py`, `tests/identidade/test_senhas.py` (novo), `test_usuarios.py` (construtor). Decisões tomadas na execução (dentro da delegação do usuário, registradas na RN-53 do PRD): a troca encerra as outras sessões do ADMIN e mantém a atual; a senha atual errada conta como falha para o bloqueio (RN-37), e a recusa sai como 422 sem exceção, para a falha ser gravada; a redefinição não atinge outro ADMIN (sai pelo comando técnico). Testes: 181 passando; ruff limpo; `alembic check` sem diferença. Review (REVIEW-T-14-2026-10-08): Aprovado com ressalvas; R-01 (teste da contagem da senha atual) corrigido com teste; R-02 e R-03 registrados como sugestões. Testes: 182 passando.
 | T-15   | Concluído | 2026-10-08 | `f406ff0` | Arquivos: `catalogo/modelos.py` (`Proteina`, `Prato`, com `criar`, `desativar`, `reativar`, `alterar_gramagem`; relacionamento `lazy="raise"`; índices únicos por expressão `lower(TRIM(BOTH FROM nome))`), `alembic/versions/0004_proteina_prato.py` (escrita à mão: o autogenerate não detecta índice por expressão), `tests/catalogo/test_proteina_prato.py` (novo). Gramagem recusada pelo `Gramagem` do core (valores.py), não uma validação nova. Índice do modelo usa a forma que o PostgreSQL devolve, senão o `alembic check` acusa diferença falsa. Testes: 188 passando; ruff limpo; `alembic check` sem diferença; migration 0004 sobe e desce. Review (REVIEW-T-15-2026-10-08): Aprovado com ressalvas; R-02 (nome em branco) corrigido na entidade com teste; R-01 (FK composta prato→proteina) registrado como dívida, a decidir junto com a T-16. Testes: 189 passando.
+| T-16   | Concluído | 2026-10-08 | `00955a6` | Arquivos: `catalogo/modelos.py` (`ItemCardapio`, `Formato` PF/MARMITA; `criar`, `alterar_preco`, `desativar`, `reativar`), `alembic/versions/0005_item_cardapio.py` (escrita à mão, com CHECKs de preço e formato), `tests/catalogo/test_item_cardapio.py` (novo). Preço positivo recusado pela entidade, porque `Dinheiro` aceita zero e negativo; o CHECK do banco é a segunda barreira. Preço em `Numeric(10, 2)`, lido como `Decimal`. Índice único em `(prato_id, formato)`, sem filtro de ativo (RN-59). Prato e formato não têm método de alteração. Testes: 193 passando; ruff limpo; `alembic check` sem diferença; migration 0005 sobe e desce. Review (REVIEW-T-16-2026-10-08): Aprovado com ressalvas; R-01 (chave composta por estabelecimento, dívida da T-15) registrado para decisão antes da T-17. Testes: 193 passando.
