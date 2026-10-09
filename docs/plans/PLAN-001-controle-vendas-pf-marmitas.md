@@ -727,7 +727,7 @@ Rotas de ADMIN: `GET /api/usuarios` lista nome, login, perfil, situação e, par
 
 #### T-17 — Expor o cadastro de proteínas com desativação protegida
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-11, T-15
 - **Implementa:** RN-01, RN-04, RN-49, RN-58 (proteína)
@@ -736,14 +736,16 @@ Rotas de ADMIN: `GET /api/usuarios` lista nome, login, perfil, situação e, par
 - **Camadas/arquivos afetados:**
   - `api/app/catalogo/repositorio.py`, `api/app/catalogo/servico.py`, `api/app/catalogo/schemas.py`, `api/app/catalogo/router.py` *(novos)*
   - `api/tests/catalogo/test_api_proteinas.py` *(novo)*
+  - `api/app/catalogo/modelos.py` *(editado — `Proteina.renomear`, necessário para a rota de renomear; fora da lista, como o método de T-15)*
+  - `api/app/main.py` *(editado — inclui o router de proteínas)*
 
 **Descrição:**
 Rotas de ADMIN para proteínas: listar (com filtro de desativadas e a contagem de pratos ativos que a usam), cadastrar, renomear, desativar e reativar. Desativar proteína usada por prato ativo é recusado com 409 e a lista dos pratos que impedem (RN-58). Cadastrar nome igual ao de uma desativada devolve 409 indicando que ela pode ser reativada (RN-49). O repositório recebe o `estabelecimento_id` no construtor.
 
 **Critério de aceite (testável):**
-- [ ] Cadastrar "Frango" com "Frango" existente é recusado (CA-29); o nome de uma desativada devolve a indicação de reativar
-- [ ] Desativar "Frango" com o prato ativo "Frango grelhado" é recusado, e a resposta nomeia o prato (CA-62)
-- [ ] Desativar e reativar preservam o registro; o Operador recebe 403
+- [x] Cadastrar "Frango" com "Frango" existente é recusado (CA-29); o nome de uma desativada devolve a indicação de reativar
+- [x] Desativar "Frango" com o prato ativo "Frango grelhado" é recusado, e a resposta nomeia o prato (CA-62)
+- [x] Desativar e reativar preservam o registro; o Operador recebe 403
 
 **Testes a escrever:**
 - *Integration:* `test_CA_29_proteina_com_nome_repetido_e_recusada`, `test_CA_62_proteina_em_uso_nao_e_desativada`, `test_nome_de_desativada_indica_reativar`, `test_reativar_proteina`
@@ -2141,3 +2143,4 @@ Nenhuma questão em aberto.
 | T-14   | Concluído | 2026-10-08 | `3cdbe5a` | Arquivos: `identidade/servico_usuarios.py` (`redefinir_senha` e `trocar_senha_propria`), `identidade/servico_sessao.py` (`encerrar_outras_do_usuario`), `identidade/schemas.py`, `identidade/router.py` (`POST /api/usuarios/{id}/redefinir-senha` e `POST /api/conta/senha`, só ADMIN), `identidade/cli.py`, `main.py`, `tests/identidade/test_senhas.py` (novo), `test_usuarios.py` (construtor). Decisões tomadas na execução (dentro da delegação do usuário, registradas na RN-53 do PRD): a troca encerra as outras sessões do ADMIN e mantém a atual; a senha atual errada conta como falha para o bloqueio (RN-37), e a recusa sai como 422 sem exceção, para a falha ser gravada; a redefinição não atinge outro ADMIN (sai pelo comando técnico). Testes: 181 passando; ruff limpo; `alembic check` sem diferença. Review (REVIEW-T-14-2026-10-08): Aprovado com ressalvas; R-01 (teste da contagem da senha atual) corrigido com teste; R-02 e R-03 registrados como sugestões. Testes: 182 passando.
 | T-15   | Concluído | 2026-10-08 | `f406ff0` | Arquivos: `catalogo/modelos.py` (`Proteina`, `Prato`, com `criar`, `desativar`, `reativar`, `alterar_gramagem`; relacionamento `lazy="raise"`; índices únicos por expressão `lower(TRIM(BOTH FROM nome))`), `alembic/versions/0004_proteina_prato.py` (escrita à mão: o autogenerate não detecta índice por expressão), `tests/catalogo/test_proteina_prato.py` (novo). Gramagem recusada pelo `Gramagem` do core (valores.py), não uma validação nova. Índice do modelo usa a forma que o PostgreSQL devolve, senão o `alembic check` acusa diferença falsa. Testes: 188 passando; ruff limpo; `alembic check` sem diferença; migration 0004 sobe e desce. Review (REVIEW-T-15-2026-10-08): Aprovado com ressalvas; R-02 (nome em branco) corrigido na entidade com teste; R-01 (FK composta prato→proteina) registrado como dívida, a decidir junto com a T-16. Testes: 189 passando.
 | T-16   | Concluído | 2026-10-08 | `00955a6` | Arquivos: `catalogo/modelos.py` (`ItemCardapio`, `Formato` PF/MARMITA; `criar`, `alterar_preco`, `desativar`, `reativar`), `alembic/versions/0005_item_cardapio.py` (escrita à mão, com CHECKs de preço e formato), `tests/catalogo/test_item_cardapio.py` (novo). Preço positivo recusado pela entidade, porque `Dinheiro` aceita zero e negativo; o CHECK do banco é a segunda barreira. Preço em `Numeric(10, 2)`, lido como `Decimal`. Índice único em `(prato_id, formato)`, sem filtro de ativo (RN-59). Prato e formato não têm método de alteração. Testes: 193 passando; ruff limpo; `alembic check` sem diferença; migration 0005 sobe e desce. Review (REVIEW-T-16-2026-10-08): Aprovado com ressalvas; R-01 (chave composta por estabelecimento, dívida da T-15) registrado para decisão antes da T-17. Testes: 193 passando.
+| T-17   | Concluído | 2026-10-08 | `fb0e032` | Arquivos: `catalogo/repositorio.py` (listagem com contagem de pratos ativos, busca por nome sem maiúsculas nem espaços, trava `FOR UPDATE` na desativação), `catalogo/servico.py` (`ServicoProteinas`: criar, renomear, desativar, reativar), `catalogo/schemas.py`, `catalogo/router.py` (`/api/proteinas`, só ADMIN pelo router), `tests/catalogo/test_api_proteinas.py` (novo). Fora da lista, justificados: `catalogo/modelos.py` (`renomear`) e `main.py`. Mensagens: nome repetido ativo → 409; nome de desativada → 409 indicando reativar (RN-49); desativar com prato ativo → 409 nomeando o prato (RN-58). Ponto de atenção registrado: o router importa `exige_admin` de `identidade`, dependência transversal; avaliar mover para `core` quando o padrão se repetir. Review (REVIEW-T-17-2026-10-08): Aprovado com ressalvas; R-01 (renomear sem teste) corrigido com três testes; R-02 (concorrência da trava) e R-03 (plural na mensagem de RN-58) registrados para a T-18. Testes: 202 passando; ruff limpo; `alembic check` sem diferença. Commit pendente.
