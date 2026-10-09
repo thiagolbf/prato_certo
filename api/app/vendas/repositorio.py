@@ -4,6 +4,8 @@ Recebe o `estabelecimento_id` no construtor e filtra toda consulta por ele. Não
 atualização de valor nem de exclusão: a venda é append-only (ADR-004).
 """
 
+from datetime import datetime
+
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as insert_postgres
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -39,6 +41,22 @@ class RepositorioVendas:
             )
             .with_for_update()
         )
+
+    async def listar_do_usuario_no_intervalo(
+        self, usuario_id: int, inicio: datetime, fim: datetime
+    ) -> list[Venda]:
+        """Vendas de um usuário em `[inicio, fim)`, canceladas inclusive, mais recentes primeiro."""
+        resultado = await self._sessao.scalars(
+            select(Venda)
+            .where(
+                Venda.estabelecimento_id == self._estabelecimento_id,
+                Venda.registrada_por == usuario_id,
+                Venda.registrada_em >= inicio,
+                Venda.registrada_em < fim,
+            )
+            .order_by(Venda.registrada_em.desc(), Venda.id.desc())
+        )
+        return list(resultado)
 
     async def persistir(self) -> None:
         await self._sessao.flush()

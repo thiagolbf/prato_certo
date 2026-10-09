@@ -1085,7 +1085,7 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 
 #### T-29 — Expor a lista das próprias vendas do dia
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Baixa
 - **Depende de:** T-26, T-28
 - **Implementa:** RN-40
@@ -1099,11 +1099,12 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 `GET /api/vendas/minhas` (ADMIN e Operador) devolve as vendas do usuário autenticado no dia operacional corrente, da mais recente para a mais antiga, com horário no fuso do dia operacional, item, formato, quantidade e marca de cancelada. O schema de resposta **não tem** campo de preço nem de valor — a restrição é do contrato HTTP, não da entidade (RN-40).
 
 **Critério de aceite (testável):**
-- [ ] Com 12 vendas minhas e 8 de outro Operador hoje, recebo só as minhas 12, sem preço nem valor (CA-36)
-- [ ] Das minhas 3 vendas, a que o ADMIN cancelou aparece marcada como cancelada (CA-54)
+- [x] Com 12 vendas minhas e 8 de outro Operador hoje, recebo só as minhas 12, sem preço nem valor (CA-36)
+- [x] Das minhas 3 vendas, a que o ADMIN cancelou aparece marcada como cancelada (CA-54)
 
 **Testes a escrever:**
 - *Integration:* `test_CA_36_operador_ve_so_as_proprias_vendas_sem_valores`, `test_CA_54_operador_ve_a_venda_cancelada_marcada`
+- *Integration (extra):* `test_lista_vem_da_mais_recente_e_no_horario_de_sao_paulo`, `test_venda_de_outro_dia_operacional_nao_aparece`
 
 **Riscos / pontos de atenção:**
 - Conferir que nenhum campo monetário escapa por serialização automática da entidade.
@@ -2160,3 +2161,4 @@ Nenhuma questão em aberto.
 | T-26   | Concluído | 2026-10-09 | `5c289ca` | Arquivos: `vendas/schemas.py` (novo: `NovaVenda` com `ModeloEstrito`, `VendaRegistrada`), `vendas/router.py` (novo: `POST /api/vendas`, só monta o `ServicoVendas` por `Depends`; 201 na criação, 200 no reenvio via `Response`), `main.py` (inclusão do router; justificado no review R-04), `tests/vendas/test_api_registro.py` (novo: CA-01, CA-02, CA-05, CA-06, reenvio, sem sessão → 401, ADMIN também registra). Ajuste de escopo: o router reutiliza `servico_cardapio_da_requisicao` do catálogo para não tocar repositório alheio. Review (REVIEW-T-26-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (asserção da mensagem de CA-05 passou a ser a mensagem inteira) aplicado; R-02 a R-05 registrados (R-05: CA-06 incluído em `Valida:`). Testes: 265 passando; ruff limpo.
 | T-27   | Concluído | 2026-10-09 | `86f297d` | Arquivos: `vendas/modelos.py` (`Venda.cancelar`: motivo obrigatório com `strip`, recusa de venda já cancelada, grava instante, autor e motivo sem tocar quantidade ou snapshot; sem checagem de data, RN-22), `vendas/repositorio.py` (`buscar_por_id_para_cancelar` com `FOR UPDATE`, `persistir`), `vendas/servico.py` (`ServicoVendas.cancelar`: só orquestra, `NaoEncontrado` para venda de outro estabelecimento ou inexistente), `tests/vendas/test_cancelamento.py` (novo). Testes: CA-16 e CA-17 unitários; `test_cancelar_venda_de_data_passada`, `test_cancelamento_nao_remove_a_linha`; extras: concorrência com a primeira transação aberta, e inexistente. Review (REVIEW-T-27-2026-10-09): Aprovado com ressalvas. R-01 (Importante) corrigido nesta tarefa: o teste de concorrência original passava sem a trava, e foi reescrito; verificação negativa confirmada (sem `FOR UPDATE`, falha com `DID NOT RAISE`). R-02 (sleep de 0,3 s) e R-03 (checagem de ADMIN na rota, T-28) registrados. Testes: 272 passando; ruff limpo; `alembic check` sem diferença.
 | T-28   | Concluído | 2026-10-09 | `4ff323b` | Arquivos: `vendas/router.py` (`POST /api/vendas/{venda_id}/cancelar` com `Depends(exige_admin)`; só POST, sem rota GET que cancele), `vendas/schemas.py` (`CancelarVenda`: `motivo` com até 200 caracteres, `ModeloEstrito`), `tests/vendas/test_api_cancelamento.py` (novo: CA-15 com 403 e venda ativa; CA-40 com 405 no GET; cancelamento pelo ADMIN com motivo; extras: motivo vazio com mensagem de negócio, motivo acima de 200, venda inexistente com 404). Review (REVIEW-T-28-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (`(RN-26)` na mensagem ao usuário, mesma pendência da T-23 R-01) e R-02 (falta teste de 401 sem sessão) registrados. Testes: 278 passando; ruff limpo; `alembic check` sem diferença. Ponto de validação humana após T-25 (seção 9) segue aberto; o usuário pediu para seguir o loop.
+| T-29   | Concluído | 2026-10-09 | — | Arquivos: `vendas/repositorio.py` (`listar_do_usuario_no_intervalo`: filtra estabelecimento, `registrada_por` e `[início, fim)` do dia operacional, mais recentes primeiro, canceladas inclusive), `vendas/servico.py` (`ServicoVendas.minhas_do_dia`, com `DiaOperacional.corrente`), `vendas/schemas.py` (`VendaDoDia`, sem preço nem valor, RN-40), `vendas/router.py` (`GET /api/vendas/minhas` com `usuario_autenticado`; horário convertido para `FUSO`), `tests/vendas/test_api_minhas_vendas.py` (novo: CA-36 com 12 próprias e 8 de outro Operador, CA-54 com venda cancelada marcada; extras: ordem e fuso, troca de dia operacional). Review (REVIEW-T-29-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (sem limite de linhas) e R-02 (mapeamento inline na rota, fora do padrão `_registrada`) registrados. Testes: 282 passando; ruff limpo; `alembic check` sem diferença. Commit pendente.

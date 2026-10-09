@@ -23,6 +23,19 @@ class NovaVenda(ModeloEstrito):
     chave_idempotencia: ChaveIdempotencia
 
 
+class VendaDoDia(BaseModel):
+    """Venda na lista do próprio Operador. Não tem campo de preço nem de valor: a restrição é
+    deste contrato HTTP (RN-40), não da entidade."""
+
+    id: int
+    horario: datetime
+    prato_nome: str
+    proteina_nome: str
+    formato: Formato
+    quantidade: int
+    cancelada: bool
+
+
 class CancelarVenda(ModeloEstrito):
     # Motivo vazio é recusado pela entidade (RN-26), com a mensagem de negócio.
     motivo: Annotated[str, Field(max_length=200)]

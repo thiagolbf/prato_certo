@@ -13,11 +13,12 @@ from app.catalogo.servico_cardapio import ServicoCardapio
 from app.core.db import SessaoDaRequisicao
 from app.core.estabelecimento import estabelecimento_atual
 from app.core.relogio import Relogio, obter_relogio
+from app.core.tempo import FUSO
 from app.identidade.dependencias import exige_admin, usuario_autenticado
 from app.identidade.servico_sessao import UsuarioAutenticado
 from app.vendas.leitura import VendaLeitura
 from app.vendas.repositorio import RepositorioVendas
-from app.vendas.schemas import CancelarVenda, NovaVenda, VendaRegistrada
+from app.vendas.schemas import CancelarVenda, NovaVenda, VendaDoDia, VendaRegistrada
 from app.vendas.servico import ServicoVendas
 
 router = APIRouter(prefix="/api/vendas", tags=["vendas"])
@@ -71,3 +72,23 @@ async def cancelar_venda(
 ) -> VendaRegistrada:
     """Só POST e só ADMIN: não há rota GET que cancele (RN-21, RN-42, ADR-006)."""
     return _registrada(await servico.cancelar(venda_id, usuario.id, corpo.motivo))
+
+
+@router.get("/minhas")
+async def minhas_vendas_do_dia(
+    usuario: Annotated[UsuarioAutenticado, Depends(usuario_autenticado)],
+    servico: Annotated[ServicoVendas, Depends(servico_vendas_da_requisicao)],
+) -> list[VendaDoDia]:
+    """Só as vendas de quem pede, do dia operacional, sem valores (RN-40). Leitura: GET (RN-42)."""
+    return [
+        VendaDoDia(
+            id=venda.id,
+            horario=venda.registrada_em.astimezone(FUSO),
+            prato_nome=venda.prato_nome,
+            proteina_nome=venda.proteina_nome,
+            formato=venda.formato,
+            quantidade=venda.quantidade,
+            cancelada=venda.cancelada_em is not None,
+        )
+        for venda in await servico.minhas_do_dia(usuario.id)
+    ]
