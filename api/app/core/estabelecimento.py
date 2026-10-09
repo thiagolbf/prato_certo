@@ -5,14 +5,11 @@ e todo repositório recebe o `estabelecimento_id` no construtor e filtra toda co
 """
 
 from datetime import datetime
-from typing import Annotated
 
-from fastapi import Depends
 from sqlalchemy import BigInteger, DateTime, Identity, Text, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.db import obter_sessao
+from app.core.db import SessaoDaRequisicao
 from app.core.modelo_base import Base
 
 
@@ -25,7 +22,7 @@ class Estabelecimento(Base):
 
 
 async def estabelecimento_atual(
-    sessao: Annotated[AsyncSession, Depends(obter_sessao)],
+    sessao: SessaoDaRequisicao,
 ) -> int:
     """Id do único estabelecimento; a partir da T-10, passa a vir do usuário autenticado."""
     ids = (await sessao.scalars(select(Estabelecimento.id).limit(2))).all()

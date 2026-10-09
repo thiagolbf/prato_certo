@@ -33,6 +33,20 @@ class RepositorioUsuarios:
             )
         )
 
+    async def buscar_por_login_para_atualizar(self, login: str) -> Usuario | None:
+        """Como `buscar_por_login`, mas trava a conta até o fim da transação.
+
+        Duas tentativas simultâneas na mesma conta não podem perder uma falha (RN-37).
+        """
+        return await self._sessao.scalar(
+            select(Usuario)
+            .where(
+                Usuario.estabelecimento_id == self._estabelecimento_id,
+                func.lower(Usuario.login) == func.lower(login),
+            )
+            .with_for_update()
+        )
+
     def adicionar(self, usuario: Usuario) -> None:
         self._sessao.add(usuario)
 
