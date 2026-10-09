@@ -6,6 +6,7 @@ Nome único por estabelecimento, sem diferenciar maiúsculas nem espaços nas po
 
 from __future__ import annotations
 
+from datetime import date
 from decimal import Decimal
 from enum import StrEnum
 
@@ -13,13 +14,17 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
+    Column,
+    Date,
     Enum,
     ForeignKey,
     Identity,
     Index,
     Integer,
     Numeric,
+    Table,
     Text,
+    UniqueConstraint,
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -173,3 +178,54 @@ Index(
     ItemCardapio.formato,
     unique=True,
 )
+
+
+# Associação cardápio × item: um cardápio tem vários itens, e um item pode estar em vários.
+cardapio_item = Table(
+    "cardapio_item",
+    Base.metadata,
+    Column("cardapio_id", BigInteger, ForeignKey("cardapio_data.id"), primary_key=True),
+    Column("item_id", BigInteger, ForeignKey("item_cardapio.id"), primary_key=True),
+)
+
+
+class CardapioData(Base):
+    """Cardápio próprio de uma data (RN-07). O herdado é só memória, nunca gravado."""
+
+    __tablename__ = "cardapio_data"
+    __table_args__ = (UniqueConstraint("estabelecimento_id", "data"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    estabelecimento_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("estabelecimento.id"))
+    data: Mapped[date] = mapped_column(Date)
+    # `lazy="raise"`: quem lê os itens carrega explicitamente (ADR-009).
+    itens: Mapped[list[ItemCardapio]] = relationship(secondary=cardapio_item, lazy="raise")
+
+    # Não mapeados: só existem no objeto herdado, em memória (RN-08).
+    herdado = False
+    data_origem = None
+
+    @classmethod
+    def definir(
+        cls, *, estabelecimento_id: int, data: date, itens: list[ItemCardapio]
+    ) -> CardapioData:
+        if not itens:
+            raise RegraViolada("O cardápio precisa de ao menos um item (RN-57).")
+        if any(not item.ativo for item in itens):
+            raise RegraViolada("Item desativado não entra em cardápio novo (RN-12).")
+        return cls(estabelecimento_id=estabelecimento_id, data=data, itens=list(itens))
+
+    @classmethod
+    def herdar_de(cls, anterior: CardapioData, data: date) -> CardapioData:
+        """Resolve o cardápio herdado em memória: sem itens desativados, sem entrar na sessão.
+
+        Quem chama carrega `anterior.itens` antes (ADR-009). Nada é gravado aqui (RN-08, RN-12).
+        """
+        herdado = cls(
+            estabelecimento_id=anterior.estabelecimento_id,
+            data=data,
+            itens=[item for item in anterior.itens if item.ativo],
+        )
+        herdado.herdado = True
+        herdado.data_origem = anterior.data
+        return herdado
