@@ -16,16 +16,22 @@ from app.core.relogio import Relogio, obter_relogio
 from app.core.tempo import DiaOperacional
 from app.identidade.dependencias import (
     NOME_COOKIE_SESSAO,
+    exige_admin,
     politica_de_sessao,
     usuario_autenticado,
 )
-from app.identidade.modelos import PoliticaDeBloqueio, PoliticaDeSessao
+from app.identidade.modelos import Perfil, PoliticaDeBloqueio, PoliticaDeSessao
 from app.identidade.repositorio import RepositorioSessoes, RepositorioUsuarios
-from app.identidade.schemas import LoginEntrada, RespostaUsuario
+from app.identidade.schemas import LoginEntrada, NovoUsuario, RespostaUsuario, UsuarioListado
 from app.identidade.servico_autenticacao import MENSAGEM_RECUSA, ServicoAutenticacao
 from app.identidade.servico_sessao import ServicoSessao, UsuarioAutenticado
+from app.identidade.servico_usuarios import ServicoUsuarios, UsuarioLeitura
 
 router = APIRouter(prefix="/api/auth", tags=["autenticação"])
+# Todas as rotas de usuários são de ADMIN: a dependência fica no router, não em cada rota (RN-39).
+router_usuarios = APIRouter(
+    prefix="/api/usuarios", tags=["usuários"], dependencies=[Depends(exige_admin)]
+)
 
 COOKIE_OPCOES = {"path": "/", "httponly": True, "secure": True, "samesite": "lax"}
 
@@ -99,3 +105,61 @@ async def me(
     relogio: Annotated[Relogio, Depends(obter_relogio)],
 ) -> RespostaUsuario:
     return RespostaUsuario.de(usuario, DiaOperacional.corrente(relogio).data)
+
+
+async def servico_usuarios_da_requisicao(
+    sessao: SessaoDaRequisicao,
+    estabelecimento_id: Annotated[int, Depends(estabelecimento_atual)],
+    sessoes: Annotated[ServicoSessao, Depends(servico_sessao_da_requisicao)],
+    relogio: Annotated[Relogio, Depends(obter_relogio)],
+) -> ServicoUsuarios:
+    return ServicoUsuarios(
+        RepositorioUsuarios(sessao, estabelecimento_id), sessoes, relogio, estabelecimento_id
+    )
+
+
+def _listado(usuario: UsuarioLeitura) -> UsuarioListado:
+    return UsuarioListado(
+        id=usuario.id,
+        nome=usuario.nome,
+        login=usuario.login,
+        perfil=usuario.perfil,
+        ativo=usuario.ativo,
+        bloqueado_ate=usuario.bloqueado_ate,
+    )
+
+
+@router_usuarios.get("")
+async def listar_usuarios(
+    servico: Annotated[ServicoUsuarios, Depends(servico_usuarios_da_requisicao)],
+) -> list[UsuarioListado]:
+    return [_listado(usuario) for usuario in await servico.listar()]
+
+
+@router_usuarios.post("", status_code=201)
+async def cadastrar_usuario(
+    corpo: NovoUsuario,
+    servico: Annotated[ServicoUsuarios, Depends(servico_usuarios_da_requisicao)],
+) -> UsuarioListado:
+    criado = await servico.criar(
+        nome=corpo.nome, login=corpo.login, senha=corpo.senha, perfil=Perfil.OPERADOR
+    )
+    return _listado(criado)
+
+
+@router_usuarios.post("/{usuario_id}/desativar")
+async def desativar_usuario(
+    usuario_id: int,
+    admin: Annotated[UsuarioAutenticado, Depends(exige_admin)],
+    servico: Annotated[ServicoUsuarios, Depends(servico_usuarios_da_requisicao)],
+) -> UsuarioListado:
+    return _listado(await servico.desativar(usuario_id, por_id=admin.id))
+
+
+@router_usuarios.post("/{usuario_id}/reativar")
+async def reativar_usuario(
+    usuario_id: int,
+    admin: Annotated[UsuarioAutenticado, Depends(exige_admin)],
+    servico: Annotated[ServicoUsuarios, Depends(servico_usuarios_da_requisicao)],
+) -> UsuarioListado:
+    return _listado(await servico.reativar(usuario_id, por_id=admin.id))

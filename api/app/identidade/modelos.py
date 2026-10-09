@@ -23,6 +23,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.core.excecoes import RegraViolada
 from app.core.modelo_base import Base
 from app.core.tempo import exigir_instante_com_fuso
 
@@ -125,6 +126,11 @@ class Usuario(Base):
     def esta_bloqueado(self, agora: datetime) -> bool:
         exigir_instante_com_fuso(agora)
         return self.bloqueado_ate is not None and agora < self.bloqueado_ate
+
+    def exigir_desativavel_por(self, por_id: int) -> None:
+        """Quem desativa não pode ser a própria conta (RN-34): o ADMIN ficaria sem acesso."""
+        if self.id == por_id:
+            raise RegraViolada("Você não pode desativar a própria conta.")
 
     def desativar(self) -> None:
         """Nunca exclusão: a conta fica, com a autoria das vendas que registrou (RN-34)."""

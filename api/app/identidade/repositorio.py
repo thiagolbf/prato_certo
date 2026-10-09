@@ -47,8 +47,21 @@ class RepositorioUsuarios:
             .with_for_update()
         )
 
+    async def listar(self) -> Sequence[Usuario]:
+        return (
+            await self._sessao.scalars(
+                select(Usuario)
+                .where(Usuario.estabelecimento_id == self._estabelecimento_id)
+                .order_by(Usuario.nome, Usuario.id)
+            )
+        ).all()
+
     def adicionar(self, usuario: Usuario) -> None:
         self._sessao.add(usuario)
+
+    async def persistir(self) -> None:
+        """Grava agora, para uma violação de unicidade aparecer aqui, e não no commit da rota."""
+        await self._sessao.flush()
 
 
 class RepositorioSessoes:

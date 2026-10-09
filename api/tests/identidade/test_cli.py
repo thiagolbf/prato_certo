@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.estabelecimento import estabelecimento_atual
-from app.core.excecoes import Conflito, NaoEncontrado
+from app.core.excecoes import Conflito, NaoEncontrado, RegraViolada
 from app.identidade.cli import (
     NovaSenhaAdmin,
     NovoAdmin,
@@ -168,3 +168,25 @@ def test_nome_e_login_fora_dos_limites_sao_recusados(
 
     assert codigo == 1
     assert "senha-da-ana" not in capsys.readouterr().err
+
+
+def test_identidade_invalida_e_recusada_antes_da_senha(capsys: pytest.CaptureFixture[str]) -> None:
+    def nao_deve_pedir_senha(_pergunta: str) -> str:
+        raise AssertionError("a senha não deveria ser pedida")
+
+    codigo = main(
+        ["criar-admin", "--nome", "Ana", "--login", "a b"], ler_senha=nao_deve_pedir_senha
+    )
+
+    assert codigo == 1
+    assert "login" in capsys.readouterr().err
+
+
+async def test_redefinir_senha_de_admin_desativado_e_recusado(sessao: AsyncSession) -> None:
+    await criar_admin(sessao, NovoAdmin(nome="Thiago", login="thiago", senha="senha-antiga"))
+    admin = await _buscar(sessao, "thiago")
+    admin.desativar()
+    await sessao.flush()
+
+    with pytest.raises(RegraViolada):
+        await redefinir_senha_admin(sessao, NovaSenhaAdmin(login="thiago", senha="senha-nova-123"))
