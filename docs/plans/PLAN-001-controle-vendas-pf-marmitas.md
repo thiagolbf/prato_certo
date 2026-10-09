@@ -843,7 +843,7 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 
 #### T-21 — Implementar o serviço do cardápio vigente e a leitura de item vendável
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-20
 - **Implementa:** RN-08, RN-09, RN-11, RN-19, RN-50
@@ -859,9 +859,9 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 `cardapio_vigente(data)` devolve o próprio da data; sem ele, o herdado do cardápio mais recente **anterior** à data — um cardápio de data futura nunca é herdado por data anterior (RN-50); sem nenhum, o estado vazio (RN-11). O resultado informa `tipo` (próprio, herdado, vazio) e a data de origem, que alimenta o aviso ao ADMIN (RN-09). `item_vendavel(item_id, data)` devolve um `ItemVendavel` imutável com os campos do snapshot (nome do prato, nome da proteína, formato, preço, gramagem), ou levanta `ItemForaDoCardapio` se o item não está no vigente (RN-19). É por esse objeto — e nunca pela entidade — que `vendas` lê o catálogo.
 
 **Critério de aceite (testável):**
-- [ ] Sem próprio hoje e com o de 21/09 contendo 4 itens, um deles desativado, o vigente é herdado de 21/09 com 3 itens (CA-08)
-- [ ] O cardápio de amanhã não é herdado hoje; sem nenhum cardápio anterior, o vigente é vazio
-- [ ] Item fora do vigente levanta `ItemForaDoCardapio`; o `ItemVendavel` não expõe entidade de `catalogo`
+- [x] Sem próprio hoje e com o de 21/09 contendo 4 itens, um deles desativado, o vigente é herdado de 21/09 com 3 itens (CA-08)
+- [x] O cardápio de amanhã não é herdado hoje; sem nenhum cardápio anterior, o vigente é vazio
+- [x] Item fora do vigente levanta `ItemForaDoCardapio`; o `ItemVendavel` não expõe entidade de `catalogo`
 
 **Testes a escrever:**
 - *Integration:* `test_CA_08_item_desativado_nao_entra_no_herdado`, `test_cardapio_futuro_nao_e_herdado_por_data_anterior`, `test_sem_cardapio_algum_vigente_e_vazio`, `test_item_fora_do_vigente_e_recusado`
@@ -873,7 +873,7 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 
 #### T-22 — Expor a consulta do cardápio vigente e do cardápio por data
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Baixa
 - **Depende de:** T-11, T-21
 - **Implementa:** RN-08, RN-09, RN-11, RN-42
@@ -887,8 +887,8 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 `GET /api/cardapio/vigente` (qualquer perfil) devolve o dia operacional corrente calculado no servidor, o tipo (próprio, herdado, vazio), a data de origem se herdado e os itens ordenados por prato, em ordem alfabética, com formato e preço — o preço aparece para o Operador na tela de registro (RN-40). `GET /api/cardapio?data=` (ADMIN) devolve o cardápio da data e indica se ela é passada (somente leitura). Nenhuma das duas grava nada.
 
 **Critério de aceite (testável):**
-- [ ] Sem cardápio hoje e com o de 21/09 contendo 4 itens, o Operador recebe os 4 itens marcados como herdados de 21/09, e nenhum cardápio é gravado para hoje (CA-07)
-- [ ] Sem nenhum cardápio no sistema, a resposta é o estado vazio, sem itens (CA-10)
+- [x] Sem cardápio hoje e com o de 21/09 contendo 4 itens, o Operador recebe os 4 itens marcados como herdados de 21/09, e nenhum cardápio é gravado para hoje (CA-07)
+- [x] Sem nenhum cardápio no sistema, a resposta é o estado vazio, sem itens (CA-10)
 
 **Testes a escrever:**
 - *Integration:* `test_CA_07_cardapio_herdado_e_exibido_sem_gravar`, `test_CA_10_primeiro_uso_devolve_estado_vazio`, `test_vigente_traz_dia_operacional_do_servidor`
@@ -900,7 +900,7 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 
 #### T-23 — Expor a definição do cardápio da data pelo ADMIN
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-22
 - **Implementa:** RN-10, RN-12, RN-50, RN-57
@@ -914,9 +914,9 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 `POST /api/cardapio/{data}` (ADMIN) grava o cardápio próprio da data com a lista de itens enviada, substituindo o anterior se houver. Confirmar o herdado é enviar os mesmos itens. Data anterior ao dia operacional corrente é recusada (RN-50); lista vazia (RN-57) e item desativado (RN-12) também.
 
 **Critério de aceite (testável):**
-- [ ] Em 22/09, montar o cardápio de 23/09 com 5 itens grava o de 23/09 e não muda o que o Operador vê em 22/09; em 23/09 ele vê os 5, sem marca de herdado (CA-48)
-- [ ] Alterar o cardápio de 20/09 em 22/09 é recusado e ele continua como estava (CA-49)
-- [ ] Salvar o cardápio de amanhã sem itens é recusado e nada é gravado (CA-61)
+- [x] Em 22/09, montar o cardápio de 23/09 com 5 itens grava o de 23/09 e não muda o que o Operador vê em 22/09; em 23/09 ele vê os 5, sem marca de herdado (CA-48)
+- [x] Alterar o cardápio de 20/09 em 22/09 é recusado e ele continua como estava (CA-49)
+- [x] Salvar o cardápio de amanhã sem itens é recusado e nada é gravado (CA-61)
 
 **Testes a escrever:**
 - *Integration (relógio injetado):* `test_CA_48_admin_monta_o_cardapio_de_amanha`, `test_CA_49_cardapio_de_data_passada_nao_e_alterado`, `test_CA_61_cardapio_sem_itens_nao_e_salvo`, `test_confirmar_herdado_grava_proprio`
@@ -936,7 +936,7 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 
 #### T-24 — Criar a entidade Venda com snapshot e cálculo de valor e proteína
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-08, T-16
 - **Implementa:** RN-14, RN-15, RN-16, RN-20
@@ -952,9 +952,9 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 `venda` com `estabelecimento_id`, `item_cardapio_id`, `quantidade`, snapshot (`prato_nome`, `proteina_nome`, `formato`, `preco_unitario` em `Numeric(10, 2)`, `gramas_por_porcao`), `valor_total`, `proteina_total_g`, `registrada_em` (`timestamptz`), `registrada_por`, `chave_idempotencia` e os campos de cancelamento (`cancelada_em`, `cancelada_por`, `motivo_cancelamento`). Índice único em `(estabelecimento_id, chave_idempotencia)` e índice em `(estabelecimento_id, registrada_em)` para os relatórios. `Venda.registrar(item: ItemVendavel, quantidade, usuario_id, chave, agora)` é o **único** caminho de criação: valida 1 ≤ quantidade ≤ 20 (RN-14), copia o snapshot (RN-15) e calcula valor e proteína (RN-16).
 
 **Critério de aceite (testável):**
-- [ ] Quantidade 0 ou 21 levanta `QuantidadeForaDoLimite`
-- [ ] 3 × "Frango grelhado - Marmita" a R$ 22,00 com 150 g gera valor R$ 66,00 e proteína 450 g, com o snapshot copiado do `ItemVendavel`
-- [ ] A venda guarda quem registrou; a chave de idempotência repetida no mesmo estabelecimento viola o índice único
+- [x] Quantidade 0 ou 21 levanta `QuantidadeForaDoLimite`
+- [x] 3 × "Frango grelhado - Marmita" a R$ 22,00 com 150 g gera valor R$ 66,00 e proteína 450 g, com o snapshot copiado do `ItemVendavel`
+- [x] A venda guarda quem registrou; a chave de idempotência repetida no mesmo estabelecimento viola o índice único
 
 **Testes a escrever:**
 - *Unit:* `test_quantidade_fora_de_1_a_20_e_recusada`, `test_registrar_copia_snapshot`, `test_valor_e_proteina_pela_quantidade`
@@ -967,7 +967,7 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 
 #### T-25 — Implementar o registro idempotente de venda
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Alta
 - **Depende de:** T-21, T-24
 - **Implementa:** RN-17, RN-18, RN-19
@@ -981,9 +981,9 @@ Rotas de ADMIN para itens: listar, criar (prato **ativo** + formato + preço), a
 `ServicoVendas.registrar(item_id, quantidade, chave, usuario)` pede ao serviço de catálogo o `ItemVendavel` do vigente no dia operacional corrente (RN-19), chama `Venda.registrar` com o instante do relógio do servidor (RN-17) e insere. A idempotência é resolvida no banco: `INSERT … ON CONFLICT (estabelecimento_id, chave_idempotencia) DO NOTHING` seguido da leitura da venda existente, o que também cobre dois envios simultâneos da mesma chave (RN-18). O serviço informa se a venda foi criada ou reencontrada.
 
 **Critério de aceite (testável):**
-- [ ] A mesma chave enviada duas vezes, inclusive em paralelo, gera uma única venda e devolve a original (CA-03)
-- [ ] Item fora do cardápio vigente é recusado e nenhuma venda é criada (CA-06)
-- [ ] Com o relógio do "aparelho" adiantado dois dias, o instante gravado é o do servidor e a venda cai no dia operacional corrente (CA-28)
+- [x] A mesma chave enviada duas vezes, inclusive em paralelo, gera uma única venda e devolve a original (CA-03)
+- [x] Item fora do cardápio vigente é recusado e nenhuma venda é criada (CA-06)
+- [x] Com o relógio do "aparelho" adiantado dois dias, o instante gravado é o do servidor e a venda cai no dia operacional corrente (CA-28)
 
 **Testes a escrever:**
 - *Integration:* `test_CA_03_reenvio_da_mesma_chave_nao_duplica`, `test_CA_03_envios_simultaneos_da_mesma_chave_criam_uma_venda`, `test_CA_06_item_fora_do_cardapio_e_recusado`, `test_CA_28_instante_vem_do_servidor`
@@ -2148,3 +2148,8 @@ Nenhuma questão em aberto.
 | T-18   | Concluído | 2026-10-08 | `671f3e9` | Arquivos: `catalogo/repositorio.py` (`RepositorioPratos`: listagem com proteína e itens ativos, busca por nome, itens ativos do prato), `catalogo/servico.py` (`ServicoPratos`: criar com proteína ativa travada, renomear, alterar gramagem, desativar, reativar), `catalogo/schemas.py`, `catalogo/router.py` (`/api/pratos`, só ADMIN pelo router), `tests/catalogo/test_api_pratos.py` (novo). Fora da lista, justificado: `catalogo/modelos.py` (`Prato.renomear`). Desativar com item ativo é recusado nomeando os itens, no formato "Prato - PF" / "Prato - Marmita" (RN-58). Reativar prato exige proteína ativa (RN-58). Gramagem zero recusada pelo schema (gt=0) e pela entidade. Decisão sobre a dívida da chave composta por estabelecimento (R-01 da T-15 e da T-16): aceita e registrada. O ADR-003 adia de propósito o isolamento entre estabelecimentos, e o repositório já filtra toda consulta por `estabelecimento_id`. A chave composta vira tarefa própria antes do segundo estabelecimento. Review (REVIEW-T-18-2026-10-08): Aprovado com ressalvas; R-01 (renomear e nome desativado de prato sem teste) corrigido; R-02 (corrida da desativação de prato, que só existe com itens na T-19) registrado. Testes: 211 passando; ruff limpo; `alembic check` sem diferença. Commit pendente.
 | T-19   | Concluído | 2026-10-08 | `aab74fc` | Arquivos: `catalogo/repositorio.py` (`RepositorioItens`; `RepositorioPratos.buscar_por_id_para_atualizar`), `catalogo/servico.py` (`ServicoItens`; `ServicoPratos.desativar` passa a travar o prato), `catalogo/schemas.py` (`NovoItem`, `AlterarPreco` sem prato nem formato, `ItemListado`, `Preco` como Decimal com 2 casas), `catalogo/router.py` (`/api/itens`, só ADMIN), `tests/catalogo/test_api_itens.py` (novo). Fecha a corrida que a T-18 deixou (R-02): criar item e desativar prato travam a mesma linha do prato. Reativar item exige prato ativo (RN-58). Preço zero recusado pelo schema e pela entidade. Edição recusa campo extra (prato ou formato) com 422. Testes: 219 passando; ruff limpo; `alembic check` sem diferença. Review (REVIEW-T-19-2026-10-08): Aprovado com ressalvas; R-01 (teste de concorrência prometido na T-18 e ausente) escrito neste review; R-02 (o teste é intermitente: 1 falha em 5 sem o lock) registrado. Testes: 220 passando; ruff limpo; `alembic check` sem diferença. Commit pendente.
 | T-20   | Concluído | 2026-10-08 | `6562d55` | Arquivos: `catalogo/modelos.py` (`cardapio_item` como tabela de associação; `CardapioData` com `definir` e `herdar_de`; `itens` com `lazy="raise"`), `alembic/versions/0006_cardapio_data.py` (escrita à mão, com constraint de unicidade e associação), `tests/catalogo/test_cardapio_data.py` (novo). `herdar_de` resolve em memória: descarta item desativado, guarda a data de origem e não entra na sessão (prova de contagem de linhas e de `herdado not in sessao`). `definir` recusa lista vazia (RN-57) e item desativado (RN-12). Quem chama `herdar_de` carrega `anterior.itens` antes (ADR-009). Testes: 225 passando; ruff limpo; `alembic check` sem diferença; migration 0006 sobe e desce. Review (REVIEW-T-20-2026-10-08): Aprovado com ressalvas; R-01 (carga de `itens` antes de `herdar_de`) para a T-21; R-02 (associação sem estabelecimento, dívida registrada). Testes: 225 passando. Commit pendente.
+| T-21   | Concluído | 2026-10-08 | (sem commit; mudanças na árvore de trabalho) | Arquivos: `catalogo/leitura.py` (novo: `TipoCardapio`, `ItemVendavel`, `CardapioVigente` congelados e `ItemForaDoCardapio(RegraViolada)`), `catalogo/servico_cardapio.py` (novo: `ServicoCardapio`, só orquestra), `catalogo/repositorio.py` (`RepositorioCardapios`: `buscar_proprio`, `mais_recente_anterior` e `itens_vendaveis`, com `selectinload` de `itens` e filtro de item ativo), `tests/catalogo/test_servico_cardapio.py` (novo). Sem migration. R-01 do REVIEW-T-20 aplicado: o cardápio anterior vem do banco com `itens` carregados, e o teste do CA-08 chama `expire_all()` antes para provar a carga. Decisão de execução: o filtro de item ativo também vale no cardápio próprio, não só no herdado, para um item desativado depois de entrar no cardápio não ser vendido (RN-12, RN-19). Herdado cujos itens estão todos desativados sai como `HERDADO` com lista vazia, não como `VAZIO`: o PRD não cobre esse caso. Testes: 230 passando; ruff limpo; `alembic check` sem diferença. Review: Aprovado com ressalvas (REVIEW-T-21-2026-10-08); R-01 (herdado com todos os itens desativados sai como `HERDADO` vazio, não `VAZIO`) é decisão de produto pendente, a tomar antes da T-42; R-02 (teste de `item_vendavel` com item desativado) e R-03 (`estabelecimento_id` no repositório) ficam para a T-22. Commit pendente.
+| T-22   | Concluído | 2026-10-08 | (sem commit; mudanças na árvore de trabalho) | Arquivos: `catalogo/router_cardapio.py` (novo: `GET /api/cardapio/vigente` para qualquer perfil autenticado, com o dia operacional do servidor; `GET /api/cardapio?data=` só ADMIN, com `passada`), `catalogo/schemas.py` (`ItemVigenteListado`, `CardapioListado`, `CardapioDaDataListado`), `tests/catalogo/test_api_cardapio_consulta.py` (novo). Fora da lista, justificado: `app/main.py` (inclui o router, como nas tarefas anteriores do catálogo). R-02 e R-03 do REVIEW-T-21 aplicados na mesma tarefa: teste de item desativado depois de vendável, e propriedade `estabelecimento_id` em `RepositorioCardapios`. Nenhuma rota grava cardápio; a sessão ainda renova `ultimo_uso_em` a cada requisição (RN-36, comportamento já existente). Testes: 237 passando; ruff limpo. Review: Aprovado com ressalvas (REVIEW-T-22-2026-10-08); R-01 (renovação de sessão em `GET` frente ao ADR-006) é decisão de arquitetura pendente, a tomar antes da T-56; R-02 (montagem da resposta do ADMIN por `model_dump`) é sugestão. Commit pendente.
+| T-23   | Concluído | 2026-10-08 | (sem commit; mudanças na árvore de trabalho) | Arquivos: `catalogo/modelos.py` (`CardapioData.definir` recebe `hoje`; novo `substituir_itens`; regras centralizadas em `_validar_definicao`: data passada recusada, RN-50; lista vazia, RN-57; item desativado, RN-12), `catalogo/servico_cardapio.py` (`ServicoCardapio.definir`: busca os itens pedidos, cria ou troca o cardápio da data, traduz a corrida no índice único para `Conflito`, pedido com item inexistente vira `NaoEncontrado`), `catalogo/repositorio.py` (`buscar_itens`, `adicionar`, `persistir`), `catalogo/schemas.py` (`DefinirCardapio`), `catalogo/router_cardapio.py` (`POST /api/cardapio/{data}`, só ADMIN), `tests/catalogo/test_api_cardapio_definicao.py` (novo). Ajustado por consequência: os chamadores de `definir` nos testes da T-20 e da T-21/T-22 recebem `hoje`. Sem migration. Testes: 245 passando; ruff limpo; `alembic check` sem diferença. Review: Aprovado com ressalvas (REVIEW-T-23-2026-10-08); só sugestões: R-01 (tirar `(RN-XX)` das mensagens ao usuário) e R-02 (checar `hoje` antes da busca e restringir o mapeamento de `IntegrityError`). Commit pendente.
+| T-24   | Concluído | 2026-10-08 | (sem commit; mudanças na árvore de trabalho) | Arquivos: `vendas/modelos.py` (`Venda`, com `registrar` como único caminho de criação; CHECKs de quantidade 1 a 20 e de formato; índices únicos de chave de idempotência e de `registrada_em`), `vendas/excecoes.py` (`QuantidadeForaDoLimite`, `VendaJaCancelada`, `MotivoObrigatorio`), `alembic/versions/0007_venda.py` (autogenerate, com CHECKs conferidos), `alembic/env.py` (importa `vendas.modelos`, como exige a convenção), `tests/vendas/test_venda.py` e `tests/vendas/__init__.py` (novos). Decisões de execução: `valor_total` em `Numeric(12,2)`, porque preço máximo × 20 não cabe em `Numeric(10,2)`; `preco_unitario` segue `Numeric(10,2)` como o plano. Sem migration de dado. Chave de idempotência vazia recusada na entidade (RN-18), por correção feita durante a execução, com teste. Testes: 254 passando; ruff limpo; migration 0007 sobe, desce e sobe; `alembic check` sem diferença. Review: Aprovado com ressalvas (REVIEW-T-24-2026-10-08); R-01 (`Formato` importado de `catalogo.modelos` na `vendas`) é sugestão; R-02 (chave vazia) aplicado. Commit pendente.
+| T-25   | Concluído | 2026-10-08 | (sem commit; mudanças na árvore de trabalho) | Arquivos: `vendas/repositorio.py` (`inserir_se_nova` com `INSERT … ON CONFLICT (estabelecimento_id, chave_idempotencia) DO NOTHING … RETURNING id`; sem método de alteração nem de exclusão), `vendas/servico.py` (`ServicoVendas.registrar`: instante e dia do relógio do servidor, item pelo `ServicoCardapio`, snapshot e totais por `Venda.registrar`), `vendas/leitura.py` (novo: `VendaLeitura` e `ResultadoRegistro`, para a API não receber entidade), `tests/vendas/test_registro.py` (novo). Decisão de execução: a chave é consultada **antes** do item. Um reenvio de venda já gravada devolve a original mesmo que o cardápio tenha mudado (RN-18); sem isso, a retentativa de uma venda feita antes da troca de cardápio seria recusada. Teste de simultâneos grava de verdade, em duas sessões com commit, e limpa no fim. Não foi rodado o teste negativo (sem `ON CONFLICT`, esperado falhar com `IntegrityError`); a verificação é por raciocínio. Testes: 258 passando; ruff limpo; `alembic check` sem diferença. Review: Aprovado com ressalvas (REVIEW-T-25-2026-10-08); só sugestões: R-01 (rodar a verificação negativa do teste de simultâneos) e R-02 (`inserir_se_nova` envia toda coluna, o que atropelaria um `server_default` futuro). Commit pendente.
