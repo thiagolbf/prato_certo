@@ -5,8 +5,10 @@ devolvem essas linhas, e a rota (T-33) as traduz para o schema de resposta.
 """
 
 from dataclasses import dataclass
+from datetime import datetime
 
 from app.catalogo.modelos import Formato
+from app.core.valores import Dinheiro
 
 
 @dataclass(frozen=True)
@@ -33,3 +35,27 @@ class ProteinaConsumida:
 
     proteina_nome: str
     gramas: int
+
+
+@dataclass(frozen=True)
+class FaturamentoPorFormato:
+    """Faturamento de um formato, sem as canceladas (RN-31)."""
+
+    formato: Formato
+    valor: Dinheiro
+
+
+@dataclass(frozen=True)
+class CancelamentoPosterior:
+    """Venda de um dia cancelada depois dele: quem cancelou, quando e por quê (RN-61).
+
+    Traz o id de quem cancelou; o nome é resolvido pela rota, no serviço de identidade (ADR-001).
+    """
+
+    venda_id: int
+    prato_nome: str
+    quantidade: int
+    valor_total: Dinheiro
+    cancelada_em: datetime
+    cancelada_por_id: int
+    motivo_cancelamento: str

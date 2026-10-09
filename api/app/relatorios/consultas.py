@@ -11,7 +11,14 @@ from datetime import datetime
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.relatorios.schemas import ProteinaConsumida, UnidadesPorItem, UnidadesPorPrato
+from app.core.valores import Dinheiro
+from app.relatorios.schemas import (
+    CancelamentoPosterior,
+    FaturamentoPorFormato,
+    ProteinaConsumida,
+    UnidadesPorItem,
+    UnidadesPorPrato,
+)
 from app.vendas.modelos import Venda
 
 
@@ -88,5 +95,71 @@ async def proteina_por_tipo(
     )
     return [
         ProteinaConsumida(proteina_nome=linha.proteina_nome, gramas=int(linha.gramas))
+        for linha in linhas
+    ]
+
+
+async def faturamento_por_formato(
+    sessao: AsyncSession, estabelecimento_id: int, inicio: datetime, fim: datetime
+) -> list[FaturamentoPorFormato]:
+    """Faturamento por formato, somado no SQL a partir do snapshot (RN-31, ADR-007)."""
+    valor = func.sum(Venda.valor_total).label("valor")
+    linhas = await sessao.execute(
+        select(Venda.formato, valor)
+        .where(*_nao_canceladas_no_periodo(estabelecimento_id, inicio, fim))
+        .group_by(Venda.formato)
+        .order_by(Venda.formato)
+    )
+    return [
+        FaturamentoPorFormato(formato=linha.formato, valor=Dinheiro(linha.valor))
+        for linha in linhas
+    ]
+
+
+async def faturamento_total(
+    sessao: AsyncSession, estabelecimento_id: int, inicio: datetime, fim: datetime
+) -> Dinheiro:
+    """Faturamento total do período, sem as canceladas (RN-31)."""
+    total = await sessao.scalar(
+        select(func.coalesce(func.sum(Venda.valor_total), 0)).where(
+            *_nao_canceladas_no_periodo(estabelecimento_id, inicio, fim)
+        )
+    )
+    return Dinheiro(total)
+
+
+async def cancelamentos_posteriores(
+    sessao: AsyncSession, estabelecimento_id: int, inicio: datetime, fim: datetime
+) -> list[CancelamentoPosterior]:
+    """Vendas do dia canceladas depois dele (RN-61). Cancelamento no mesmo dia não entra."""
+    linhas = await sessao.execute(
+        select(
+            Venda.id,
+            Venda.prato_nome,
+            Venda.quantidade,
+            Venda.valor_total,
+            Venda.cancelada_em,
+            Venda.cancelada_por,
+            Venda.motivo_cancelamento,
+        )
+        .where(
+            Venda.estabelecimento_id == estabelecimento_id,
+            Venda.registrada_em >= inicio,
+            Venda.registrada_em < fim,
+            Venda.cancelada_em.is_not(None),
+            Venda.cancelada_em >= fim,
+        )
+        .order_by(Venda.cancelada_em, Venda.id)
+    )
+    return [
+        CancelamentoPosterior(
+            venda_id=linha.id,
+            prato_nome=linha.prato_nome,
+            quantidade=linha.quantidade,
+            valor_total=Dinheiro(linha.valor_total),
+            cancelada_em=linha.cancelada_em,
+            cancelada_por_id=linha.cancelada_por,
+            motivo_cancelamento=linha.motivo_cancelamento,
+        )
         for linha in linhas
     ]
