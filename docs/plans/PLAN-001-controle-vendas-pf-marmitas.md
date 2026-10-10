@@ -1477,7 +1477,7 @@ Formulário de usuário e senha com Entrar de 64 px. Qualquer 401 mostra a mensa
 
 #### T-42 — Implementar a grade de registro de venda
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-22, T-38, T-39
 - **Implementa:** RN-09, RN-11, RN-19
@@ -1493,9 +1493,9 @@ Formulário de usuário e senha com Entrar de 64 px. Qualquer 401 mostra a mensa
 Busca `GET /api/cardapio/vigente` ao abrir e ao tocar "↻ Atualizar" — sem atualização automática. Uma linha por prato em ordem alfabética, colunas fixas PF à esquerda e Marmita à direita, célula vaga quando o formato não existe, preço abaixo do formato, botões de 64 px. Herdado mostra a marca "Herdado de DD/MM" e, para o ADMIN, o `AvisoCardapioHerdado` com "Revisar cardápio", também no `AppShell` das outras telas. Vazio: Operador vê "Chame o responsável…", ADMIN vê "Montar cardápio".
 
 **Critério de aceite (testável):**
-- [ ] Sem cardápio algum, nenhum item é tocável e a mensagem depende do perfil (CA-10)
+- [x] Sem cardápio algum, nenhum item é tocável e a mensagem depende do perfil (CA-10)
 - [ ] Com 6 pratos (12 itens), a grade cabe sem rolagem em 375 × 667 (PRD §14 — conferido na T-57)
-- [ ] O ADMIN vê o aviso de herdado; o Operador vê só a marca
+- [x] O ADMIN vê o aviso de herdado; o Operador vê só a marca
 
 **Testes a escrever:**
 - *Unit:* `CA-10 — primeiro uso mostra estado vazio sem itens tocáveis`, `grade ordena pratos e fixa as colunas PF e Marmita`, `herdado mostra a data de origem e o aviso só ao ADMIN`
@@ -2185,4 +2185,5 @@ Nenhuma questão em aberto.
 | T-39   | Concluído | 2026-10-10 | `6c7cb6c` | Arquivos: `components/Aviso/`, `Toast/`, `Skeleton/`, `EstadoVazio/`, `ErroCarregamento/`, `Etiqueta/` (novos, cada um com `.tsx`, `.module.css` e `.test.tsx`). `Aviso` de falha com `role="alert"`, demais `role="status"`; `Etiqueta` com as cinco variantes. Checks: typecheck, lint e vitest 31/31 verdes. Review: Aprovado (REVIEW-T-39-2026-10-10), sem findings Bloqueantes ou Importantes; R-01 (toast sem fechamento automático) fica para a tela que o usar |
 | T-40   | Concluído | 2026-10-10 | `335809c` | Arquivos: `components/PainelInferior/` (foco preso com Tab cíclico, Escape, restauração ao fechar), `DialogoConfirmacao/`, `CampoFormulario/` (`aria-invalid` e `aria-describedby`), `NavegadorData/` (dia ou mês, "próximo" desabilitado no limite, escolha nativa), `SeletorPeriodo/` (Dia | Mês). Checks: typecheck, lint, build e vitest 34/34 verdes. Review: Aprovado (REVIEW-T-40-2026-10-10), sem findings Bloqueantes ou Importantes |
 | T-41   | Concluído | 2026-10-10 | `8b56f7b` | Arquivos: `app/login/page.tsx` (server component, lê `motivo`), `app/login/FormularioEntrar.tsx` (novo, client component: validação por campo, envio, mensagens por resultado), `login.module.css`, `login.test.tsx`. Fora da lista de arquivos: `FormularioEntrar.tsx`, separado para a página ficar server component e ler `searchParams`. Decisão: o login usa um cliente HTTP sem redirecionamento de sessão expirada, porque um 401 aqui é credencial inválida. Testes: 401, 429, `Você saiu.` e sucesso. Checks: typecheck, lint, build e vitest 38/38 verdes. Review: Aprovado com ressalvas (REVIEW-T-41-2026-10-10); R-01 pede testes dos estados validação, enviando, sessão expirada e erro, a fazer na validação no celular (T-45). Fecha R-03 da T-38 |
+| T-42   | Concluído | 2026-10-10 | (este commit) | Arquivos: `app/(app)/registrar/page.tsx` e `registrar.module.css` (novos), `components/GradeCardapio/` e `components/AvisoCardapioHerdado/` (novos), `lib/cardapio.ts` (tipos do cardápio). Fora da lista de arquivos: `lib/cardapio.ts` (tipos espelhados da API) e `registrar/registrar.test.tsx`. Desvio: `AppShell` não foi editado; o aviso do ADMIN fica na tela de registro, e o global vem com a T-50 (REVIEW-T-42 R-01). Testes: CA-10 (estado vazio), grade ordenada e colunas, herdado com aviso só ao ADMIN. Checks: typecheck, lint, build e vitest 41/41 verdes. Review: Aprovado com ressalvas (REVIEW-T-42-2026-10-10); R-02 é o toque ainda sem ação, ligado na T-43 |
 | T-31   | Concluído | 2026-10-09 | `a1f3379` | Arquivos: `relatorios/consultas.py` (novo: `unidades_por_item` agrupa por item de cardápio, prato e formato; `unidades_por_prato` soma os formatos; `total_unidades` e `proteina_por_tipo` somam no SQL; todas com filtro de estabelecimento, intervalo UTC do `DiaOperacional` e `cancelada_em IS NULL`), `relatorios/schemas.py` (novo: `UnidadesPorItem`, `UnidadesPorPrato`, `ProteinaConsumida` como dataclasses de leitura, não contrato HTTP; ver review R-01), `tests/relatorios/test_fechamento_unidades.py` (novo: CA-19, CA-20, CA-21, CA-22 e cancelada fora dos totais, contra o banco real), `tests/relatorios/__init__.py` (vazio). Review (REVIEW-T-31-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (nome `schemas.py` para formas de leitura, decidir na T-33) e R-02 (anotação de tipo do helper) registrados. Ponto de validação humana (revisar o SQL depois da T-34, seção 9) segue. Testes: 291 passando; ruff limpo; `alembic check` sem diferença.

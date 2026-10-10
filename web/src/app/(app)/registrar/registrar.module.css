@@ -1,0 +1,48 @@
+.bloco {
+  display: grid;
+  gap: 12px;
+}
+
+.topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.titulo {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+
+.atualizar {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.marca {
+  margin: 0;
+  color: var(--warn);
+  font-weight: 700;
+}
+
+.acao {
+  display: inline-flex;
+  align-items: center;
+  min-height: 64px;
+  padding: 0 24px;
+  border-radius: var(--r);
+  background: var(--pri);
+  color: var(--on-pri);
+  font-weight: 700;
+  text-decoration: none;
+}
