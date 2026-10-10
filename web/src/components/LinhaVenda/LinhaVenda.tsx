@@ -1,5 +1,6 @@
 import { Etiqueta } from "@/components/Etiqueta/Etiqueta";
-import type { VendaDoDia } from "@/lib/vendas";
+import { formatarMoeda } from "@/lib/formato";
+import type { VendaDaData, VendaDoDia } from "@/lib/vendas";
 
 import styles from "./LinhaVenda.module.css";
 
@@ -12,18 +13,48 @@ export function formatarHorario(instante: string): string {
   }).format(new Date(instante));
 }
 
-// Linha de venda. Na variante do Operador não há preço nem valor (RN-40, CA-36).
-// A cancelada aparece riscada e com a etiqueta (CA-54).
-export function LinhaVenda({ venda }: { venda: VendaDoDia }) {
+// Variante do Operador: sem preço nem valor (RN-40, CA-36). Variante do ADMIN: com autor, preço,
+// valor e, se cancelada, quem cancelou, quando e o motivo (RN-51, CA-50).
+export function LinhaVenda({
+  venda,
+  aoCancelar,
+}: {
+  venda: VendaDoDia | VendaDaData;
+  aoCancelar?: () => void;
+}) {
+  const admin = "autor" in venda ? venda : null;
+
   return (
     <li className={`${styles.linha} ${venda.cancelada ? styles.cancelada : ""}`}>
       <time className={styles.horario} dateTime={venda.horario}>
         {formatarHorario(venda.horario)}
       </time>
-      <span className={styles.descricao}>
-        {venda.quantidade}× {venda.prato_nome} · {venda.formato}
-      </span>
-      {venda.cancelada && <Etiqueta variante="cancelada" />}
+      <div className={styles.corpo}>
+        <span className={styles.descricao}>
+          {venda.quantidade}× {venda.prato_nome} · {venda.formato}
+          {admin && <span className={styles.autor}> · {admin.autor}</span>}
+        </span>
+        {admin && (
+          <span className={styles.valores}>
+            {formatarMoeda(admin.preco_unitario)} · {formatarMoeda(admin.valor_total)}
+          </span>
+        )}
+        {admin && venda.cancelada && (
+          <span className={styles.motivo}>
+            Cancelada por {admin.cancelada_por}
+            {admin.cancelada_em && ` às ${formatarHorario(admin.cancelada_em)}`}
+            {admin.motivo_cancelamento && ` · ${admin.motivo_cancelamento}`}
+          </span>
+        )}
+      </div>
+      <div className={styles.lado}>
+        {venda.cancelada && <Etiqueta variante="cancelada" />}
+        {admin && !venda.cancelada && aoCancelar && (
+          <button className={styles.cancelar} type="button" onClick={aoCancelar}>
+            Cancelar
+          </button>
+        )}
+      </div>
     </li>
   );
 }
