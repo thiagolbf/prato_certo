@@ -8,8 +8,13 @@ export class SessaoExpirada extends Error {
   }
 }
 
+// `mensagem` é o texto de negócio que a API devolve em `detail` (por exemplo, dependentes de um
+// cadastro). Não é detalhe técnico: erros sem texto de negócio ficam com `undefined`.
 export class ErroApi extends Error {
-  constructor(readonly status: number) {
+  constructor(
+    readonly status: number,
+    readonly mensagem?: string,
+  ) {
     super(`A API respondeu ${status}`);
     this.name = "ErroApi";
   }
@@ -43,7 +48,10 @@ export function criarClienteApi(
       aoSessaoExpirada();
       throw new SessaoExpirada();
     }
-    if (!resposta.ok) throw new ErroApi(resposta.status);
+    if (!resposta.ok) {
+      const corpoErro = (await resposta.json().catch(() => undefined)) as { detail?: unknown } | undefined;
+      throw new ErroApi(resposta.status, typeof corpoErro?.detail === "string" ? corpoErro.detail : undefined);
+    }
     if (resposta.status === 204) return undefined as T;
     return (await resposta.json()) as T;
   }

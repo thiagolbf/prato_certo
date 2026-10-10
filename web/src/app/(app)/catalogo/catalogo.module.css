@@ -1,0 +1,59 @@
+.bloco {
+  display: grid;
+  gap: 12px;
+}
+
+.abas {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border-radius: var(--r);
+  background: var(--tabs-bg);
+}
+
+.aba {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: var(--r-sm);
+  color: var(--muted);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.aba[aria-current="page"] {
+  background: var(--paper);
+  color: var(--pri);
+  box-shadow: var(--shadow);
+}
+
+.titulo {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+
+.novo {
+  min-height: 56px;
+  border: 0;
+  border-radius: var(--r);
+  background: var(--pri);
+  color: var(--on-pri);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.formulario {
+  display: grid;
+  gap: 12px;
+}
+
+.atalho {
+  color: var(--pri);
+  font-weight: 700;
+}

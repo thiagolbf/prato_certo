@@ -19,3 +19,8 @@
   opacity: 0.6;
   cursor: progress;
 }
+
+.erro {
+  color: var(--err);
+  font-weight: 600;
+}

@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { PainelInferior } from "@/components/PainelInferior/PainelInferior";
 
 import styles from "./DialogoConfirmacao.module.css";
@@ -11,6 +13,7 @@ export function DialogoConfirmacao({
   consequencia,
   rotuloAcao,
   processando = false,
+  erro,
   aoConfirmar,
   aoFechar,
 }: {
@@ -19,12 +22,18 @@ export function DialogoConfirmacao({
   consequencia: string;
   rotuloAcao: string;
   processando?: boolean;
+  erro?: ReactNode;
   aoConfirmar: () => void;
   aoFechar: () => void;
 }) {
   return (
     <PainelInferior aberto={aberto} titulo={titulo} aoFechar={aoFechar}>
       <p className={styles.consequencia}>{consequencia}</p>
+      {erro && (
+        <div className={styles.erro} role="alert">
+          {erro}
+        </div>
+      )}
       <button
         className={styles.acao}
         type="button"
