@@ -1704,7 +1704,7 @@ Lista de todas as vendas da data com `NavegadorData` (limite: hoje), totais sem 
 
 #### T-50 — Implementar o Cardápio da data
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Alta
 - **Depende de:** T-23, T-38, T-39, T-40
 - **Implementa:** RN-10, RN-50, RN-57
@@ -1718,8 +1718,8 @@ Lista de todas as vendas da data com `NavegadorData` (limite: hoje), totais sem 
 `NavegadorData` sem limite superior. Próprio, herdado (com "Confirmar" e "Montar outro"), vazio e futuro sem cardápio conforme a SPEC-UI. Em edição, todos os itens ativos com checkbox e preço, contador de selecionados e, hoje, o aviso de vendas já registradas. Salvar vazio mostra a validação; sucesso mostra o toast "Cardápio salvo. Avise o balcão…". Data passada é somente leitura.
 
 **Critério de aceite (testável):**
-- [ ] Data passada não oferece nenhuma ação de edição (CA-49); salvar sem itens mostra a validação e não envia (CA-61)
-- [ ] Um erro de envio preserva a seleção
+- [x] Data passada não oferece nenhuma ação de edição (CA-49); salvar sem itens mostra a validação e não envia (CA-61)
+- [x] Um erro de envio preserva a seleção
 
 **Testes a escrever:**
 - *Unit:* `CA-49 — data passada é somente leitura`, `CA-61 — salvar sem itens mostra validação`, `erro de envio preserva a seleção`
@@ -2199,4 +2199,5 @@ Nenhuma questão em aberto.
 | T-55   | Concluído | 2026-10-10 | `6eb348c` | Arquivo novo: `api/tests/integracao/test_imutabilidade.py` (+ `__init__.py`), com os quatro testes CA-09, CA-11, CA-12 e CA-13 pela API, contra o PostgreSQL real. Checks: pytest 308/308 verdes, ruff check e format limpos. Review: Aprovado (REVIEW-T-55-2026-10-10) |
 | T-53   | Concluído | 2026-10-10 | `d1c211c` | Arquivos: `app/(app)/usuarios/page.tsx` e `usuarios.test.tsx` (novos). Lista de operadores com "Bloqueado até HH:MM" (fuso `America/Sao_Paulo`), cadastro sem campo de perfil, senha inicial com mínimo de 8, desativação com confirmação, reativação e redefinição de senha também na conta bloqueada. Desvio: a redefinição usa a ação "Editar" da `ListaCadastro` (REVIEW-T-53 R-01); toast de sucesso fica para depois (R-02). Checks: typecheck, lint, build e vitest 74/74 verdes. Review: Aprovado com ressalvas (REVIEW-T-53-2026-10-10) |
 | T-49   | Concluído | 2026-10-10 | `3bd6143` | Arquivos: `app/(app)/fechamento/page.tsx` (editado: modo Mês com `SeletorPeriodo` e `NavegadorData` em mês, limite no mês corrente, título parcial), `components/QuebraPorDia/` (novo: tabela Por dia, cada dia abre o fechamento), `lib/fechamento.ts` (`buscarFechamentoMes`, tipos do mês). Teste: CA-57 (quebra por dia do mês). Checks: typecheck, lint, build e vitest 60/60 verdes. Review: Aprovado com ressalvas (REVIEW-T-49-2026-10-10); R-01 é teste de ida e volta entre dia e mês, R-02 confirma a ausência de "Ver vendas desta data" no mês, como pede a SPEC-UI |
+| T-50   | Concluído | 2026-10-10 | (este commit) | Arquivos: `app/(app)/cardapio/page.tsx`, `cardapio.module.css`, `cardapio.test.tsx` (novos), `lib/cardapio.ts` (tipos do cardápio do ADMIN), `components/AppShell/AppShell.tsx` (aviso de herdado ao ADMIN nas demais telas, fecha REVIEW-T-42 R-01). Testes: CA-49, CA-61 e erro de envio preserva a seleção. Checks: typecheck, lint, build e vitest 78/78 verdes. Review: Aprovado com ressalvas (REVIEW-T-50-2026-10-10); R-01 pede testes dos estados herdado e sucesso, R-02 centraliza a regra de mensagem de erro |
 | T-31   | Concluído | 2026-10-09 | `a1f3379` | Arquivos: `relatorios/consultas.py` (novo: `unidades_por_item` agrupa por item de cardápio, prato e formato; `unidades_por_prato` soma os formatos; `total_unidades` e `proteina_por_tipo` somam no SQL; todas com filtro de estabelecimento, intervalo UTC do `DiaOperacional` e `cancelada_em IS NULL`), `relatorios/schemas.py` (novo: `UnidadesPorItem`, `UnidadesPorPrato`, `ProteinaConsumida` como dataclasses de leitura, não contrato HTTP; ver review R-01), `tests/relatorios/test_fechamento_unidades.py` (novo: CA-19, CA-20, CA-21, CA-22 e cancelada fora dos totais, contra o banco real), `tests/relatorios/__init__.py` (vazio). Review (REVIEW-T-31-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (nome `schemas.py` para formas de leitura, decidir na T-33) e R-02 (anotação de tipo do helper) registrados. Ponto de validação humana (revisar o SQL depois da T-34, seção 9) segue. Testes: 291 passando; ruff limpo; `alembic check` sem diferença.

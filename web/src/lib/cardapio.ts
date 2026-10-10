@@ -18,3 +18,18 @@ export type CardapioVigente = {
   data_origem: string | null;
   itens: ItemCardapio[];
 };
+
+// Espelha `CardapioDaDataListado` de GET /api/cardapio?data= (ADMIN). `passada` é true em data anterior a hoje.
+export type CardapioDaData = CardapioVigente & { passada: boolean };
+
+// Espelha `ItemListado` de GET /api/itens (catálogo do ADMIN).
+export type ItemDoCatalogo = {
+  id: number;
+  prato_id: number;
+  prato_nome: string;
+  nome: string;
+  formato: Formato;
+  gramas_por_porcao: number;
+  preco: string;
+  ativo: boolean;
+};

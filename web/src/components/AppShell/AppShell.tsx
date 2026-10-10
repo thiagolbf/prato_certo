@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
+import { AvisoCardapioHerdado } from "@/components/AvisoCardapioHerdado/AvisoCardapioHerdado";
 import { api, SessaoExpirada } from "@/lib/api";
+import type { CardapioVigente } from "@/lib/cardapio";
 import { type Perfil, useSessao } from "@/lib/sessao";
 import { MenuMais } from "@/components/MenuMais/MenuMais";
 
@@ -31,6 +33,25 @@ export function AppShell({ children }: { children: ReactNode }) {
   const caminho = usePathname();
   const router = useRouter();
   const [maisAberto, setMaisAberto] = useState(false);
+  const [dataOrigemHerdada, setDataOrigemHerdada] = useState<string | null>(null);
+
+  // Aviso global do ADMIN quando o cardápio de hoje é herdado (RN-09). A tela de registro mostra o
+  // seu próprio aviso, então aqui ele aparece nas demais telas.
+  useEffect(() => {
+    if (perfil !== "ADMIN" || caminho === "/registrar") return;
+    let ativo = true;
+    api
+      .get<CardapioVigente>("/cardapio/vigente")
+      .then((cardapio) => {
+        if (ativo) setDataOrigemHerdada(cardapio.tipo === "HERDADO" ? cardapio.data_origem : null);
+      })
+      .catch(() => {
+        if (ativo) setDataOrigemHerdada(null);
+      });
+    return () => {
+      ativo = false;
+    };
+  }, [perfil, caminho]);
 
   async function sair() {
     // Sair é POST (RN-54, RN-42). Mesmo se a chamada falhar, o usuário vai ao login.
@@ -57,7 +78,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         </button>
       </header>
 
-      <main className={styles.conteudo}>{children}</main>
+      <main className={styles.conteudo}>
+        {perfil === "ADMIN" && caminho !== "/registrar" && dataOrigemHerdada && (
+          <AvisoCardapioHerdado dataOrigem={dataOrigemHerdada} />
+        )}
+        {children}
+      </main>
 
       {perfil === "ADMIN" && maisAberto && (
         <MenuMais onSair={sair} onFechar={() => setMaisAberto(false)} />
