@@ -1,0 +1,8 @@
+.toast {
+  padding: 12px 16px;
+  border-radius: var(--r-md);
+  background: var(--bezel);
+  color: var(--bezel-ink);
+  box-shadow: var(--shadow-up);
+  font-weight: 700;
+}
