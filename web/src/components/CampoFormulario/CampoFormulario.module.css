@@ -1,0 +1,42 @@
+.campo {
+  display: grid;
+  gap: 6px;
+}
+
+.rotulo {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.entrada {
+  min-height: 48px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+}
+
+.entrada:focus-visible {
+  outline: 3px solid var(--pri-ring);
+  outline-offset: 0;
+  border-color: var(--pri);
+}
+
+.entrada:disabled {
+  background: var(--soft);
+  color: var(--strong);
+}
+
+.comErro {
+  border-color: var(--err);
+  background: var(--errbg);
+}
+
+.erro {
+  margin: 0;
+  color: var(--err);
+  font-size: 0.875rem;
+  font-weight: 600;
+}

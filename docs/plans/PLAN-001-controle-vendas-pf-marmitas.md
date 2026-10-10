@@ -1423,7 +1423,7 @@ Os componentes de retorno usados em quase todas as telas, no visual da v2. `Avis
 
 #### T-40 — Criar os componentes de interação
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-35
 - **Implementa:** —
@@ -1437,8 +1437,8 @@ Os componentes de retorno usados em quase todas as telas, no visual da v2. `Avis
 `PainelInferior` é o bottom sheet com fundo escurecido, foco preso dentro dele e fechamento por Voltar. `DialogoConfirmacao` descreve a consequência em uma frase. `CampoFormulario` tem rótulo visível, erro junto ao campo e `maxLength` espelhando o schema. `NavegadorData` troca de dia ou de mês com limite superior configurável. Alvos de toque de pelo menos 44 px.
 
 **Critério de aceite (testável):**
-- [ ] O `PainelInferior` prende o foco e devolve ao elemento de origem ao fechar
-- [ ] O `NavegadorData` desabilita "próximo" no limite configurado
+- [x] O `PainelInferior` prende o foco e devolve ao elemento de origem ao fechar
+- [x] O `NavegadorData` desabilita "próximo" no limite configurado
 
 **Testes a escrever:**
 - *Unit:* `PainelInferior prende e devolve o foco`, `NavegadorData respeita o limite superior`, `CampoFormulario mostra o erro junto ao campo`
@@ -2183,4 +2183,5 @@ Nenhuma questão em aberto.
 | T-37   | Concluído | 2026-10-09 | `55c031c` | Arquivos: `web/src/proxy.ts` (novo: limite de 10 por minuto só em `POST /api/auth/login`, 429 sem consultar a API; a convenção do Next 16 é `proxy`, não `middleware`), `web/src/lib/limite-ritmo.ts` (`LimiteDeRitmo`, janela deslizante por origem), `web/src/lib/limite-ritmo.test.ts` e `web/src/proxy.test.ts` (novos: CA-34 com 11ª tentativa recusada, outras rotas livres, janela de um minuto). Review (REVIEW-T-37-2026-10-09): Aprovado com ressalvas; R-01 (Importante, caminho `proxy.ts` e teste fora da lista) corrigido no plano; R-02 (mapa de origens sem poda) e R-03 (`X-Forwarded-For` depende da Vercel, a confirmar na T-61) registrados. Testes da web: 16 passando; typecheck e lint limpos.
 | T-38   | Concluído | 2026-10-10 | `08e25ee` | Arquivos: `lib/api.ts` (`criarClienteApi`, `api`: caminhos `/api`, `credentials: same-origin`, 401 chama o callback e lança `SessaoExpirada`), `lib/sessao.tsx`, `app/(app)/layout.tsx` (carrega `/api/auth/me`), `components/AppShell/`, `components/MenuMais/`, `components/AcessoNegado/` (com `RotaRestrita`). Fora da lista de arquivos: `app/(app)/vendas/page.tsx` e teste, placeholder com `RotaRestrita` para o critério 3 (a tela real é da T-47). Testes: `api.test.ts` (3), `AppShell.test.tsx` (3), `AcessoNegado.test.tsx` (1), `vendas/page.test.tsx` (1). Decisões: `MenuMais` provisório em painel próprio, a trocar por `PainelInferior` na T-40 (R-04); `/login` ainda não existe, então o 401 cai em 404 até a T-41 (R-03). Checks: typecheck, lint, vitest 24/24 e build verdes. Review: Aprovado com ressalvas (REVIEW-T-38-2026-10-10); R-01 a R-04 são sugestões, a fechar em T-39, T-40 e T-41 |
 | T-39   | Concluído | 2026-10-10 | `6c7cb6c` | Arquivos: `components/Aviso/`, `Toast/`, `Skeleton/`, `EstadoVazio/`, `ErroCarregamento/`, `Etiqueta/` (novos, cada um com `.tsx`, `.module.css` e `.test.tsx`). `Aviso` de falha com `role="alert"`, demais `role="status"`; `Etiqueta` com as cinco variantes. Checks: typecheck, lint e vitest 31/31 verdes. Review: Aprovado (REVIEW-T-39-2026-10-10), sem findings Bloqueantes ou Importantes; R-01 (toast sem fechamento automático) fica para a tela que o usar |
+| T-40   | Concluído | 2026-10-10 | (este commit) | Arquivos: `components/PainelInferior/` (foco preso com Tab cíclico, Escape, restauração ao fechar), `DialogoConfirmacao/`, `CampoFormulario/` (`aria-invalid` e `aria-describedby`), `NavegadorData/` (dia ou mês, "próximo" desabilitado no limite, escolha nativa), `SeletorPeriodo/` (Dia | Mês). Checks: typecheck, lint, build e vitest 34/34 verdes. Review: Aprovado (REVIEW-T-40-2026-10-10), sem findings Bloqueantes ou Importantes |
 | T-31   | Concluído | 2026-10-09 | `a1f3379` | Arquivos: `relatorios/consultas.py` (novo: `unidades_por_item` agrupa por item de cardápio, prato e formato; `unidades_por_prato` soma os formatos; `total_unidades` e `proteina_por_tipo` somam no SQL; todas com filtro de estabelecimento, intervalo UTC do `DiaOperacional` e `cancelada_em IS NULL`), `relatorios/schemas.py` (novo: `UnidadesPorItem`, `UnidadesPorPrato`, `ProteinaConsumida` como dataclasses de leitura, não contrato HTTP; ver review R-01), `tests/relatorios/test_fechamento_unidades.py` (novo: CA-19, CA-20, CA-21, CA-22 e cancelada fora dos totais, contra o banco real), `tests/relatorios/__init__.py` (vazio). Review (REVIEW-T-31-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (nome `schemas.py` para formas de leitura, decidir na T-33) e R-02 (anotação de tipo do helper) registrados. Ponto de validação humana (revisar o SQL depois da T-34, seção 9) segue. Testes: 291 passando; ruff limpo; `alembic check` sem diferença.
