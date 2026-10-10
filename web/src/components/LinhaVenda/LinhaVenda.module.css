@@ -1,0 +1,25 @@
+.linha {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.horario {
+  color: var(--muted);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.descricao {
+  font-weight: 600;
+}
+
+.cancelada .descricao {
+  color: var(--strong);
+  text-decoration: line-through;
+}

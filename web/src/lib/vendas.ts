@@ -1,4 +1,16 @@
 import { api } from "@/lib/api";
+import type { Formato } from "@/lib/cardapio";
+
+// Espelha `VendaDoDia` de GET /api/vendas/minhas. Sem preço nem valor (RN-40).
+export type VendaDoDia = {
+  id: number;
+  horario: string;
+  prato_nome: string;
+  proteina_nome: string;
+  formato: Formato;
+  quantidade: number;
+  cancelada: boolean;
+};
 
 // Espelha `VendaRegistrada` de POST /api/vendas (201 criada, 200 quando a chave já existia).
 export type VendaRegistrada = {
@@ -24,4 +36,8 @@ export function registrarVenda(venda: NovaVenda): Promise<VendaRegistrada> {
     quantidade: venda.quantidade,
     chave_idempotencia: venda.chave,
   });
+}
+
+export function listarMinhasVendas(): Promise<VendaDoDia[]> {
+  return api.get<VendaDoDia[]>("/vendas/minhas");
 }

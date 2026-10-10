@@ -1,0 +1,39 @@
+.bloco {
+  display: grid;
+  gap: 12px;
+}
+
+.titulo {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+
+.lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--paper);
+  overflow: hidden;
+}
+
+.rodape {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+.acao {
+  display: inline-flex;
+  align-items: center;
+  min-height: 64px;
+  padding: 0 24px;
+  border-radius: var(--r);
+  background: var(--pri);
+  color: var(--on-pri);
+  font-weight: 700;
+  text-decoration: none;
+}
