@@ -9,6 +9,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
 
 afterEach(() => {
   vi.restoreAllMocks();
+  sessionStorage.clear();
 });
 
 function responder(corpo: unknown, status = 200) {
@@ -144,5 +145,69 @@ describe("UI-02 — registro", () => {
     expect(await screen.findByText("Venda NÃO registrada")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Atualizar cardápio" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reenviar" })).not.toBeInTheDocument();
+  });
+
+  test("CA-04 — falha de rede não é silenciada e oferece reenviar", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation((url) =>
+      String(url).endsWith("/cardapio/vigente")
+        ? Promise.resolve(new Response(JSON.stringify(cardapioDoDia), { status: 200 }))
+        : Promise.reject(new TypeError("Failed to fetch")),
+    );
+    renderizar("OPERADOR");
+
+    await abrirPainelPF();
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+
+    const aviso = await screen.findByRole("alert");
+    expect(aviso).toHaveTextContent("Venda NÃO registrada — sem conexão");
+    expect(within(aviso).getByRole("button", { name: "Reenviar" })).toBeInTheDocument();
+    expect(sessionStorage.getItem("controle-pendencias-venda")).toContain("Feijoada");
+  });
+
+  test("reenvio usa a mesma chave", async () => {
+    let falhar = true;
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((url) => {
+      if (String(url).endsWith("/cardapio/vigente")) {
+        return Promise.resolve(new Response(JSON.stringify(cardapioDoDia), { status: 200 }));
+      }
+      if (falhar) return Promise.reject(new TypeError("Failed to fetch"));
+      return Promise.resolve(new Response(JSON.stringify({ id: 1, item_id: 1, quantidade: 1 }), { status: 200 }));
+    });
+    renderizar("OPERADOR");
+
+    await abrirPainelPF();
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+    const aviso = await screen.findByRole("alert");
+
+    falhar = false;
+    fireEvent.click(within(aviso).getByRole("button", { name: "Reenviar" }));
+
+    await vi.waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+    const envios = fetchSpy.mock.calls
+      .filter(([url]) => String(url).endsWith("/api/vendas"))
+      .map(([, init]) => JSON.parse((init as RequestInit).body as string).chave_idempotencia);
+    expect(envios).toHaveLength(2);
+    expect(envios[1]).toBe(envios[0]);
+  });
+
+  test("CA-58 — pendência descartada não é enviada", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((url) =>
+      String(url).endsWith("/cardapio/vigente")
+        ? Promise.resolve(new Response(JSON.stringify(cardapioDoDia), { status: 200 }))
+        : Promise.reject(new TypeError("Failed to fetch")),
+    );
+    renderizar("OPERADOR");
+
+    await abrirPainelPF();
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+    const aviso = await screen.findByRole("alert");
+
+    fireEvent.click(within(aviso).getByRole("button", { name: "Descartar" }));
+    expect(await screen.findByText("Descartar esta venda?")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Descartar venda" }));
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    const envios = fetchSpy.mock.calls.filter(([url]) => String(url).endsWith("/api/vendas"));
+    expect(envios).toHaveLength(1);
   });
 });
