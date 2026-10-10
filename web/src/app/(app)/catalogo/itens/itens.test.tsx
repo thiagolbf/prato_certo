@@ -53,3 +53,19 @@ describe("UI-11 — itens de cardápio", () => {
     ).toBeInTheDocument();
   });
 });
+
+test("duplicado desativado oferece reativar", async () => {
+  vi.spyOn(globalThis, "fetch").mockImplementation((url) => {
+    const corpo = String(url).endsWith("/itens") ? [{ ...item, ativo: false }] : [prato];
+    return Promise.resolve(new Response(JSON.stringify(corpo), { status: 200 }));
+  });
+  render(<PaginaItens />);
+
+  fireEvent.click(await screen.findByRole("button", { name: "Novo item" }));
+  fireEvent.change(screen.getByRole("combobox"), { target: { value: "10" } });
+  fireEvent.change(screen.getByRole("textbox", { name: "Preço" }), { target: { value: "18.00" } });
+  fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
+
+  expect(await screen.findByText("Já existe um item desativado para este prato e formato.")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Reativar" })).toBeInTheDocument();
+});

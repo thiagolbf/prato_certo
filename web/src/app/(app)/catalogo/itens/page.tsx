@@ -5,6 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Aviso } from "@/components/Aviso/Aviso";
 import { CampoFormulario } from "@/components/CampoFormulario/CampoFormulario";
 import { DialogoConfirmacao } from "@/components/DialogoConfirmacao/DialogoConfirmacao";
+import { EstadoVazio } from "@/components/EstadoVazio/EstadoVazio";
 import { ErroCarregamento } from "@/components/ErroCarregamento/ErroCarregamento";
 import { ListaCadastro, type ItemCadastro } from "@/components/ListaCadastro/ListaCadastro";
 import { PainelInferior } from "@/components/PainelInferior/PainelInferior";
@@ -43,6 +44,7 @@ export default function PaginaItens() {
   const [preco, setPreco] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [processando, setProcessando] = useState(false);
+  const [desativadoRepetido, setDesativadoRepetido] = useState<ItemDeCardapio | null>(null);
 
   useEffect(() => {
     let ativo = true;
@@ -70,6 +72,18 @@ export default function PaginaItens() {
     setFormato("PF");
     setPreco("");
     setErro(null);
+    setDesativadoRepetido(null);
+  }
+
+  function reativarRepetido(item: ItemDeCardapio) {
+    setProcessando(true);
+    reativarItem(item.id)
+      .then(() => {
+        fechar();
+        recarregar();
+      })
+      .catch(() => setErro("Não foi possível reativar agora."))
+      .finally(() => setProcessando(false));
   }
 
   function abrirEdicao(item: ItemCadastro, itens: ItemDeCardapio[]) {
@@ -82,6 +96,18 @@ export default function PaginaItens() {
 
   function salvar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
+    if (estado.tipo === "pronto" && !editando) {
+      const repetido = estado.itens.find((i) => String(i.prato_id) === pratoId && i.formato === formato);
+      if (repetido?.ativo) {
+        setErro("Este prato já tem esse formato no cardápio.");
+        return;
+      }
+      if (repetido) {
+        setDesativadoRepetido(repetido);
+        setErro(null);
+        return;
+      }
+    }
     setProcessando(true);
     const operacao = editando
       ? alterarPreco(editando.id, preco)
@@ -125,6 +151,7 @@ export default function PaginaItens() {
         Novo item
       </button>
 
+      {estado.itens.length === 0 && <EstadoVazio titulo="Nenhum item de cardápio cadastrado." />}
       <ListaCadastro
         itens={itensLista}
         mostrarDesativados={mostrarDesativados}
@@ -174,6 +201,14 @@ export default function PaginaItens() {
           <CampoFormulario rotulo="Preço" inputMode="decimal" value={preco} onChange={(e) => setPreco(e.target.value)} />
           {editando && (
             <Aviso variante="informacao">As vendas anteriores continuam com o preço antigo.</Aviso>
+          )}
+          {desativadoRepetido && (
+            <Aviso variante="aviso">
+              <span>Já existe um item desativado para este prato e formato. </span>
+              <button type="button" onClick={() => reativarRepetido(desativadoRepetido)}>
+                Reativar
+              </button>
+            </Aviso>
           )}
           {erro && <Aviso variante="falha">{erro}</Aviso>}
           <button className={styles.novo} type="submit" disabled={processando}>

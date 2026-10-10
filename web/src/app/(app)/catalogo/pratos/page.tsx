@@ -5,6 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Aviso } from "@/components/Aviso/Aviso";
 import { CampoFormulario } from "@/components/CampoFormulario/CampoFormulario";
 import { DialogoConfirmacao } from "@/components/DialogoConfirmacao/DialogoConfirmacao";
+import { EstadoVazio } from "@/components/EstadoVazio/EstadoVazio";
 import { ErroCarregamento } from "@/components/ErroCarregamento/ErroCarregamento";
 import { ListaCadastro, type ItemCadastro } from "@/components/ListaCadastro/ListaCadastro";
 import { PainelInferior } from "@/components/PainelInferior/PainelInferior";
@@ -14,6 +15,8 @@ import { ErroApi } from "@/lib/api";
 import { listarProteinas, type Proteina } from "@/lib/proteinas";
 
 import styles from "../catalogo.module.css";
+
+const normalizar = (texto: string) => texto.trim().toLocaleLowerCase("pt-BR");
 
 type Estado = { tipo: "carregando" } | { tipo: "erro" } | { tipo: "pronto"; pratos: Prato[]; proteinas: Proteina[] };
 
@@ -30,6 +33,7 @@ export default function PaginaPratos() {
   const [gramas, setGramas] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [processando, setProcessando] = useState(false);
+  const [desativadoRepetido, setDesativadoRepetido] = useState<Prato | null>(null);
 
   useEffect(() => {
     let ativo = true;
@@ -57,6 +61,18 @@ export default function PaginaPratos() {
     setProteinaId("");
     setGramas("");
     setErro(null);
+    setDesativadoRepetido(null);
+  }
+
+  function reativarRepetido(prato: Prato) {
+    setProcessando(true);
+    reativarPrato(prato.id)
+      .then(() => {
+        fechar();
+        recarregar();
+      })
+      .catch(() => setErro("Não foi possível reativar agora."))
+      .finally(() => setProcessando(false));
   }
 
   function salvar(evento: FormEvent<HTMLFormElement>) {
@@ -65,6 +81,18 @@ export default function PaginaPratos() {
     if (!Number.isInteger(valorGramas) || valorGramas <= 0) {
       setErro("Informe a gramagem em gramas, maior que zero.");
       return;
+    }
+    if (estado.tipo === "pronto" && !editando) {
+      const repetido = estado.pratos.find((p) => normalizar(p.nome) === normalizar(nome));
+      if (repetido?.ativo) {
+        setErro("Já existe um prato com esse nome.");
+        return;
+      }
+      if (repetido) {
+        setDesativadoRepetido(repetido);
+        setErro(null);
+        return;
+      }
     }
     setProcessando(true);
     const operacao = editando
@@ -116,6 +144,7 @@ export default function PaginaPratos() {
         Novo prato
       </button>
 
+      {estado.pratos.length === 0 && <EstadoVazio titulo="Nenhum prato cadastrado." />}
       <ListaCadastro
         itens={itens}
         mostrarDesativados={mostrarDesativados}
@@ -161,6 +190,14 @@ export default function PaginaPratos() {
             onChange={(e) => setGramas(e.target.value)}
           />
           <p className={styles.nota}>A mesma gramagem vale para PF e marmita.</p>
+          {desativadoRepetido && (
+            <Aviso variante="aviso">
+              <span>Já existe um prato desativado com esse nome. </span>
+              <button type="button" onClick={() => reativarRepetido(desativadoRepetido)}>
+                Reativar
+              </button>
+            </Aviso>
+          )}
           {editando && (
             <Aviso variante="informacao">As vendas anteriores não mudam.</Aviso>
           )}
