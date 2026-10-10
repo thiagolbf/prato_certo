@@ -57,3 +57,47 @@
   color: var(--pri);
   font-weight: 700;
 }
+
+.rotulo {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.seletor {
+  min-height: 48px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+}
+
+.nota {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.formatos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.formato {
+  min-height: 56px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.formato[aria-checked="true"] {
+  border-color: var(--pri);
+  background: var(--soft);
+  color: var(--pri);
+}

@@ -19,12 +19,14 @@ export function ListaCadastro({
   aoMudarFiltro,
   aoDesativar,
   aoReativar,
+  aoEditar,
 }: {
   itens: ItemCadastro[];
   mostrarDesativados: boolean;
   aoMudarFiltro: (mostrar: boolean) => void;
   aoDesativar: (item: ItemCadastro) => void;
   aoReativar: (item: ItemCadastro) => void;
+  aoEditar?: (item: ItemCadastro) => void;
 }) {
   const visiveis = itens
     .filter((item) => mostrarDesativados || item.ativo)
@@ -49,6 +51,11 @@ export function ListaCadastro({
             </div>
             <div className={styles.acoes}>
               {!item.ativo && <Etiqueta variante="desativado" />}
+              {item.ativo && aoEditar && (
+                <button className={styles.acao} type="button" onClick={() => aoEditar(item)}>
+                  Editar
+                </button>
+              )}
               {item.ativo ? (
                 <button className={styles.acao} type="button" onClick={() => aoDesativar(item)}>
                   Desativar
