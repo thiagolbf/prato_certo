@@ -159,6 +159,7 @@ function TelaUsuarios() {
         itens={itens}
         mostrarDesativados={mostrarDesativados}
         aoMudarFiltro={setMostrarDesativados}
+        rotuloEditar="Redefinir senha"
         aoEditar={(item) => {
           setErroEnvio(null);
           setParaRedefinir(porId(item.id));

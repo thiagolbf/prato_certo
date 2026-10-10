@@ -33,7 +33,7 @@ test("mostra bloqueado até", async () => {
   renderizar();
 
   expect(await screen.findByText(/Bloqueado até 09:30/)).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Editar" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Redefinir senha" })).toBeInTheDocument();
 });
 
 test("formulário não tem campo de perfil", async () => {

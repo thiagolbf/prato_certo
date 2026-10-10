@@ -103,3 +103,14 @@ describe("UI-05 — vendas da data", () => {
     expect(await screen.findByText("Esta venda já foi cancelada.")).toBeInTheDocument();
   });
 });
+
+test("a data da URL é a data listada (atalho do fechamento)", async () => {
+  window.history.pushState({}, "", "/vendas?data=2026-10-09");
+  const fetchSpy = mockDados([venda]);
+  renderizar();
+
+  expect(await screen.findByText("2× Feijoada · PF")).toBeInTheDocument();
+  const pedido = fetchSpy.mock.calls.map(([url]) => String(url)).find((u) => u.includes("/vendas?data="));
+  expect(pedido).toContain("data=2026-10-09");
+  window.history.pushState({}, "", "/");
+});

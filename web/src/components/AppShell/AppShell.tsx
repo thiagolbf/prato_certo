@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
-import { api } from "@/lib/api";
+import { api, SessaoExpirada } from "@/lib/api";
 import { type Perfil, useSessao } from "@/lib/sessao";
 import { MenuMais } from "@/components/MenuMais/MenuMais";
 
@@ -34,7 +34,12 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   async function sair() {
     // Sair é POST (RN-54, RN-42). Mesmo se a chamada falhar, o usuário vai ao login.
-    await api.post("/auth/logout").catch(() => undefined);
+    try {
+      await api.post("/auth/logout");
+    } catch (erro) {
+      // Sessão já expirada: o cliente da API já levou ao login com o motivo certo.
+      if (erro instanceof SessaoExpirada) return;
+    }
     router.replace("/login?motivo=saiu");
   }
 

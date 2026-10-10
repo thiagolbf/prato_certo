@@ -33,7 +33,12 @@ export default function VendasDaDataPagina() {
 
 function TelaVendasDaData() {
   const { diaOperacional } = useSessao();
-  const [data, setData] = useState(diaOperacional);
+  // A data vem da URL (`/vendas?data=`, usada pelo atalho do fechamento); sem ela, é hoje.
+  const [data, setData] = useState(() => {
+    if (typeof window === "undefined") return diaOperacional;
+    const pedida = new URLSearchParams(window.location.search).get("data");
+    return pedida && /^\d{4}-\d{2}-\d{2}$/.test(pedida) && pedida <= diaOperacional ? pedida : diaOperacional;
+  });
   const [estado, setEstado] = useState<Estado>({ tipo: "carregando" });
   const [tentativa, setTentativa] = useState(0);
   const [alvo, setAlvo] = useState<VendaDaData | null>(null);
