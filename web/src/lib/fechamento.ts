@@ -31,3 +31,16 @@ export type FechamentoDia = {
 export function buscarFechamentoDia(data: string): Promise<FechamentoDia> {
   return api.get<FechamentoDia>(`/fechamento/dia?data=${data}`);
 }
+
+// Espelha `FechamentoMesListado` de GET /api/fechamento/mes. Sem cancelamentos posteriores: no mês,
+// o cancelamento tardio já aparece nos totais (RN-32).
+export type QuebraDia = { dia: string; unidades: number; faturamento: string };
+
+export type FechamentoMes = Omit<FechamentoDia, "data" | "cancelamentos_posteriores"> & {
+  mes: string;
+  quebra_por_dia: QuebraDia[];
+};
+
+export function buscarFechamentoMes(mes: string): Promise<FechamentoMes> {
+  return api.get<FechamentoMes>(`/fechamento/mes?mes=${mes}`);
+}

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { ProvedorSessao } from "@/lib/sessao";
@@ -70,7 +70,7 @@ describe("UI-07 — fechamento do dia", () => {
   test("mostra estado vazio sem vendas", async () => {
     renderizar(vazio);
 
-    expect((await screen.findAllByText("Nenhum item vendido nesta data.")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("Nenhum item vendido neste período.")).length).toBeGreaterThan(0);
     expect(screen.getAllByText("R$ 0,00").length).toBeGreaterThan(0);
   });
 
@@ -88,5 +88,38 @@ describe("UI-07 — fechamento do dia", () => {
     const linha = (await screen.findByRole("cell", { name: "Feijoada" })).closest("tr") as HTMLElement;
     const celulas = Array.from(linha.querySelectorAll("td")).map((td) => td.textContent);
     expect(celulas).toEqual(["Feijoada", "3", "2", "5"]);
+  });
+
+  test("CA-57 — mostra a quebra por dia do mês", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation((url) => {
+      const corpo = String(url).includes("/fechamento/mes")
+        ? {
+            mes: "2026-08",
+            parcial: false,
+            total_unidades: 5,
+            unidades_por_item: [],
+            unidades_por_prato: [],
+            proteina_por_tipo: [],
+            faturamento_por_formato: [],
+            faturamento_total: "90.00",
+            quebra_por_dia: [
+              { dia: "2026-08-03", unidades: 2, faturamento: "36.00" },
+              { dia: "2026-08-10", unidades: 3, faturamento: "54.00" },
+            ],
+          }
+        : vazio;
+      return Promise.resolve(new Response(JSON.stringify(corpo), { status: 200 }));
+    });
+    render(
+      <ProvedorSessao valor={{ nome: "Bruno", perfil: "ADMIN", diaOperacional: "2026-10-10" }}>
+        <PaginaFechamento />
+      </ProvedorSessao>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Mês" }));
+
+    expect(await screen.findByRole("button", { name: "10/08" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "03/08" })).toBeInTheDocument();
+    expect(screen.getAllByText("R$ 54,00").length).toBeGreaterThan(0);
   });
 });

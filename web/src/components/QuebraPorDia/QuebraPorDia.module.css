@@ -1,0 +1,39 @@
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.tabela th,
+.tabela td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabela th {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+}
+
+.dia {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--pri);
+  font: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.vazio {
+  margin: 0;
+  color: var(--muted);
+}
