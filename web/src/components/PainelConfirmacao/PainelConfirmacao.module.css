@@ -1,0 +1,40 @@
+.corpo {
+  display: grid;
+  gap: 12px;
+}
+
+.nome {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.preco {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.confirmar {
+  min-height: 64px;
+  border: 0;
+  border-radius: var(--r);
+  background: var(--pri);
+  color: var(--on-pri);
+  font: inherit;
+  font-size: 1.125rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cancelar {
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
