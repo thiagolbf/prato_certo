@@ -8,6 +8,7 @@ export type Pendencia = {
   nomePrato: string;
   formato: Formato;
   quantidade: number;
+  // Login, não o nome: o nome pode se repetir entre contas, o login é único (RN-60).
   usuario: string;
   diaOperacional: string;
 };
@@ -44,4 +45,22 @@ export function salvarPendencias(
   } catch {
     // Sem persistência: a pendência continua na memória da tela.
   }
+}
+
+// A pendência pertence a quem a lançou e ao dia operacional em que foi confirmada (RN-56). Em outro
+// usuário ou outro dia ela é descartada, nunca reenviada: reenviar trocaria a autoria (RN-20) ou
+// jogaria a venda no dia do reenvio (RN-17). Sessão expirada não entra aqui: o mesmo usuário que
+// entra de novo passa na conferência e continua com a pendência.
+export function conferirPendencias(
+  pendencias: Pendencia[],
+  usuario: string,
+  diaOperacional: string,
+): { validas: Pendencia[]; descartadas: Pendencia[] } {
+  const validas: Pendencia[] = [];
+  const descartadas: Pendencia[] = [];
+  for (const pendencia of pendencias) {
+    const ehDele = pendencia.usuario === usuario && pendencia.diaOperacional === diaOperacional;
+    (ehDele ? validas : descartadas).push(pendencia);
+  }
+  return { validas, descartadas };
 }

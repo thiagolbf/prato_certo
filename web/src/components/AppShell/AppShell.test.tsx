@@ -18,7 +18,7 @@ afterEach(() => {
 
 function renderizar(perfil: Perfil) {
   return render(
-    <ProvedorSessao valor={{ nome: "Ana", perfil, diaOperacional: "2026-10-10" }}>
+    <ProvedorSessao valor={{ nome: "Ana", login: "ana", perfil, diaOperacional: "2026-10-10" }}>
       <AppShell>
         <p>Conteúdo</p>
       </AppShell>

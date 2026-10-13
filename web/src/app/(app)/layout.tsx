@@ -7,7 +7,7 @@ import { api } from "@/lib/api";
 import { ProvedorSessao, type Perfil, type Sessao } from "@/lib/sessao";
 
 // Espelha `RespostaUsuario` de GET /api/auth/me.
-type RespostaMe = { nome: string; perfil: Perfil; dia_operacional: string };
+type RespostaMe = { nome: string; login: string; perfil: Perfil; dia_operacional: string };
 
 // Guarda das telas autenticadas: sem sessão válida, `api` já leva ao login (401).
 export default function LayoutAutenticado({ children }: { children: ReactNode }) {
@@ -21,6 +21,7 @@ export default function LayoutAutenticado({ children }: { children: ReactNode })
         if (!ativo) return;
         setSessao({
           nome: resposta.nome,
+          login: resposta.login,
           perfil: resposta.perfil,
           diaOperacional: resposta.dia_operacional,
         });

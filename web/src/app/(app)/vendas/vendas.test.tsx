@@ -39,7 +39,7 @@ const cancelada = {
 
 function renderizar() {
   return render(
-    <ProvedorSessao valor={{ nome: "Bruno", perfil: "ADMIN", diaOperacional: "2026-10-10" }}>
+    <ProvedorSessao valor={{ nome: "Bruno", login: "bruno", perfil: "ADMIN", diaOperacional: "2026-10-10" }}>
       <VendasDaDataPagina />
     </ProvedorSessao>,
   );

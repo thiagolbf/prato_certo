@@ -31,7 +31,7 @@ function mockApi(cardapio: object, postar?: () => Promise<Response>) {
 
 function renderizar() {
   return render(
-    <ProvedorSessao valor={{ nome: "Thiago", perfil: "ADMIN", diaOperacional: "2026-10-10" }}>
+    <ProvedorSessao valor={{ nome: "Thiago", login: "thiago", perfil: "ADMIN", diaOperacional: "2026-10-10" }}>
       <PaginaCardapio />
     </ProvedorSessao>,
   );

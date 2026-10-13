@@ -113,7 +113,7 @@ async def test_logout_por_get_nao_existe(cliente: AsyncClient) -> None:
     assert (await cliente.get(ROTA_LOGOUT)).status_code == 405
 
 
-async def test_me_devolve_nome_perfil_e_dia_operacional(
+async def test_me_devolve_nome_login_perfil_e_dia_operacional(
     cliente: AsyncClient, sessao: AsyncSession
 ) -> None:
     await _conta(sessao, "thiago", perfil=Perfil.ADMIN)
@@ -125,6 +125,7 @@ async def test_me_devolve_nome_perfil_e_dia_operacional(
     assert resposta.status_code == 200
     corpo = resposta.json()
     assert corpo["nome"] == "Thiago"
+    assert corpo["login"] == "thiago"
     assert corpo["perfil"] == "ADMIN"
     assert len(corpo["dia_operacional"]) == 10  # AAAA-MM-DD
 

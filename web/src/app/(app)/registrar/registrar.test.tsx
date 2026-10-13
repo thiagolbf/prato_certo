@@ -20,7 +20,7 @@ function responder(corpo: unknown, status = 200) {
 
 function renderizar(perfil: Perfil) {
   return render(
-    <ProvedorSessao valor={{ nome: "Ana", perfil, diaOperacional: "2026-10-10" }}>
+    <ProvedorSessao valor={{ nome: "Ana", login: "ana", perfil, diaOperacional: "2026-10-10" }}>
       <PaginaRegistrar />
     </ProvedorSessao>,
   );
@@ -209,5 +209,106 @@ describe("UI-02 — registro", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     const envios = fetchSpy.mock.calls.filter(([url]) => String(url).endsWith("/api/vendas"));
     expect(envios).toHaveLength(1);
+  });
+
+  test("401 no envio mostra sessão expirada e deixa a venda pendente para o mesmo usuário", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation((url) =>
+      Promise.resolve(
+        String(url).endsWith("/cardapio/vigente")
+          ? new Response(JSON.stringify(cardapioDoDia), { status: 200 })
+          : new Response("{}", { status: 401 }),
+      ),
+    );
+    renderizar("OPERADOR");
+
+    await abrirPainelPF();
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+
+    expect(await screen.findByText("Sua sessão expirou. A venda NÃO foi registrada.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Entrar novamente" })).toBeInTheDocument();
+    expect(sessionStorage.getItem("controle-pendencias-venda")).toContain("Feijoada");
+  });
+
+  test("CA-59 — outro usuário no aparelho descarta a pendência com aviso e não envia nada", async () => {
+    const guardada = {
+      chave: "0b6f2c1e-7d0a-4a52-9f0e-3c1f8e2a9b10",
+      itemId: 1,
+      nomePrato: "Feijoada",
+      formato: "PF",
+      quantidade: 2,
+      usuario: "joao",
+      diaOperacional: "2026-10-10",
+    };
+    sessionStorage.setItem("controle-pendencias-venda", JSON.stringify([guardada]));
+    const fetchSpy = responder(cardapioDoDia);
+    renderizar("OPERADOR"); // sessão de "ana"
+
+    const aviso = await screen.findByText("Uma venda pendente foi descartada sem ser registrada");
+    expect(aviso).toBeInTheDocument();
+    expect(screen.getByText(/2× Feijoada · PF/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reenviar" })).not.toBeInTheDocument();
+    expect(sessionStorage.getItem("controle-pendencias-venda")).toBe("[]");
+    expect(fetchSpy.mock.calls.filter(([url]) => String(url).endsWith("/api/vendas"))).toHaveLength(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Entendi" }));
+    expect(screen.queryByText("Uma venda pendente foi descartada sem ser registrada")).not.toBeInTheDocument();
+  });
+
+  test("CA-59 — o mesmo usuário continua com a pendência e pode reenviar", async () => {
+    const guardada = {
+      chave: "0b6f2c1e-7d0a-4a52-9f0e-3c1f8e2a9b10",
+      itemId: 1,
+      nomePrato: "Feijoada",
+      formato: "PF",
+      quantidade: 2,
+      usuario: "ana",
+      diaOperacional: "2026-10-10",
+    };
+    sessionStorage.setItem("controle-pendencias-venda", JSON.stringify([guardada]));
+    responder(cardapioDoDia);
+    renderizar("OPERADOR");
+
+    const aviso = await screen.findByRole("alert");
+    expect(aviso).toHaveTextContent("2× Feijoada · PF");
+    expect(within(aviso).getByRole("button", { name: "Reenviar" })).toBeInTheDocument();
+    expect(screen.queryByText("Uma venda pendente foi descartada sem ser registrada")).not.toBeInTheDocument();
+  });
+
+  test("CA-60 — pendência de outro dia operacional é descartada com aviso e a origem", async () => {
+    const guardada = {
+      chave: "0b6f2c1e-7d0a-4a52-9f0e-3c1f8e2a9b10",
+      itemId: 1,
+      nomePrato: "Feijoada",
+      formato: "PF",
+      quantidade: 1,
+      usuario: "ana",
+      diaOperacional: "2026-10-09",
+    };
+    sessionStorage.setItem("controle-pendencias-venda", JSON.stringify([guardada]));
+    const fetchSpy = responder(cardapioDoDia);
+    renderizar("OPERADOR");
+
+    expect(await screen.findByText("Uma venda pendente foi descartada sem ser registrada")).toBeInTheDocument();
+    expect(screen.getByText(/ficou pendente em 09\/10/)).toBeInTheDocument();
+    expect(screen.getByText("Se ela aconteceu, avise o responsável.")).toBeInTheDocument();
+    expect(fetchSpy.mock.calls.filter(([url]) => String(url).endsWith("/api/vendas"))).toHaveLength(0);
+  });
+
+  test("CA-59 — outra conta com o mesmo nome não herda a pendência", async () => {
+    const guardada = {
+      chave: "0b6f2c1e-7d0a-4a52-9f0e-3c1f8e2a9b10",
+      itemId: 1,
+      nomePrato: "Feijoada",
+      formato: "PF",
+      quantidade: 1,
+      usuario: "ana2", // outro login, mesmo nome "Ana"
+      diaOperacional: "2026-10-10",
+    };
+    sessionStorage.setItem("controle-pendencias-venda", JSON.stringify([guardada]));
+    responder(cardapioDoDia);
+    renderizar("OPERADOR"); // sessão de "ana"
+
+    expect(await screen.findByText("Uma venda pendente foi descartada sem ser registrada")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reenviar" })).not.toBeInTheDocument();
   });
 });

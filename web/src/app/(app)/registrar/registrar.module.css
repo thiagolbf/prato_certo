@@ -59,3 +59,12 @@
   bottom: 84px;
   z-index: 40;
 }
+
+.descartadas {
+  margin: 4px 0;
+  padding-left: 20px;
+}
+
+.desabilitada {
+  opacity: 0.5;
+}

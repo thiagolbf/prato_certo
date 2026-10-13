@@ -7,6 +7,7 @@ export type Perfil = "ADMIN" | "OPERADOR";
 
 export type Sessao = {
   nome: string;
+  login: string;
   perfil: Perfil;
   diaOperacional: string;
 };

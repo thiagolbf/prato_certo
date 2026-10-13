@@ -10,7 +10,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
 test("O Operador abrindo /vendas vê AcessoNegado, sem chamar a API de ADMIN", () => {
   const fetchSpy = vi.spyOn(globalThis, "fetch");
   render(
-    <ProvedorSessao valor={{ nome: "Ana", perfil: "OPERADOR", diaOperacional: "2026-10-10" }}>
+    <ProvedorSessao valor={{ nome: "Ana", login: "ana", perfil: "OPERADOR", diaOperacional: "2026-10-10" }}>
       <VendasDaData />
     </ProvedorSessao>,
   );

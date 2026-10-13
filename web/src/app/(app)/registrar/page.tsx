@@ -13,10 +13,10 @@ import { GradeCardapio } from "@/components/GradeCardapio/GradeCardapio";
 import { PainelConfirmacao } from "@/components/PainelConfirmacao/PainelConfirmacao";
 import { Skeleton } from "@/components/Skeleton/Skeleton";
 import { Toast } from "@/components/Toast/Toast";
-import { api, ErroApi } from "@/lib/api";
+import { api, ErroApi, SessaoExpirada } from "@/lib/api";
 import type { CardapioVigente, ItemCardapio } from "@/lib/cardapio";
 import { formatarDataCurta } from "@/lib/formato";
-import { lerPendencias, salvarPendencias, type Pendencia } from "@/lib/pendencias";
+import { conferirPendencias, lerPendencias, salvarPendencias, type Pendencia } from "@/lib/pendencias";
 import { useSessao } from "@/lib/sessao";
 import { gerarChave, registrarVenda } from "@/lib/vendas";
 
@@ -31,13 +31,18 @@ const TEMPO_DO_TOAST_MS = 3000;
 
 // UI-02. Só busca o cardápio ao abrir e ao tocar "Atualizar" (SPEC-UI §7.2): não se atualiza sozinha.
 export default function PaginaRegistrar() {
-  const { nome, perfil, diaOperacional } = useSessao();
+  const { login, perfil, diaOperacional } = useSessao();
   const [estado, setEstado] = useState<Estado>({ tipo: "carregando" });
   const [tentativa, setTentativa] = useState(0);
   const [itemEmConfirmacao, setItemEmConfirmacao] = useState<ItemCardapio | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [recusada, setRecusada] = useState(false);
-  const [pendencias, setPendencias] = useState<Pendencia[]>(() => lerPendencias());
+  // Ao abrir a tela, cada pendência é conferida contra o usuário e o dia operacional do servidor (RN-56):
+  // as de outro usuário ou de outro dia são descartadas sem enviar e avisadas uma vez.
+  const [conferencia] = useState(() => conferirPendencias(lerPendencias(), login, diaOperacional));
+  const [pendencias, setPendencias] = useState<Pendencia[]>(conferencia.validas);
+  const [descartadas, setDescartadas] = useState<Pendencia[]>(conferencia.descartadas);
+  const [sessaoExpirada, setSessaoExpirada] = useState(false);
   const [reenviando, setReenviando] = useState<string | null>(null);
   const [paraDescartar, setParaDescartar] = useState<Pendencia | null>(null);
 
@@ -83,8 +88,13 @@ export default function PaginaRegistrar() {
     setTentativa((t) => t + 1);
   }
 
+  // Grava na hora, sem esperar o efeito: o 401 leva ao login e a página pode ser descarregada antes dele.
   function guardar(pendencia: Pendencia) {
-    setPendencias((atuais) => [...atuais, pendencia]);
+    setPendencias((atuais) => {
+      const novas = [...atuais, pendencia];
+      salvarPendencias(novas);
+      return novas;
+    });
   }
 
   function remover(chave: string) {
@@ -100,7 +110,7 @@ export default function PaginaRegistrar() {
       nomePrato: item.nome_prato,
       formato: item.formato,
       quantidade,
-      usuario: nome,
+      usuario: login,
       diaOperacional,
     };
     setItemEmConfirmacao(null);
@@ -109,8 +119,12 @@ export default function PaginaRegistrar() {
 
     registrarVenda({ itemId: item.item_id, quantidade, chave: pendencia.chave }).catch(
       (erro: unknown) => {
-        if (erro instanceof ErroApi && erro.status === 422) setRecusada(true);
-        else guardar(pendencia);
+        if (erro instanceof ErroApi && erro.status === 422) {
+          setRecusada(true);
+          return;
+        }
+        guardar(pendencia);
+        if (erro instanceof SessaoExpirada) setSessaoExpirada(true);
       },
     );
   }
@@ -131,6 +145,8 @@ export default function PaginaRegistrar() {
         if (erro instanceof ErroApi && erro.status === 422) {
           remover(pendencia.chave);
           setRecusada(true);
+        } else if (erro instanceof SessaoExpirada) {
+          setSessaoExpirada(true);
         }
       })
       .finally(() => setReenviando(null));
@@ -170,7 +186,35 @@ export default function PaginaRegistrar() {
       {herdado && <p className={styles.marca}>Herdado de {formatarDataCurta(cardapio.data_origem!)}</p>}
       {herdado && perfil === "ADMIN" && <AvisoCardapioHerdado dataOrigem={cardapio.data_origem!} />}
 
-      {pendencias.length > 0 && (
+      {descartadas.length > 0 && (
+        <Aviso variante="aviso">
+          <p className={styles.avisoTitulo}>Uma venda pendente foi descartada sem ser registrada</p>
+          <ul className={styles.descartadas}>
+            {descartadas.map((d) => (
+              <li key={d.chave}>
+                {d.quantidade}× {d.nomePrato} · {d.formato} — ficou pendente em {formatarDataCurta(d.diaOperacional)}
+                {d.usuario !== login ? ` (de ${d.usuario})` : ""}
+              </li>
+            ))}
+          </ul>
+          <p>Se ela aconteceu, avise o responsável.</p>
+          <button className={styles.atualizar} type="button" onClick={() => setDescartadas([])}>
+            Entendi
+          </button>
+        </Aviso>
+      )}
+
+      {sessaoExpirada && (
+        <Aviso variante="falha">
+          <p className={styles.avisoTitulo}>Sua sessão expirou. A venda NÃO foi registrada.</p>
+          <p>Ela ficou pendente neste aparelho. Entre de novo com o mesmo usuário para reenviar.</p>
+          <Link className={styles.acao} href="/login?motivo=sessao-expirada">
+            Entrar novamente
+          </Link>
+        </Aviso>
+      )}
+
+      {pendencias.length > 0 && !sessaoExpirada && (
         <AvisoFalhaEnvio
           pendencias={pendencias}
           reenviando={reenviando}
@@ -189,7 +233,9 @@ export default function PaginaRegistrar() {
         </Aviso>
       )}
 
-      <GradeCardapio itens={cardapio.itens} aoTocar={setItemEmConfirmacao} />
+      <div className={sessaoExpirada ? styles.desabilitada : undefined} inert={sessaoExpirada}>
+        <GradeCardapio itens={cardapio.itens} aoTocar={setItemEmConfirmacao} />
+      </div>
 
       <PainelConfirmacao
         item={itemEmConfirmacao}

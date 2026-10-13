@@ -66,9 +66,15 @@ class UsuarioListado(BaseModel):
 
 class RespostaUsuario(BaseModel):
     nome: str
+    login: str
     perfil: Perfil
     dia_operacional: date
 
     @classmethod
     def de(cls, usuario: UsuarioAutenticado, dia_operacional: date) -> "RespostaUsuario":
-        return cls(nome=usuario.nome, perfil=usuario.perfil, dia_operacional=dia_operacional)
+        return cls(
+            nome=usuario.nome,
+            login=usuario.login,
+            perfil=usuario.perfil,
+            dia_operacional=dia_operacional,
+        )

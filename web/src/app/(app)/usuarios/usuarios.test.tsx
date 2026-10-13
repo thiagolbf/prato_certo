@@ -23,7 +23,7 @@ const operador = {
 function renderizar() {
   vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify([operador]), { status: 200 }));
   return render(
-    <ProvedorSessao valor={{ nome: "Bruno", perfil: "ADMIN", diaOperacional: "2026-10-10" }}>
+    <ProvedorSessao valor={{ nome: "Bruno", login: "bruno", perfil: "ADMIN", diaOperacional: "2026-10-10" }}>
       <PaginaUsuarios />
     </ProvedorSessao>,
   );

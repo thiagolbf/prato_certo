@@ -20,7 +20,7 @@ function preencher(atual: string, nova: string, repeticao: string) {
 
 function renderizar(perfil: "ADMIN" | "OPERADOR") {
   return render(
-    <ProvedorSessao valor={{ nome: "Bruno", perfil, diaOperacional: "2026-10-10" }}>
+    <ProvedorSessao valor={{ nome: "Bruno", login: "bruno", perfil, diaOperacional: "2026-10-10" }}>
       <PaginaTrocarSenha />
     </ProvedorSessao>,
   );
