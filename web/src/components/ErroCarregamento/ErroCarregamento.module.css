@@ -1,0 +1,25 @@
+.bloco {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  padding: 24px 16px;
+  text-align: center;
+}
+
+.mensagem {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.tentar {
+  min-height: 48px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--r);
+  background: var(--pri);
+  color: var(--on-pri);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}

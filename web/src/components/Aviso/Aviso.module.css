@@ -1,0 +1,30 @@
+.base {
+  padding: 12px 14px;
+  border: 1px solid;
+  border-radius: var(--r);
+  font-weight: 600;
+}
+
+.falha {
+  color: var(--err);
+  background: var(--errbg);
+  border-color: var(--errline);
+}
+
+.aviso {
+  color: var(--warn);
+  background: var(--warnbg);
+  border-color: var(--warnline);
+}
+
+.informacao {
+  color: var(--info);
+  background: var(--infobg);
+  border-color: var(--infoline);
+}
+
+.sucesso {
+  color: var(--ok);
+  background: var(--okbg);
+  border-color: var(--okline);
+}

@@ -1,0 +1,11 @@
+.grupo {
+  display: grid;
+  gap: 10px;
+}
+
+.linha {
+  display: block;
+  height: 44px;
+  border-radius: var(--r-sm);
+  background: linear-gradient(90deg, var(--skel-a), var(--skel-b), var(--skel-a));
+}

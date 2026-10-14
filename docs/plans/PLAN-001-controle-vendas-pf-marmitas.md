@@ -1309,7 +1309,7 @@ Copiar para `globals.css` as variáveis do `:root` de `prototipo-001-visual-v2.h
 
 #### T-36 — Aplicar cabeçalhos de segurança e CSP no Next.js
 
-- **Status:** Bloqueado
+- **Status:** Concluído
 - **Complexidade:** Baixa
 - **Depende de:** T-02
 - **Implementa:** RN-43
@@ -1324,7 +1324,7 @@ Configurar em todas as rotas da Web: HSTS, `X-Content-Type-Options: nosniff`, `X
 
 **Critério de aceite (testável):**
 - [x] Qualquer página da Web responde com os quatro cabeçalhos (CA-41)
-- [ ] O app funciona em `npm run build && npm start` sem erro de CSP no console (pendente: verificar no navegador, review R-01)
+- [x] O app funciona em `npm run build && npm start` sem erro de CSP no console (verificado no Chrome em 2026-10-10, REVIEW-T-36-2026-10-10-round2)
 
 **Testes a escrever:**
 - *Unit:* `CA-41 — a configuração de headers cobre todas as rotas com os quatro cabeçalhos`
@@ -1365,7 +1365,7 @@ Middleware do Next.js que aplica, só em `POST /api/auth/login`, um limite de 10
 
 #### T-38 — Criar o cliente HTTP, o contexto de sessão e o AppShell por perfil
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Alta
 - **Depende de:** T-11, T-35
 - **Implementa:** RN-39, RN-54
@@ -1382,9 +1382,9 @@ Middleware do Next.js que aplica, só em `POST /api/auth/login`, um limite de 10
 Tudo em client components (ADR-002). O cliente HTTP chama só caminhos relativos `/api/…`, nunca guarda token, e trata 401 redirecionando para `/login` com o motivo "sessão expirada". O contexto de sessão guarda nome, perfil e dia operacional vindos de `/api/auth/me`. O `AppShell` mostra o topo em tomate com título, usuário e perfil e **Sair** (que faz `POST /api/auth/logout` e leva a `UI-01.saiu`), e a navegação inferior por perfil: Operador com Registrar e Minhas vendas; ADMIN com Registrar, Vendas, Fechamento, Cardápio e Mais. O `MenuMais` abre o painel com os itens da SPEC-UI. Rota de ADMIN aberta pelo Operador mostra `AcessoNegado` com "Voltar ao registro".
 
 **Critério de aceite (testável):**
-- [ ] A navegação muda por perfil exatamente como na SPEC-UI (seção 5, `AppShell`)
-- [ ] Sair faz `POST`, e o próximo acesso cai no login
-- [ ] O Operador abrindo `/vendas` vê `AcessoNegado`, sem chamar a API de ADMIN
+- [x] A navegação muda por perfil exatamente como na SPEC-UI (seção 5, `AppShell`)
+- [x] Sair faz `POST`, e o próximo acesso cai no login
+- [x] O Operador abrindo `/vendas` vê `AcessoNegado`, sem chamar a API de ADMIN
 
 **Testes a escrever:**
 - *Unit:* `AppShell mostra a navegação do Operador`, `AppShell mostra a navegação do ADMIN e o Mais`, `Sair chama POST /api/auth/logout`, `rota de ADMIN mostra AcessoNegado ao Operador`, `401 redireciona para o login com sessão expirada`
@@ -1396,7 +1396,7 @@ Tudo em client components (ADR-002). O cliente HTTP chama só caminhos relativos
 
 #### T-39 — Criar os componentes de retorno ao usuário
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-35
 - **Implementa:** RN-48 (mensagens sem detalhe técnico)
@@ -1410,8 +1410,8 @@ Tudo em client components (ADR-002). O cliente HTTP chama só caminhos relativos
 Os componentes de retorno usados em quase todas as telas, no visual da v2. `Aviso` de falha usa `role="alert"`; os demais, `role="status"`. `ErroCarregamento` mostra mensagem neutra e "Tentar de novo". `Etiqueta` cobre Cancelada, Desativado, Herdado, Próprio e Somente leitura.
 
 **Critério de aceite (testável):**
-- [ ] O `Aviso` de falha é anunciado como alerta e permanece até ser tratado
-- [ ] Cada componente usa só os tokens de `globals.css`
+- [x] O `Aviso` de falha é anunciado como alerta e permanece até ser tratado
+- [x] Cada componente usa só os tokens de `globals.css`
 
 **Testes a escrever:**
 - *Unit:* `Aviso de falha tem role alert`, `ErroCarregamento chama o retry`, `Etiqueta renderiza cada variante`
@@ -1423,7 +1423,7 @@ Os componentes de retorno usados em quase todas as telas, no visual da v2. `Avis
 
 #### T-40 — Criar os componentes de interação
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-35
 - **Implementa:** —
@@ -1437,8 +1437,8 @@ Os componentes de retorno usados em quase todas as telas, no visual da v2. `Avis
 `PainelInferior` é o bottom sheet com fundo escurecido, foco preso dentro dele e fechamento por Voltar. `DialogoConfirmacao` descreve a consequência em uma frase. `CampoFormulario` tem rótulo visível, erro junto ao campo e `maxLength` espelhando o schema. `NavegadorData` troca de dia ou de mês com limite superior configurável. Alvos de toque de pelo menos 44 px.
 
 **Critério de aceite (testável):**
-- [ ] O `PainelInferior` prende o foco e devolve ao elemento de origem ao fechar
-- [ ] O `NavegadorData` desabilita "próximo" no limite configurado
+- [x] O `PainelInferior` prende o foco e devolve ao elemento de origem ao fechar
+- [x] O `NavegadorData` desabilita "próximo" no limite configurado
 
 **Testes a escrever:**
 - *Unit:* `PainelInferior prende e devolve o foco`, `NavegadorData respeita o limite superior`, `CampoFormulario mostra o erro junto ao campo`
@@ -1450,7 +1450,7 @@ Os componentes de retorno usados em quase todas as telas, no visual da v2. `Avis
 
 #### T-41 — Implementar a tela Entrar
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-38, T-39, T-40
 - **Implementa:** RN-38, RN-54
@@ -1464,8 +1464,8 @@ Os componentes de retorno usados em quase todas as telas, no visual da v2. `Avis
 Formulário de usuário e senha com Entrar de 64 px. Qualquer 401 mostra a mensagem única "Usuário ou senha inválidos. Se o problema continuar, fale com o responsável." (RN-38); 429 mostra a mensagem do limite de ritmo; o motivo vindo do redirecionamento mostra `sessaoExpirada` ou `saiu`. Enquanto envia, informa que a primeira conexão do dia pode demorar. Sucesso leva a `/registrar` para os dois perfis.
 
 **Critério de aceite (testável):**
-- [ ] Os oito estados da UI-01 renderizam como na SPEC-UI
-- [ ] A mensagem de credencial inválida é idêntica para qualquer 401
+- [x] Os oito estados da UI-01 renderizam como na SPEC-UI
+- [x] A mensagem de credencial inválida é idêntica para qualquer 401
 
 **Testes a escrever:**
 - *Unit:* `mostra a mensagem única para 401`, `mostra o aviso de limite para 429`, `mostra "Você saiu." depois de Sair`, `sucesso leva ao registro`
@@ -1477,7 +1477,7 @@ Formulário de usuário e senha com Entrar de 64 px. Qualquer 401 mostra a mensa
 
 #### T-42 — Implementar a grade de registro de venda
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-22, T-38, T-39
 - **Implementa:** RN-09, RN-11, RN-19
@@ -1493,9 +1493,9 @@ Formulário de usuário e senha com Entrar de 64 px. Qualquer 401 mostra a mensa
 Busca `GET /api/cardapio/vigente` ao abrir e ao tocar "↻ Atualizar" — sem atualização automática. Uma linha por prato em ordem alfabética, colunas fixas PF à esquerda e Marmita à direita, célula vaga quando o formato não existe, preço abaixo do formato, botões de 64 px. Herdado mostra a marca "Herdado de DD/MM" e, para o ADMIN, o `AvisoCardapioHerdado` com "Revisar cardápio", também no `AppShell` das outras telas. Vazio: Operador vê "Chame o responsável…", ADMIN vê "Montar cardápio".
 
 **Critério de aceite (testável):**
-- [ ] Sem cardápio algum, nenhum item é tocável e a mensagem depende do perfil (CA-10)
+- [x] Sem cardápio algum, nenhum item é tocável e a mensagem depende do perfil (CA-10)
 - [ ] Com 6 pratos (12 itens), a grade cabe sem rolagem em 375 × 667 (PRD §14 — conferido na T-57)
-- [ ] O ADMIN vê o aviso de herdado; o Operador vê só a marca
+- [x] O ADMIN vê o aviso de herdado; o Operador vê só a marca
 
 **Testes a escrever:**
 - *Unit:* `CA-10 — primeiro uso mostra estado vazio sem itens tocáveis`, `grade ordena pratos e fixa as colunas PF e Marmita`, `herdado mostra a data de origem e o aviso só ao ADMIN`
@@ -1507,7 +1507,7 @@ Busca `GET /api/cardapio/vigente` ao abrir e ao tocar "↻ Atualizar" — sem at
 
 #### T-43 — Implementar o painel de confirmação e o envio otimista
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Alta
 - **Depende de:** T-26, T-40, T-42
 - **Implementa:** RN-13, RN-14, RN-18
@@ -1523,9 +1523,9 @@ Busca `GET /api/cardapio/vigente` ao abrir e ao tocar "↻ Atualizar" — sem at
 Tocar um item abre o `PainelInferior` com quantidade 1 (RN-13). O `SeletorQuantidade` só tem `−` e `+`, sem teclado, na faixa 1–20; em 20, o `+` desabilita e aparece a orientação (RN-14). Tocar Confirmar gera a chave com `crypto.randomUUID()` (RN-18), desabilita o botão, fecha o painel, mostra o toast "✓ Registrado: …" **antes** da resposta e envia `POST /api/vendas` sem bloquear a grade — vários envios podem estar em voo. Um 422 mostra `.recusado` com "Atualizar cardápio" e sem Reenviar.
 
 **Critério de aceite (testável):**
-- [ ] O toast de registrado aparece antes da resposta do servidor (CA-01); a requisição leva quantidade 1 e uma chave nova
-- [ ] Incrementar para 3 envia quantidade 3 (CA-02); em 20 o `+` desabilita e informa o limite (CA-05)
-- [ ] Um 422 mostra `.recusado`, sem Reenviar
+- [x] O toast de registrado aparece antes da resposta do servidor (CA-01); a requisição leva quantidade 1 e uma chave nova
+- [x] Incrementar para 3 envia quantidade 3 (CA-02); em 20 o `+` desabilita e informa o limite (CA-05)
+- [x] Um 422 mostra `.recusado`, sem Reenviar
 
 **Testes a escrever:**
 - *Unit:* `CA-01 — confirma o registro sem aguardar o servidor`, `CA-02 — envia a quantidade ajustada`, `CA-05 — mais desabilita em 20 e informa o limite`, `422 mostra recusado sem reenviar`
@@ -1537,7 +1537,7 @@ Tocar um item abre o `PainelInferior` com quantidade 1 (RN-13). O `SeletorQuanti
 
 #### T-44 — Guardar a venda com falha como pendência e oferecer reenvio e descarte
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Alta
 - **Depende de:** T-43
 - **Implementa:** RN-56
@@ -1553,9 +1553,9 @@ Tocar um item abre o `PainelInferior` com quantidade 1 (RN-13). O `SeletorQuanti
 Quando o envio falha por rede, a venda vira pendência em `sessionStorage` — sobrevive a recarregar, some ao fechar a aba — com item, quantidade, **a mesma chave de idempotência**, o usuário e o dia operacional vindo do servidor. O `AvisoFalhaEnvio` é vermelho, persistente, com `role="alert"`, "Venda NÃO registrada — sem conexão", e lista cada pendência com Reenviar (mesma chave) e Descartar (com confirmação). Com pendência, fechar a aba dispara o aviso do navegador (`beforeunload`). A grade continua usável.
 
 **Critério de aceite (testável):**
-- [ ] Sem rede, confirmar mostra o aviso persistente com Reenviar, e a venda não entra no fechamento (CA-04)
-- [ ] Reenviar usa a mesma chave; descartar pede confirmação, remove a pendência e não envia nada (CA-58)
-- [ ] A pendência sobrevive a recarregar a página
+- [x] Sem rede, confirmar mostra o aviso persistente com Reenviar, e a venda não entra no fechamento (CA-04)
+- [x] Reenviar usa a mesma chave; descartar pede confirmação, remove a pendência e não envia nada (CA-58)
+- [x] A pendência sobrevive a recarregar a página
 
 **Testes a escrever:**
 - *Unit:* `CA-04 — falha de rede não é silenciada e oferece reenviar`, `CA-58 — pendência descartada não é enviada`, `reenvio usa a mesma chave`, `pendência sobrevive a recarregar`
@@ -1567,7 +1567,7 @@ Quando o envio falha por rede, a venda vira pendência em `sessionStorage` — s
 
 #### T-45 — Prender a pendência ao usuário e ao dia operacional
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-44
 - **Implementa:** RN-56
@@ -1582,8 +1582,8 @@ Quando o envio falha por rede, a venda vira pendência em `sessionStorage` — s
 Ao abrir a tela, cada pendência é conferida contra o usuário autenticado e o dia operacional devolvido pelo servidor. Mesmo usuário e mesmo dia: continua pendente e pode ser reenviada. Outro usuário ou outro dia: é descartada **sem enviar**, com o aviso `.pendenciaDescartada` mostrando o item e a origem. Um envio que volta 401 leva a `.sessaoExpirada`: a venda fica pendente para o mesmo usuário reenviar depois de entrar de novo.
 
 **Critério de aceite (testável):**
-- [ ] "joao" com sessão expirada entra de novo e ainda pode reenviar a pendência; se "maria" entrar no lugar, a pendência é descartada com aviso e nada é enviado em nome dela (CA-59)
-- [ ] Uma pendência de 22/09 às 23:58, com o servidor já em 23/09, é descartada com aviso e não é enviada (CA-60)
+- [x] "joao" com sessão expirada entra de novo e ainda pode reenviar a pendência; se "maria" entrar no lugar, a pendência é descartada com aviso e nada é enviado em nome dela (CA-59)
+- [x] Uma pendência de 22/09 às 23:58, com o servidor já em 23/09, é descartada com aviso e não é enviada (CA-60)
 
 **Testes a escrever:**
 - *Unit:* `CA-59 — pendência sobrevive à sessão expirada só para o mesmo usuário`, `CA-60 — pendência de um dia não é enviada no dia seguinte`, `401 no envio mostra sessão expirada`
@@ -1595,7 +1595,7 @@ Ao abrir a tela, cada pendência é conferida contra o usuário autenticado e o 
 
 #### T-46 — Implementar Minhas vendas de hoje
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Baixa
 - **Depende de:** T-29, T-38, T-39
 - **Implementa:** RN-40
@@ -1610,7 +1610,7 @@ Ao abrir a tela, cada pendência é conferida contra o usuário autenticado e o 
 Lista das próprias vendas do dia, com horário, item, formato e quantidade; cancelada riscada com a etiqueta Cancelada. Sem preço nem valor, também para o ADMIN (lacuna 15). `LinhaVenda` já nasce com a variante ADMIN (autor, preço, valor) para a T-47.
 
 **Critério de aceite (testável):**
-- [ ] Nenhum preço ou valor aparece na tela (CA-36); a venda cancelada aparece marcada (CA-54)
+- [x] Nenhum preço ou valor aparece na tela (CA-36); a venda cancelada aparece marcada (CA-54)
 
 **Testes a escrever:**
 - *Unit:* `CA-36 — lista não mostra preço nem valor`, `CA-54 — venda cancelada aparece marcada`
@@ -1622,7 +1622,7 @@ Lista das próprias vendas do dia, com horário, item, formato e quantidade; can
 
 #### T-47 — Implementar Vendas da data e o cancelamento
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-30, T-40, T-46
 - **Implementa:** RN-21, RN-26, RN-51
@@ -1637,8 +1637,8 @@ Lista das próprias vendas do dia, com horário, item, formato e quantidade; can
 Lista de todas as vendas da data com `NavegadorData` (limite: hoje), totais sem as canceladas e, em cada venda ativa, "Cancelar". O diálogo pede o motivo (obrigatório, até 200 caracteres), mostra a consequência e trata 409 de venda já cancelada.
 
 **Critério de aceite (testável):**
-- [ ] A lista mostra autor, preço, valor e as canceladas marcadas com quem, quando e motivo (CA-50)
-- [ ] Cancelar sem motivo não envia; o cancelamento concluído atualiza a lista e os totais
+- [x] A lista mostra autor, preço, valor e as canceladas marcadas com quem, quando e motivo (CA-50)
+- [x] Cancelar sem motivo não envia; o cancelamento concluído atualiza a lista e os totais
 
 **Testes a escrever:**
 - *Unit:* `CA-50 — mostra todas as vendas com a cancelada marcada`, `cancelar exige motivo`, `409 mostra jaCancelada`
@@ -1650,7 +1650,7 @@ Lista de todas as vendas da data com `NavegadorData` (limite: hoje), totais sem 
 
 #### T-48 — Implementar o Fechamento do dia
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-33, T-38, T-39, T-40
 - **Implementa:** RN-29, RN-33, RN-61
@@ -1664,8 +1664,8 @@ Lista de todas as vendas da data com `NavegadorData` (limite: hoje), totais sem 
 `SeletorPeriodo` em Dia, `NavegadorData` com limite em hoje, blocos de faturamento (PF, Marmita e total em destaque tomate), unidades por formato e total, proteína consumida por tipo em gramas e kg, e tabela por item. Data passada com cancelamentos posteriores mostra o aviso com quem, quando e o motivo, e o atalho para a lista de vendas da data.
 
 **Critério de aceite (testável):**
-- [ ] Os números exibidos batem com a resposta da API, formatados em PT-BR
-- [ ] Data com cancelamento posterior mostra o aviso e o atalho para a UI-05 (CA-67)
+- [x] Os números exibidos batem com a resposta da API, formatados em PT-BR
+- [x] Data com cancelamento posterior mostra o aviso e o atalho para a UI-05 (CA-67)
 
 **Testes a escrever:**
 - *Unit:* `CA-67 — mostra cancelamento posterior com autor e motivo`, `formata gramas com kg`, `mostra estado vazio sem vendas`
@@ -1677,7 +1677,7 @@ Lista de todas as vendas da data com `NavegadorData` (limite: hoje), totais sem 
 
 #### T-49 — Implementar o Fechamento do mês
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Baixa
 - **Depende de:** T-34, T-48
 - **Implementa:** RN-55
@@ -1692,7 +1692,7 @@ Lista de todas as vendas da data com `NavegadorData` (limite: hoje), totais sem 
 `SeletorPeriodo` em Mês troca o `NavegadorData` para granularidade de mês e mostra os mesmos blocos do dia, mais a quebra por dia com unidades e faturamento de cada dia com venda. O mês corrente vem marcado como parcial.
 
 **Critério de aceite (testável):**
-- [ ] Agosto exibe os totais e a quebra por dia do CA-57
+- [x] Agosto exibe os totais e a quebra por dia do CA-57
 
 **Testes a escrever:**
 - *Unit:* `CA-57 — mostra a quebra por dia do mês`
@@ -1704,7 +1704,7 @@ Lista de todas as vendas da data com `NavegadorData` (limite: hoje), totais sem 
 
 #### T-50 — Implementar o Cardápio da data
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Alta
 - **Depende de:** T-23, T-38, T-39, T-40
 - **Implementa:** RN-10, RN-50, RN-57
@@ -1718,8 +1718,8 @@ Lista de todas as vendas da data com `NavegadorData` (limite: hoje), totais sem 
 `NavegadorData` sem limite superior. Próprio, herdado (com "Confirmar" e "Montar outro"), vazio e futuro sem cardápio conforme a SPEC-UI. Em edição, todos os itens ativos com checkbox e preço, contador de selecionados e, hoje, o aviso de vendas já registradas. Salvar vazio mostra a validação; sucesso mostra o toast "Cardápio salvo. Avise o balcão…". Data passada é somente leitura.
 
 **Critério de aceite (testável):**
-- [ ] Data passada não oferece nenhuma ação de edição (CA-49); salvar sem itens mostra a validação e não envia (CA-61)
-- [ ] Um erro de envio preserva a seleção
+- [x] Data passada não oferece nenhuma ação de edição (CA-49); salvar sem itens mostra a validação e não envia (CA-61)
+- [x] Um erro de envio preserva a seleção
 
 **Testes a escrever:**
 - *Unit:* `CA-49 — data passada é somente leitura`, `CA-61 — salvar sem itens mostra validação`, `erro de envio preserva a seleção`
@@ -1731,7 +1731,7 @@ Lista de todas as vendas da data com `NavegadorData` (limite: hoje), totais sem 
 
 #### T-51 — Implementar a lista de cadastro e a tela de Proteínas
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-17, T-38, T-39, T-40
 - **Implementa:** RN-04, RN-49, RN-58
@@ -1747,8 +1747,8 @@ Lista de todas as vendas da data com `NavegadorData` (limite: hoje), totais sem 
 `ListaCadastro` é a peça comum às UI-09 a UI-12: lista em ordem alfabética, filtro "Mostrar desativados", Reativar, e formulário no `PainelInferior`. A tela de Proteínas usa a lista, mostra a contagem de pratos ativos por proteína, trata o nome duplicado (com Reativar quando a duplicada está desativada) e a desativação bloqueada com a lista dos pratos e o atalho para a aba deles.
 
 **Critério de aceite (testável):**
-- [ ] Desativar proteína em uso mostra os pratos que impedem e o atalho (CA-62)
-- [ ] Nome duplicado de desativada oferece Reativar em vez de criar
+- [x] Desativar proteína em uso mostra os pratos que impedem e o atalho (CA-62)
+- [x] Nome duplicado de desativada oferece Reativar em vez de criar
 
 **Testes a escrever:**
 - *Unit:* `CA-62 — desativação bloqueada lista os dependentes`, `duplicado desativado oferece reativar`, `filtro mostra desativados`
@@ -1760,7 +1760,7 @@ Lista de todas as vendas da data com `NavegadorData` (limite: hoje), totais sem 
 
 #### T-52 — Implementar as telas de Pratos e de Itens de cardápio
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-19, T-51
 - **Implementa:** RN-02, RN-05, RN-06, RN-12
@@ -1787,7 +1787,7 @@ Pratos: formulário com nome, proteína (só ativas) e gramagem, com a nota "A m
 
 #### T-53 — Implementar a tela de Usuários
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-14, T-51
 - **Implementa:** RN-34, RN-52, RN-60
@@ -1801,8 +1801,8 @@ Pratos: formulário com nome, proteína (só ativas) e gramagem, com a nota "A m
 Lista de operadores com a marca "Bloqueado até HH:MM", Novo operador (nome, usuário até 30 sem espaços, senha inicial com mínimo de 8 indicado no rótulo e a orientação "Entregue a senha ao operador pessoalmente."), Desativar com confirmação, Reativar e Redefinir senha.
 
 **Critério de aceite (testável):**
-- [ ] Conta bloqueada aparece marcada, e Redefinir senha continua disponível nela
-- [ ] O formulário não tem campo de perfil; senha curta mostra a mensagem da SPEC-UI
+- [x] Conta bloqueada aparece marcada, e Redefinir senha continua disponível nela
+- [x] O formulário não tem campo de perfil; senha curta mostra a mensagem da SPEC-UI
 
 **Testes a escrever:**
 - *Unit:* `mostra bloqueado até`, `formulário não tem perfil`, `senha curta mostra a mensagem`
@@ -1814,7 +1814,7 @@ Lista de operadores com a marca "Bloqueado até HH:MM", Novo operador (nome, usu
 
 #### T-54 — Implementar Trocar minha senha
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Baixa
 - **Depende de:** T-14, T-38, T-40
 - **Implementa:** RN-53, RN-60
@@ -1828,7 +1828,7 @@ Lista de operadores com a marca "Bloqueado até HH:MM", Novo operador (nome, usu
 Senha atual, nova senha e repetição. A repetição que não confere dá erro no campo; senha atual incorreta dá erro no campo "Senha atual"; sucesso mostra "Senha alterada.". Só o ADMIN vê a tela (premissa da seção 3).
 
 **Critério de aceite (testável):**
-- [ ] Os estados da UI-13 renderizam como na SPEC-UI; o Operador vê `AcessoNegado`
+- [x] Os estados da UI-13 renderizam como na SPEC-UI; o Operador vê `AcessoNegado`
 
 **Testes a escrever:**
 - *Unit:* `repetição diferente mostra erro`, `senha atual incorreta marca o campo`, `Operador vê AcessoNegado`
@@ -1848,7 +1848,7 @@ Senha atual, nova senha e repetição. A repetição que não confere dá erro n
 
 #### T-55 — Testar a imutabilidade do histórico ponta a ponta
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-19, T-23, T-26, T-33
 - **Implementa:** —
@@ -1875,7 +1875,7 @@ Cenários que cruzam `catalogo`, `vendas` e `relatorios` pela API: trocar o card
 
 #### T-56 — Testar o isolamento por estabelecimento, a reativação com histórico e a ausência de GET que altera estado
 
-- **Status:** Pendente
+- **Status:** Concluído
 - **Complexidade:** Média
 - **Depende de:** T-19, T-30, T-33
 - **Implementa:** RN-41, RN-42
@@ -2180,5 +2180,25 @@ Nenhuma questão em aberto.
 | T-34   | Concluído | 2026-10-09 | `c5b7546` | Arquivos: `relatorios/consultas.py` (`quebra_por_dia`: agrupa por dia operacional com `date(timezone(NOME_FUSO, registrada_em))` no SQL, sem canceladas), `relatorios/leitura.py` (`QuebraDoDia`), `relatorios/schemas.py` (`QuebraDiaListada`, `FechamentoMesListado`), `relatorios/router.py` (`GET /api/fechamento/mes?mes=AAAA-MM`, só ADMIN, padrão o mês corrente, `parcial` quando o mês é o corrente; `_totais` e `_campos_dos_totais` compartilhados com o dia, fechando R-02 da T-33), `tests/relatorios/test_fechamento_mes.py` (novo: CA-57 com cada número do cenário; virada do fuso às 23h30 e 00h30). Review (REVIEW-T-34-2026-10-09): Aprovado com ressalvas; R-01 (Importante, `leitura.py` fora da lista) corrigido no plano; R-02 (teste de mês inválido) e R-03 (anotação de tipo) registrados. **Ponto de validação humana da seção 9 segue aberto: conferir o SQL das agregações contra o PRD (CA-21, CA-22, CA-37, CA-57) antes da T-35.** Testes: 300 passando; ruff limpo; `alembic check` sem diferença.
 | T-35   | Concluído | 2026-10-09 | `345944b` | Arquivos: `web/src/app/globals.css` (novo: tokens do `:root` do protótipo v2 e da seção 2, transição de 160 ms e `prefers-reduced-motion`), `web/src/app/layout.tsx` (Nunito Sans 400/600/700/800 com `next/font/google`, `lang="pt-BR"`), `web/src/lib/formato.ts` (formatadores da seção 9: moeda a partir de texto decimal, `dd/mm`, mês por extenso, gramas com kg a partir de 1.000 g), `web/src/lib/formato.test.ts` (novo). Review (REVIEW-T-35-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (formato `2.100 g (2,1 kg)` é interpretação de "kg ao lado", confirmar com a SPEC) e R-02 (`npm run build` não rodado: depende de rede para a fonte) registrados. Testes da web: 8 passando; typecheck e lint limpos.
 | T-36   | Bloqueado | 2026-10-09 | `188a51d` | Arquivos: `web/next.config.ts` (`headers()` com `cabecalhosDeSeguranca(emDesenvolvimento)`: HSTS, `nosniff`, `DENY`, CSP com `default-src 'self'`, `frame-ancestors 'none'`, sem domínio externo; `unsafe-eval` só em desenvolvimento), `web/src/seguranca.test.ts` (novo: 4 casos). Verificado: `npm run build` passa; `npm start` responde com os quatro cabeçalhos na página e em caminho inexistente (curl). Review (REVIEW-T-36-2026-10-09): **Bloqueado** pelo critério 2, que exige checar o console do navegador e não foi feito; R-01 (Importante) registrado. R-02 (`unsafe-inline` em produção) é sugestão. Para destravar: abrir a página em `npm start` no navegador, conferir o console sem violação de CSP, e voltar a tarefa para `Concluído`.
+| T-36   | Concluído | 2026-10-10 | `fad1abe` | Desbloqueada: verificação no navegador feita com Chrome headless e DevTools em `/login`, `/registrar` e `/vendas` (sem sessão), zero violações de CSP, e o 401 leva a `/login?motivo=sessao-expirada`. Round 2 em REVIEW-T-36-2026-10-10-round2: aprovado com ressalvas; `unsafe-inline` em `script-src` segue como risco aceito (R-02) |
 | T-37   | Concluído | 2026-10-09 | `55c031c` | Arquivos: `web/src/proxy.ts` (novo: limite de 10 por minuto só em `POST /api/auth/login`, 429 sem consultar a API; a convenção do Next 16 é `proxy`, não `middleware`), `web/src/lib/limite-ritmo.ts` (`LimiteDeRitmo`, janela deslizante por origem), `web/src/lib/limite-ritmo.test.ts` e `web/src/proxy.test.ts` (novos: CA-34 com 11ª tentativa recusada, outras rotas livres, janela de um minuto). Review (REVIEW-T-37-2026-10-09): Aprovado com ressalvas; R-01 (Importante, caminho `proxy.ts` e teste fora da lista) corrigido no plano; R-02 (mapa de origens sem poda) e R-03 (`X-Forwarded-For` depende da Vercel, a confirmar na T-61) registrados. Testes da web: 16 passando; typecheck e lint limpos.
+| T-38   | Concluído | 2026-10-10 | `08e25ee` | Arquivos: `lib/api.ts` (`criarClienteApi`, `api`: caminhos `/api`, `credentials: same-origin`, 401 chama o callback e lança `SessaoExpirada`), `lib/sessao.tsx`, `app/(app)/layout.tsx` (carrega `/api/auth/me`), `components/AppShell/`, `components/MenuMais/`, `components/AcessoNegado/` (com `RotaRestrita`). Fora da lista de arquivos: `app/(app)/vendas/page.tsx` e teste, placeholder com `RotaRestrita` para o critério 3 (a tela real é da T-47). Testes: `api.test.ts` (3), `AppShell.test.tsx` (3), `AcessoNegado.test.tsx` (1), `vendas/page.test.tsx` (1). Decisões: `MenuMais` provisório em painel próprio, a trocar por `PainelInferior` na T-40 (R-04); `/login` ainda não existe, então o 401 cai em 404 até a T-41 (R-03). Checks: typecheck, lint, vitest 24/24 e build verdes. Review: Aprovado com ressalvas (REVIEW-T-38-2026-10-10); R-01 a R-04 são sugestões, a fechar em T-39, T-40 e T-41 |
+| T-39   | Concluído | 2026-10-10 | `6c7cb6c` | Arquivos: `components/Aviso/`, `Toast/`, `Skeleton/`, `EstadoVazio/`, `ErroCarregamento/`, `Etiqueta/` (novos, cada um com `.tsx`, `.module.css` e `.test.tsx`). `Aviso` de falha com `role="alert"`, demais `role="status"`; `Etiqueta` com as cinco variantes. Checks: typecheck, lint e vitest 31/31 verdes. Review: Aprovado (REVIEW-T-39-2026-10-10), sem findings Bloqueantes ou Importantes; R-01 (toast sem fechamento automático) fica para a tela que o usar |
+| T-40   | Concluído | 2026-10-10 | `335809c` | Arquivos: `components/PainelInferior/` (foco preso com Tab cíclico, Escape, restauração ao fechar), `DialogoConfirmacao/`, `CampoFormulario/` (`aria-invalid` e `aria-describedby`), `NavegadorData/` (dia ou mês, "próximo" desabilitado no limite, escolha nativa), `SeletorPeriodo/` (Dia | Mês). Checks: typecheck, lint, build e vitest 34/34 verdes. Review: Aprovado (REVIEW-T-40-2026-10-10), sem findings Bloqueantes ou Importantes |
+| T-41   | Concluído | 2026-10-10 | `8b56f7b` | Arquivos: `app/login/page.tsx` (server component, lê `motivo`), `app/login/FormularioEntrar.tsx` (novo, client component: validação por campo, envio, mensagens por resultado), `login.module.css`, `login.test.tsx`. Fora da lista de arquivos: `FormularioEntrar.tsx`, separado para a página ficar server component e ler `searchParams`. Decisão: o login usa um cliente HTTP sem redirecionamento de sessão expirada, porque um 401 aqui é credencial inválida. Testes: 401, 429, `Você saiu.` e sucesso. Checks: typecheck, lint, build e vitest 38/38 verdes. Review: Aprovado com ressalvas (REVIEW-T-41-2026-10-10); R-01 pede testes dos estados validação, enviando, sessão expirada e erro, a fazer na validação no celular (T-45). Fecha R-03 da T-38 |
+| T-42   | Concluído | 2026-10-10 | `45727b6` | Arquivos: `app/(app)/registrar/page.tsx` e `registrar.module.css` (novos), `components/GradeCardapio/` e `components/AvisoCardapioHerdado/` (novos), `lib/cardapio.ts` (tipos do cardápio). Fora da lista de arquivos: `lib/cardapio.ts` (tipos espelhados da API) e `registrar/registrar.test.tsx`. Desvio: `AppShell` não foi editado; o aviso do ADMIN fica na tela de registro, e o global vem com a T-50 (REVIEW-T-42 R-01). Testes: CA-10 (estado vazio), grade ordenada e colunas, herdado com aviso só ao ADMIN. Checks: typecheck, lint, build e vitest 41/41 verdes. Review: Aprovado com ressalvas (REVIEW-T-42-2026-10-10); R-02 é o toque ainda sem ação, ligado na T-43 |
+| T-43   | Concluído | 2026-10-10 | `f821136` | Arquivos: `components/PainelConfirmacao/`, `components/SeletorQuantidade/` (novos), `lib/vendas.ts` (novo: `gerarChave`, `registrarVenda`), `app/(app)/registrar/page.tsx` (editado: painel, toast, aviso de recusado e de falha de rede). Fora da lista de arquivos: `registrar/registrar.test.tsx` (testes CA-01, CA-02, CA-05 e 422). Decisão: falha de rede mostra "Venda NÃO registrada — sem conexão" sem reenvio, que é da T-44. Checks: typecheck, lint, build e vitest 45/45 verdes. Review: Aprovado com ressalvas (REVIEW-T-43-2026-10-10); R-01 é a T-44 e R-02 são testes de unidade |
+| T-44   | Concluído | 2026-10-10 | `098fe08` | Arquivos: `lib/pendencias.ts` e `lib/pendencias.test.ts` (novos: `sessionStorage` com `try/catch`), `components/AvisoFalhaEnvio/` (novo: `role="alert"`, Reenviar com a mesma chave, Descartar), `app/(app)/registrar/page.tsx` (editado: pendências, reenvio, descarte com `DialogoConfirmacao`, `beforeunload`). Fora da lista de arquivos: `registrar/registrar.test.tsx` (testes CA-04, reenvio, CA-58). Decisões: qualquer erro que não seja 422 vira pendência, para não perder venda; o 422 segue como recusado, sem pendência; o descarte reaproveita `DialogoConfirmacao` (T-40). Checks: typecheck, lint, build e vitest 50/50 verdes. Review: Aprovado com ressalvas (REVIEW-T-44-2026-10-10); R-01 é a T-45 e R-02 é o estado de sessão expirada |
+| T-46   | Concluído | 2026-10-10 | `321600c` | Arquivos: `app/(app)/minhas-vendas/page.tsx` e `minhas-vendas.module.css` (novos), `components/LinhaVenda/` (novo: horário em `America/Sao_Paulo`, cancelada riscada com `Etiqueta`), `lib/vendas.ts` (tipo `VendaDoDia` e `listarMinhasVendas`). Fora da lista de arquivos: `lib/vendas.ts` (já existia desde a T-43) e `minhas-vendas/minhas-vendas.test.tsx`. Decisões: lista ordenada pelo horário, mais recente primeiro; variante ADMIN do `LinhaVenda` fica para a T-47. Checks: typecheck, lint, build e vitest 52/52 verdes. Review: Aprovado com ressalvas (REVIEW-T-46-2026-10-10); R-01 é a variante ADMIN na T-47 e R-02 é o teste do fuso |
+| T-47   | Concluído | 2026-10-10 | `16e4c9e` | Arquivos: `app/(app)/vendas/page.tsx` (substitui o placeholder; `RotaRestrita` por fora, a tela só monta para ADMIN) e `vendas.module.css`, `vendas.test.tsx` (novos), `components/DialogoCancelarVenda/` (novo: motivo obrigatório, até 200 caracteres, 409 mostra jaCancelada), `components/LinhaVenda/` (variante ADMIN: autor, preço, valor, cancelada por/quando/motivo, botão Cancelar), `lib/vendas.ts` (`listarVendasDaData`, `cancelarVenda`). Fora da lista de arquivos: `lib/vendas.ts` e `LinhaVenda` (já citados na T-46), e `vendas.test.tsx`. Checks: typecheck, lint, build e vitest 55/55 verdes; o teste do Operador em `vendas/page.test.tsx` segue passando. Review: Aprovado com ressalvas (REVIEW-T-47-2026-10-10); R-01 é teste do caminho de erro genérico e R-02 é decisão de recarregar os totais do servidor |
+| T-48   | Concluído | 2026-10-10 | `3c9545e` | Arquivos: `app/(app)/fechamento/page.tsx` e `fechamento.module.css` (novos), `lib/fechamento.ts` (novo: tipos e `buscarFechamentoDia`), `fechamento.test.tsx` (novo). Faturamento por formato com total em destaque; unidades por prato com colunas PF, Marm. e Total (pivô só de números da API); proteína em gramas com kg; tabela por item; cancelamento posterior com `Aviso` e atalho para `/vendas?data=`. Desvio: `SeletorPeriodo` não entrou nesta tarefa, para não expor o modo Mês antes da T-49 (REVIEW-T-48 R-01). Checks: typecheck, lint, build e vitest 59/59 verdes numa execução limpa. Review: Aprovado com ressalvas (REVIEW-T-48-2026-10-10); R-02 é o parâmetro de data em `/vendas` e R-03 é prazo de teste sob carga |
+| T-51   | Concluído | 2026-10-10 | `f9458fb` | Arquivos: `components/ListaCadastro/` (novo), `app/(app)/catalogo/layout.tsx` e `catalogo.module.css` (novos: abas, só ADMIN), `app/(app)/catalogo/proteinas/page.tsx` (novo), `lib/proteinas.ts` (novo). Fora da lista de arquivos: `components/DialogoConfirmacao/` (prop `erro` para mostrar a mensagem de dependentes), `lib/api.ts` (`ErroApi` carrega `mensagem` com o `detail` de negócio), `proteinas/proteinas.test.tsx` (CA-62, duplicado e filtro). Checks: typecheck, lint, build e vitest 63/63 verdes. Review: Aprovado com ressalvas (REVIEW-T-51-2026-10-10); R-01 é renomear proteína, fora dos critérios, e R-02 é a checagem de duplicidade no cliente |
+| T-52   | Concluído | 2026-10-10 | `48dbb68` | Arquivos: `catalogo/pratos/page.tsx` e `catalogo/itens/page.tsx` (novos), `lib/cadastro.ts` (novo: clientes de pratos e itens). Pratos: gramagem única para PF e marmita, edição só de gramagem com o aviso, desativação com a mensagem de dependentes. Itens: prato só ativo, formato em seletor, edição só de preço com o aviso, desativação com a consequência. Nos dois: nome repetido de desativado oferece Reativar; lista vazia tem `EstadoVazio`. Testes: edição só de preço, editar gramagem mostra o aviso, desativar item avisa a saída do cardápio, e duplicado desativado oferece reativar nas duas telas. Checks: typecheck, lint, build e vitest 68/68 verdes. Review: Aprovado com ressalvas (REVIEW-T-52-2026-10-10); R-02 (renomear prato) e R-03 (setas no seletor de formato) são sugestões |
+| T-54   | Concluído | 2026-10-10 | `8492579` | Arquivos: `app/(app)/conta/senha/page.tsx`, `senha.module.css` e `senha.test.tsx` (novos). Senha atual, nova e repetição com validação por campo; senha atual incorreta marca o campo com a mensagem da API; sucesso "Senha alterada."; `RotaRestrita` para ADMIN. Checks: typecheck, lint, build e vitest 71/71 verdes. Review: Aprovado com ressalvas (REVIEW-T-54-2026-10-10); R-01 e R-02 são sugestões (checagem de 72 bytes no cliente) |
+| T-56   | Concluído | 2026-10-10 | `6eb348c` | Arquivos novos: `api/tests/integracao/test_isolamento.py` (CA-33 nas consultas e repositórios; CA-47 pela API) e `test_rotas.py` (inventário: nenhum GET altera estado, nenhum PUT). Checks: pytest 308/308 verdes, ruff limpo. Review: Aprovado com ressalvas (REVIEW-T-56-2026-10-10). R-01 (Importante): a API não atende dois estabelecimentos, então o CA-33 só vale na camada de consulta; decisão pendente do dono do produto. R-02: renovação de sessão em GET é exceção a confirmar |
+| T-45   | Concluído | 2026-10-13 | `0e3f9cb` | Arquivos: `lib/pendencias.ts` (`conferirPendencias`), `app/(app)/registrar/page.tsx` (conferência ao abrir, aviso `.pendenciaDescartada` com Entendi, `.sessaoExpirada` com grade desabilitada, gravação síncrona no 401) e testes. Decisão: a pendência é presa ao **login**, não ao nome (nome pode se repetir; RN-60); por isso `GET /api/auth/me` passou a devolver `login` e o `ProvedorSessao` o recebe (arquivos fora da lista da tarefa: `api/app/identidade/schemas.py`, `test_autenticacao.py`, `lib/sessao.tsx`, `(app)/layout.tsx` e 11 testes). Origem do aviso sem dia da semana (R-03). Checks: web typecheck, lint, build e vitest 86/86; API ruff e pytest 308/308. Review: Aprovado com ressalvas (REVIEW-T-45-2026-10-13); R-01 Importante corrigido, R-02 a R-04 sugestões. **Ponto de validação humana (seção 9): testar o caminho crítico no celular** |
+| T-55   | Concluído | 2026-10-10 | `6eb348c` | Arquivo novo: `api/tests/integracao/test_imutabilidade.py` (+ `__init__.py`), com os quatro testes CA-09, CA-11, CA-12 e CA-13 pela API, contra o PostgreSQL real. Checks: pytest 308/308 verdes, ruff check e format limpos. Review: Aprovado (REVIEW-T-55-2026-10-10) |
+| T-53   | Concluído | 2026-10-10 | `d1c211c` | Arquivos: `app/(app)/usuarios/page.tsx` e `usuarios.test.tsx` (novos). Lista de operadores com "Bloqueado até HH:MM" (fuso `America/Sao_Paulo`), cadastro sem campo de perfil, senha inicial com mínimo de 8, desativação com confirmação, reativação e redefinição de senha também na conta bloqueada. Desvio: a redefinição usa a ação "Editar" da `ListaCadastro` (REVIEW-T-53 R-01); toast de sucesso fica para depois (R-02). Checks: typecheck, lint, build e vitest 74/74 verdes. Review: Aprovado com ressalvas (REVIEW-T-53-2026-10-10) |
+| T-49   | Concluído | 2026-10-10 | `3bd6143` | Arquivos: `app/(app)/fechamento/page.tsx` (editado: modo Mês com `SeletorPeriodo` e `NavegadorData` em mês, limite no mês corrente, título parcial), `components/QuebraPorDia/` (novo: tabela Por dia, cada dia abre o fechamento), `lib/fechamento.ts` (`buscarFechamentoMes`, tipos do mês). Teste: CA-57 (quebra por dia do mês). Checks: typecheck, lint, build e vitest 60/60 verdes. Review: Aprovado com ressalvas (REVIEW-T-49-2026-10-10); R-01 é teste de ida e volta entre dia e mês, R-02 confirma a ausência de "Ver vendas desta data" no mês, como pede a SPEC-UI |
+| T-50   | Concluído | 2026-10-10 | `2a29bfa` | Arquivos: `app/(app)/cardapio/page.tsx`, `cardapio.module.css`, `cardapio.test.tsx` (novos), `lib/cardapio.ts` (tipos do cardápio do ADMIN), `components/AppShell/AppShell.tsx` (aviso de herdado ao ADMIN nas demais telas, fecha REVIEW-T-42 R-01). Testes: CA-49, CA-61 e erro de envio preserva a seleção. Checks: typecheck, lint, build e vitest 78/78 verdes. Review: Aprovado com ressalvas (REVIEW-T-50-2026-10-10); R-01 pede testes dos estados herdado e sucesso, R-02 centraliza a regra de mensagem de erro |
 | T-31   | Concluído | 2026-10-09 | `a1f3379` | Arquivos: `relatorios/consultas.py` (novo: `unidades_por_item` agrupa por item de cardápio, prato e formato; `unidades_por_prato` soma os formatos; `total_unidades` e `proteina_por_tipo` somam no SQL; todas com filtro de estabelecimento, intervalo UTC do `DiaOperacional` e `cancelada_em IS NULL`), `relatorios/schemas.py` (novo: `UnidadesPorItem`, `UnidadesPorPrato`, `ProteinaConsumida` como dataclasses de leitura, não contrato HTTP; ver review R-01), `tests/relatorios/test_fechamento_unidades.py` (novo: CA-19, CA-20, CA-21, CA-22 e cancelada fora dos totais, contra o banco real), `tests/relatorios/__init__.py` (vazio). Review (REVIEW-T-31-2026-10-09): Aprovado com ressalvas, sem bloqueante nem importante; R-01 (nome `schemas.py` para formas de leitura, decidir na T-33) e R-02 (anotação de tipo do helper) registrados. Ponto de validação humana (revisar o SQL depois da T-34, seção 9) segue. Testes: 291 passando; ruff limpo; `alembic check` sem diferença.

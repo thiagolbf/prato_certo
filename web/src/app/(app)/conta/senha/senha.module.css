@@ -1,0 +1,33 @@
+.bloco {
+  display: grid;
+  gap: 16px;
+}
+
+.titulo {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+
+.formulario {
+  display: grid;
+  gap: 14px;
+}
+
+.salvar {
+  min-height: 64px;
+  border: 0;
+  border-radius: var(--r);
+  background: var(--pri);
+  color: var(--on-pri);
+  font: inherit;
+  font-size: 1.125rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.salvar:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}

@@ -1,0 +1,99 @@
+.bloco,
+.bloco2 {
+  display: grid;
+  gap: 12px;
+}
+
+.titulo {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+
+.subtitulo {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.grade2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.metrica {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--paper);
+}
+
+.metrica span {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.metrica strong {
+  color: var(--ink);
+  font-size: 1.125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.destaque {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 14px 16px;
+  border-radius: var(--r-lg);
+  background: var(--pri);
+  color: var(--on-pri);
+}
+
+.destaque strong {
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.totalUnidades {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.tabela th,
+.tabela td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  color: var(--ink);
+}
+
+.tabela th {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+}
+
+.tabela td:last-child,
+.tabela th:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.vazio {
+  margin: 0;
+  color: var(--muted);
+}

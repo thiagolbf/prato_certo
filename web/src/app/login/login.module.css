@@ -1,0 +1,44 @@
+.bloco {
+  min-height: 100dvh;
+  display: grid;
+  align-content: center;
+  gap: 16px;
+  padding: 24px 16px;
+  background: var(--canvas);
+}
+
+.titulo {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.75rem;
+  font-weight: 800;
+}
+
+.formulario {
+  display: grid;
+  gap: 16px;
+}
+
+.entrar {
+  min-height: 64px;
+  border: 0;
+  border-radius: var(--r);
+  background: var(--pri);
+  color: var(--on-pri);
+  font: inherit;
+  font-size: 1.125rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.entrar:disabled {
+  background: var(--pri-press);
+  cursor: progress;
+}
+
+.aguarde {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  text-align: center;
+}

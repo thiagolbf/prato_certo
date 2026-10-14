@@ -1,0 +1,73 @@
+.aviso {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--errline);
+  border-radius: var(--r);
+  background: var(--errbg);
+  color: var(--err);
+}
+
+.titulo {
+  margin: 0;
+  font-weight: 800;
+}
+
+.instrucao {
+  margin: 0;
+  font-weight: 600;
+}
+
+.lista {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: var(--r-sm);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.descricao {
+  font-weight: 700;
+}
+
+.acoes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.reenviar,
+.descartar {
+  min-height: 48px;
+  border-radius: var(--r);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.reenviar {
+  border: 0;
+  background: var(--pri);
+  color: var(--on-pri);
+}
+
+.descartar {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.reenviar:disabled,
+.descartar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

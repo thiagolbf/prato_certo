@@ -1,0 +1,35 @@
+.etiqueta {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cancelada,
+.desativado {
+  color: var(--err);
+  background: var(--errbg);
+  border-color: var(--errline);
+}
+
+.herdado {
+  color: var(--warn);
+  background: var(--warnbg);
+  border-color: var(--warnline);
+}
+
+.proprio {
+  color: var(--ok);
+  background: var(--okbg);
+  border-color: var(--okline);
+}
+
+.somenteLeitura {
+  color: var(--info);
+  background: var(--infobg);
+  border-color: var(--infoline);
+}

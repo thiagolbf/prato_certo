@@ -1,0 +1,24 @@
+.segmentos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 4px;
+  border-radius: var(--r);
+  background: var(--tabs-bg);
+}
+
+.segmento {
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.segmento[aria-pressed="true"] {
+  background: var(--paper);
+  color: var(--pri);
+  box-shadow: var(--shadow);
+}
