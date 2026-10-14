@@ -70,6 +70,13 @@ uv run alembic check                 # acusa modelo e migrations fora de sincron
 - Migrations sempre via Alembic, desde a primeira tabela; toda tabela de domínio tem `estabelecimento_id` (ADR-003)
 - Banco: tabelas no singular, snake_case, em português; chave `BIGINT GENERATED ALWAYS AS IDENTITY`; nomes de constraint pela convenção da `Base` (`app/core/modelo_base.py`); revisões numeradas `000N_<slug>.py`. Todo módulo com modelo é importado em `api/alembic/env.py`, senão o autogenerate o ignora. Testes montam o banco pelas migrations, nunca por `create_all`
 - Testes de cenário do PRD carregam o ID do CA no nome: `test_CA_XX_descricao` na API, `describe('CA-XX — …')` na Web
+- Log: todo logger da aplicação é filho de `app`; dado sensível nunca entra no texto da mensagem, só em `extra` (R-01 da T-05)
+- Senha nova nos schemas usa `SenhaNova`, não `TextoLiteral` com `min_length` solto (T-09)
+- Dependência autenticada escreve (renova a sessão em uso): a transação precisa ser commitada; fixture de teste com `yield` que grava usa `scope="function"` (T-10, T-11)
+- Rota de ADMIN declara `dependencies=[Depends(exige_admin)]` na própria rota; leitura de qualquer logado usa `Depends(usuario_autenticado)` (T-22)
+- O service devolve ao router um objeto de leitura (`VendaLeitura`, `ResultadoRegistro`), nunca a entidade (T-25)
+- Web: identidade da sessão é o `login` (único), nunca o `nome`, que pode se repetir (T-45)
+- Armadilhas locais: depois de `npm run build`, apague `web/.next` antes do `npm run dev` (senão 404 em tudo); o cookie de sessão é `Secure`, então `curl`/`httpx` por http precisam repassar o `Cookie` na mão
 
 ## Restrições
 
